@@ -1,5 +1,5 @@
-run_id=30577055701
-run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30577055701
+run_id=30577261970
+run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30577261970
 apply=success
 install=success
 format=success
@@ -38,7 +38,7 @@ db_test=skipped
 
 ===== /tmp/install.log =====
 
-added 260 packages, and audited 264 packages in 9s
+added 260 packages, and audited 264 packages in 7s
 
 80 packages are looking for funding
   run `npm fund` for details
@@ -50,126 +50,126 @@ npm warn allow-scripts
 npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
 
 ===== /tmp/format.log =====
-apps/web/src/components/app-shell.tsx 73ms
-[90mapps/web/src/components/ui/page-header.tsx[39m 5ms (unchanged)
-[90mapps/web/src/components/ui/panel.tsx[39m 6ms (unchanged)
-apps/web/src/components/ui/progress-bar.tsx 4ms
-apps/web/src/components/ui/stat-card.tsx 5ms
-[90mapps/web/src/components/ui/status-badge.tsx[39m 2ms (unchanged)
-[90mapps/web/src/components/ui/toolbar.tsx[39m 4ms (unchanged)
-apps/web/src/data/mock-data.ts 19ms
-apps/web/src/features/admin/admin-api.ts 6ms
-[90mapps/web/src/features/auth/auth-context.tsx[39m 17ms (unchanged)
-apps/web/src/features/auth/protected-route.tsx 4ms
-apps/web/src/features/catalog/catalog-api.ts 4ms
-apps/web/src/features/clients/clients-api.ts 12ms
-apps/web/src/features/deliveries/deliveries-api.ts 8ms
-apps/web/src/features/finance/finance-api.ts 20ms
-apps/web/src/features/finance/parse-bank-file.ts 49ms
-apps/web/src/features/finance/upload-finance-file.ts 6ms
-apps/web/src/features/imports/imports-api.ts 11ms
-[90mapps/web/src/features/insights/csv-export.ts[39m 3ms (unchanged)
-apps/web/src/features/insights/file-export.ts 34ms
-apps/web/src/features/insights/insights-api.ts 11ms
-apps/web/src/features/payments/payments-api.ts 9ms
-apps/web/src/features/payments/sale-payments-section.tsx 96ms
-apps/web/src/features/payments/upload-payment-files.ts 16ms
-apps/web/src/features/products/compress-image.ts 8ms
-apps/web/src/features/products/product-image.tsx 4ms
-apps/web/src/features/products/products-api.ts 7ms
-apps/web/src/features/products/qr-code.ts 57ms
-[90mapps/web/src/features/products/upload-product-images.ts[39m 18ms (unchanged)
-apps/web/src/features/sales/sales-api.ts 15ms
+[90mapps/web/src/components/ui/toolbar.tsx[39m 11ms (unchanged)
+[90mapps/web/src/data/mock-data.ts[39m 26ms (unchanged)
+[90mapps/web/src/features/admin/admin-api.ts[39m 11ms (unchanged)
+[90mapps/web/src/features/auth/auth-context.tsx[39m 18ms (unchanged)
+[90mapps/web/src/features/auth/protected-route.tsx[39m 4ms (unchanged)
+[90mapps/web/src/features/catalog/catalog-api.ts[39m 7ms (unchanged)
+[90mapps/web/src/features/clients/clients-api.ts[39m 17ms (unchanged)
+[90mapps/web/src/features/deliveries/deliveries-api.ts[39m 14ms (unchanged)
+[90mapps/web/src/features/finance/finance-api.ts[39m 34ms (unchanged)
+[90mapps/web/src/features/finance/parse-bank-file.ts[39m 77ms (unchanged)
+[90mapps/web/src/features/finance/upload-finance-file.ts[39m 7ms (unchanged)
+[90mapps/web/src/features/imports/imports-api.ts[39m 16ms (unchanged)
+[90mapps/web/src/features/insights/csv-export.ts[39m 4ms (unchanged)
+[90mapps/web/src/features/insights/file-export.ts[39m 73ms (unchanged)
+[90mapps/web/src/features/insights/insights-api.ts[39m 16ms (unchanged)
+[90mapps/web/src/features/payments/payments-api.ts[39m 9ms (unchanged)
+[90mapps/web/src/features/payments/sale-payments-section.tsx[39m 153ms (unchanged)
+[90mapps/web/src/features/payments/upload-payment-files.ts[39m 16ms (unchanged)
+[90mapps/web/src/features/products/compress-image.ts[39m 11ms (unchanged)
+[90mapps/web/src/features/products/product-image.tsx[39m 9ms (unchanged)
+[90mapps/web/src/features/products/products-api.ts[39m 15ms (unchanged)
+[90mapps/web/src/features/products/qr-code.ts[39m 72ms (unchanged)
+[90mapps/web/src/features/products/upload-product-images.ts[39m 7ms (unchanged)
+[90mapps/web/src/features/sales/sales-api.ts[39m 10ms (unchanged)
 [90mapps/web/src/features/search/search-api.ts[39m 2ms (unchanged)
-apps/web/src/main.tsx 5ms
-apps/web/src/pages/audit-page.tsx 57ms
-apps/web/src/pages/client-detail-page.tsx 119ms
-apps/web/src/pages/client-form-page.tsx 31ms
-apps/web/src/pages/clients-page.tsx 32ms
-apps/web/src/pages/dashboard-page.tsx 47ms
-apps/web/src/pages/deliveries-page.tsx 27ms
-apps/web/src/pages/delivery-detail-page.tsx 46ms
-apps/web/src/pages/edit-delivery-page.tsx 30ms
-apps/web/src/pages/finance-page.tsx 127ms
-apps/web/src/pages/import-detail-page.tsx 118ms
-apps/web/src/pages/imports-page.tsx 27ms
-apps/web/src/pages/inventory-page.tsx 28ms
-apps/web/src/pages/login-page.tsx 10ms
+[90mapps/web/src/main.tsx[39m 4ms (unchanged)
+[90mapps/web/src/pages/audit-page.tsx[39m 45ms (unchanged)
+[90mapps/web/src/pages/client-detail-page.tsx[39m 146ms (unchanged)
+[90mapps/web/src/pages/client-form-page.tsx[39m 25ms (unchanged)
+[90mapps/web/src/pages/clients-page.tsx[39m 51ms (unchanged)
+[90mapps/web/src/pages/dashboard-page.tsx[39m 40ms (unchanged)
+[90mapps/web/src/pages/deliveries-page.tsx[39m 47ms (unchanged)
+[90mapps/web/src/pages/delivery-detail-page.tsx[39m 34ms (unchanged)
+[90mapps/web/src/pages/edit-delivery-page.tsx[39m 37ms (unchanged)
+[90mapps/web/src/pages/finance-page.tsx[39m 111ms (unchanged)
+[90mapps/web/src/pages/import-detail-page.tsx[39m 152ms (unchanged)
+[90mapps/web/src/pages/imports-page.tsx[39m 36ms (unchanged)
+[90mapps/web/src/pages/inventory-page.tsx[39m 42ms (unchanged)
+[90mapps/web/src/pages/login-page.tsx[39m 9ms (unchanged)
 [90mapps/web/src/pages/module-placeholder-page.tsx[39m 2ms (unchanged)
-apps/web/src/pages/new-delivery-page.tsx 35ms
-apps/web/src/pages/new-import-page.tsx 48ms
-apps/web/src/pages/new-product-page.tsx 44ms
-apps/web/src/pages/new-sale-page.tsx 73ms
-apps/web/src/pages/products-page.tsx 29ms
-apps/web/src/pages/reconciliation-page.tsx 23ms
-apps/web/src/pages/reports-page.tsx 29ms
-apps/web/src/pages/sale-detail-page.tsx 71ms
-apps/web/src/pages/sales-page.tsx 16ms
-apps/web/src/pages/set-password-page.tsx 5ms
-apps/web/src/pages/settings-page.tsx 56ms
-apps/web/src/styles/auth.css 67ms
-apps/web/src/styles/components.css 102ms
+[90mapps/web/src/pages/new-delivery-page.tsx[39m 29ms (unchanged)
+[90mapps/web/src/pages/new-import-page.tsx[39m 34ms (unchanged)
+[90mapps/web/src/pages/new-product-page.tsx[39m 42ms (unchanged)
+[90mapps/web/src/pages/new-sale-page.tsx[39m 62ms (unchanged)
+[90mapps/web/src/pages/products-page.tsx[39m 30ms (unchanged)
+[90mapps/web/src/pages/reconciliation-page.tsx[39m 28ms (unchanged)
+[90mapps/web/src/pages/reports-page.tsx[39m 46ms (unchanged)
+[90mapps/web/src/pages/sale-detail-page.tsx[39m 61ms (unchanged)
+[90mapps/web/src/pages/sales-page.tsx[39m 16ms (unchanged)
+[90mapps/web/src/pages/set-password-page.tsx[39m 5ms (unchanged)
+[90mapps/web/src/pages/settings-page.tsx[39m 63ms (unchanged)
+[90mapps/web/src/styles/auth.css[39m 64ms (unchanged)
+[90mapps/web/src/styles/components.css[39m 104ms (unchanged)
 [90mapps/web/src/styles/global.css[39m 5ms (unchanged)
-apps/web/src/styles/modules.css 269ms
-apps/web/src/styles/responsive.css 78ms
-apps/web/src/styles/shell.css 45ms
-apps/web/src/styles/tokens.css 22ms
-[90mapps/web/tsconfig.app.json[39m 2ms (unchanged)
-apps/web/tsconfig.json 1ms
+[90mapps/web/src/styles/modules.css[39m 207ms (unchanged)
+[90mapps/web/src/styles/responsive.css[39m 59ms (unchanged)
+[90mapps/web/src/styles/shell.css[39m 34ms (unchanged)
+[90mapps/web/src/styles/tokens.css[39m 25ms (unchanged)
+[90mapps/web/tsconfig.app.json[39m 1ms (unchanged)
+[90mapps/web/tsconfig.json[39m 1ms (unchanged)
 [90mapps/web/tsconfig.node.json[39m 1ms (unchanged)
-[90mapps/web/vite.config.ts[39m 4ms (unchanged)
-[90mCHANGELOG_ESTABILIZACION.md[39m 68ms (unchanged)
-[90mdocs/CUMPLIMIENTO_REQUISITOS_V1_1.md[39m 21ms (unchanged)
-docs/dashboard-preview.html 44ms
-docs/DECISIONES_NEGOCIO_V1_1.md 28ms
+[90mapps/web/vite.config.ts[39m 2ms (unchanged)
+[90mCHANGELOG_ESTABILIZACION.md[39m 43ms (unchanged)
+[90mdocs/CUMPLIMIENTO_REQUISITOS_V1_1.md[39m 12ms (unchanged)
+[90mdocs/dashboard-preview.html[39m 47ms (unchanged)
+[90mdocs/DECISIONES_NEGOCIO_V1_1.md[39m 46ms (unchanged)
 [90mdocs/FASE_1_FUNDACION.md[39m 14ms (unchanged)
-[90mdocs/FASE_10_REPORTES_ALERTAS_PUBLICACION.md[39m 10ms (unchanged)
-[90mdocs/FASE_2_SISTEMA_VISUAL.md[39m 10ms (unchanged)
-[90mdocs/FASE_3_CATALOGO_PRODUCTOS_INVENTARIO.md[39m 14ms (unchanged)
-[90mdocs/FASE_4_CLIENTES_VIP.md[39m 15ms (unchanged)
-[90mdocs/FASE_5_VENTAS_RESERVAS_STOCK.md[39m 12ms (unchanged)
-[90mdocs/FASE_6_PAGOS_BOLETAS_PENALIDADES.md[39m 4ms (unchanged)
-[90mdocs/FASE_7_1_EDICION_ENTREGAS.md[39m 6ms (unchanged)
-[90mdocs/FASE_7_ENTREGAS_AGENCIAS.md[39m 10ms (unchanged)
-[90mdocs/FASE_8_1_PROVEEDORES_MONEDAS.md[39m 5ms (unchanged)
-[90mdocs/FASE_8_IMPORTACIONES_PREVENTAS.md[39m 8ms (unchanged)
-[90mdocs/FASE_9_FINANZAS_BANCOS_CONCILIACION.md[39m 7ms (unchanged)
-[90mdocs/GUIA_PUBLICACION.md[39m 11ms (unchanged)
-docs/MATRIZ_TRAZABILIDAD_V1_1.md 35ms
-[90mdocs/NOTIFICACIONES_Y_SCHEDULER.md[39m 5ms (unchanged)
-[90mdocs/PRUEBAS_BASE_DATOS.md[39m 7ms (unchanged)
-[90mdocs/RESPALDO_Y_RESTAURACION.md[39m 4ms (unchanged)
+[90mdocs/FASE_10_REPORTES_ALERTAS_PUBLICACION.md[39m 15ms (unchanged)
+[90mdocs/FASE_2_SISTEMA_VISUAL.md[39m 13ms (unchanged)
+[90mdocs/FASE_3_CATALOGO_PRODUCTOS_INVENTARIO.md[39m 11ms (unchanged)
+[90mdocs/FASE_4_CLIENTES_VIP.md[39m 12ms (unchanged)
+[90mdocs/FASE_5_VENTAS_RESERVAS_STOCK.md[39m 8ms (unchanged)
+[90mdocs/FASE_6_PAGOS_BOLETAS_PENALIDADES.md[39m 5ms (unchanged)
+[90mdocs/FASE_7_1_EDICION_ENTREGAS.md[39m 3ms (unchanged)
+[90mdocs/FASE_7_ENTREGAS_AGENCIAS.md[39m 7ms (unchanged)
+[90mdocs/FASE_8_1_PROVEEDORES_MONEDAS.md[39m 4ms (unchanged)
+[90mdocs/FASE_8_IMPORTACIONES_PREVENTAS.md[39m 6ms (unchanged)
+[90mdocs/FASE_9_FINANZAS_BANCOS_CONCILIACION.md[39m 8ms (unchanged)
+[90mdocs/GUIA_PUBLICACION.md[39m 10ms (unchanged)
+[90mdocs/MATRIZ_TRAZABILIDAD_V1_1.md[39m 23ms (unchanged)
+[90mdocs/NOTIFICACIONES_Y_SCHEDULER.md[39m 8ms (unchanged)
+[90mdocs/PRUEBAS_BASE_DATOS.md[39m 9ms (unchanged)
+[90mdocs/RESPALDO_Y_RESTAURACION.md[39m 3ms (unchanged)
 [90meslint.config.js[39m 5ms (unchanged)
-[90mpackage-lock.json[39m 45ms (unchanged)
+[90mpackage-lock.json[39m 41ms (unchanged)
 [90mpackage.json[39m 1ms (unchanged)
-[90mpackages/shared/package.json[39m 0ms (unchanged)
-packages/shared/src/admin.ts 19ms
-[90mpackages/shared/src/auth.ts[39m 3ms (unchanged)
-packages/shared/src/catalog.ts 50ms
-packages/shared/src/clients.ts 32ms
-packages/shared/src/deliveries.ts 22ms
-packages/shared/src/finance.ts 55ms
+[90mpackages/shared/package.json[39m 1ms (unchanged)
+[90mpackages/shared/src/admin.ts[39m 16ms (unchanged)
+[90mpackages/shared/src/auth.ts[39m 5ms (unchanged)
+[90mpackages/shared/src/catalog.ts[39m 46ms (unchanged)
+[90mpackages/shared/src/clients.ts[39m 30ms (unchanged)
+[90mpackages/shared/src/deliveries.ts[39m 22ms (unchanged)
+[90mpackages/shared/src/finance.ts[39m 41ms (unchanged)
 [90mpackages/shared/src/http.ts[39m 2ms (unchanged)
-packages/shared/src/imports.ts 61ms
+[90mpackages/shared/src/imports.ts[39m 58ms (unchanged)
 [90mpackages/shared/src/index.ts[39m 1ms (unchanged)
-packages/shared/src/insights.ts 38ms
-packages/shared/src/payments.ts 49ms
-packages/shared/src/sales.ts 52ms
+[90mpackages/shared/src/insights.ts[39m 28ms (unchanged)
+[90mpackages/shared/src/payments.ts[39m 61ms (unchanged)
+[90mpackages/shared/src/sales.ts[39m 54ms (unchanged)
 [90mpackages/shared/src/search.ts[39m 3ms (unchanged)
 [90mpackages/shared/tsconfig.json[39m 1ms (unchanged)
-[90mREADME.md[39m 15ms (unchanged)
-[90mrender.yaml[39m 9ms (unchanged)
-scripts/export-backup.mjs 19ms
-scripts/process-notifications.mjs 19ms
-scripts/restore-backup.mjs 6ms
+[90mREADME.md[39m 17ms (unchanged)
+[90mrender.yaml[39m 7ms (unchanged)
+[90mscripts/export-backup.mjs[39m 14ms (unchanged)
+[90mscripts/process-notifications.mjs[39m 18ms (unchanged)
+[90mscripts/restore-backup.mjs[39m 7ms (unchanged)
 [90mscripts/run-db-lint.mjs[39m 3ms (unchanged)
-[90mscripts/test-db-concurrency.mjs[39m 11ms (unchanged)
-scripts/validate-compliance.mjs 6ms
+[90mscripts/test-db-concurrency.mjs[39m 10ms (unchanged)
+[90mscripts/validate-compliance.mjs[39m 6ms (unchanged)
 [90mscripts/validate-db-tests.mjs[39m 4ms (unchanged)
 [90mscripts/validate-migrations.mjs[39m 5ms (unchanged)
-scripts/validate-ui.mjs 4ms
-[90msupabase/migration-archive/README.md[39m 2ms (unchanged)
+[90mscripts/validate-ui.mjs[39m 4ms (unchanged)
+[90msupabase/migration-archive/README.md[39m 3ms (unchanged)
 [90mtsconfig.base.json[39m 1ms (unchanged)
+
+> yukimi-gestion@1.0.0 format:check
+> prettier --check .
+
+Checking formatting...
+All matched files use Prettier code style!
 
 ===== /tmp/verify.log =====
 
@@ -185,9 +185,32 @@ scripts/validate-ui.mjs 4ms
 > prettier --check .
 
 Checking formatting...
-[[33mwarn[39m] apps/api/src/modules/admin/admin.routes.ts
-[[33mwarn[39m] apps/api/src/modules/clients/clients.routes.ts
-[[33mwarn[39m] apps/api/src/modules/finance/finance.routes.ts
-[[33mwarn[39m] apps/api/src/modules/imports/imports.routes.ts
-[[33mwarn[39m] apps/api/src/modules/insights/insights.routes.ts
-[[33mwarn[39m] Code style issues found in 5 files. Run Prettier with --write to fix.
+All matched files use Prettier code style!
+
+> yukimi-gestion@1.0.0 build:shared
+> npm run build -w @yukimi/shared
+
+
+> @yukimi/shared@1.0.0 build
+> tsc -p tsconfig.json
+
+
+> yukimi-gestion@1.0.0 typecheck
+> npm run typecheck -w @yukimi/shared && npm run typecheck -w @yukimi/api && npm run typecheck -w @yukimi/web
+
+
+> @yukimi/shared@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @yukimi/api@1.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+src/modules/finance/supabase-finance.repository.ts(80,58): error TS2552: Cannot find name 'UpdateFinanceCategoryInput'. Did you mean 'CreateFinanceCategoryInput'?
+npm error Lifecycle script `typecheck` failed with error:
+npm error code 2
+npm error path /home/runner/work/yukimi-gestion/yukimi-gestion/apps/api
+npm error workspace @yukimi/api@1.0.0
+npm error location /home/runner/work/yukimi-gestion/yukimi-gestion/apps/api
+npm error command failed
+npm error command sh -c tsc -p tsconfig.json --noEmit
