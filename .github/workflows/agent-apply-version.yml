@@ -32,37 +32,9 @@ jobs:
         run: |
           set -euo pipefail
           exec > >(tee /tmp/apply.log) 2>&1
-          segments=(
-            "4e32f2233ae03105bf13d7862d5e33ef5c38891f .agent-upload/chunk-00"
-            "3c846d891a27fa941b4ed636dab75a656ab5643d .agent-upload/chunk-01a"
-            "cd63ab44d03d0405c40222f9ff4aa3bad1b0a71d .agent-upload/chunk-01b"
-            "835ab673ced16a5509f69061c1157e6caab8ca1d .agent-upload/chunk-02a"
-            "c03741c54dea65d78b9cc6e51c4dc302f46a7b67 .agent-upload/chunk-02b"
-            "c9ffc48839f6136c82488605d1d5360d1376e248 .agent-upload/chunk-03a"
-            "10df13a22697ed40ce84c4dfceca2122add68dc9 .agent-upload/chunk-03b"
-            "3f568132a5a5efe50ac11bb1688639a260bc255c .agent-upload/chunk-04a"
-            "b2afbc48ac15544ff7e5e560b5437fb0aa5a5b65 .agent-upload/chunk-04b"
-            "5b782d95c63a2df6e0f9a21f0e172ddcaf66cd14 .agent-upload/chunk-05a"
-            "63cfb4cc6d58ec3190034504b0724b79a32e44f8 .agent-upload/chunk-05b"
-            "6d7b08a3fc826d2d022321cf9f1fbe10e7d03eef .agent-upload/chunk-06a"
-            "f48df2af5e2f2873a58e2a4c6869efff4dc86269 .agent-upload/chunk-06b"
-            "ba1822de71e514763182e742d1966c660127e427 .agent-upload/chunk-07a"
-            "a9ff00b1b3d1a3f59ecfc2fdd18f80f1e467875a .agent-upload/chunk-07b"
-            "93be4b52292df536f9689e1186086b56d9c42193 .agent-upload/chunk-08a"
-            "76b2aba08cfd79322b7ac002fd35214bd3914d66 .agent-upload/chunk-08b"
-            "8c0b5596b0e594e153b52255983623bb4e36dc82 .agent-upload/chunk-09"
-            "9b83dd31d9cf2c084ec225d8c2a9167fe9bd4d83 .agent-upload/chunk-10a"
-            "c41bcab6fdfd0921f6b675c8cd01230dce0c475c .agent-upload/chunk-10b"
-            "bc3c63ac7a955772ae0e6fe3731bbbe7127a5a62 .agent-upload/chunk-11"
-            "fce6c1535aa11009dfea62f968c66d3a5e668f9e .agent-upload/chunk-12"
-            "5ed759824509c6d34c50c21a63c4a389bfdb618d .agent-upload/chunk-13"
-            "fa1531681815e9822df942a2b3d96848ac0574b4 .agent-upload/chunk-14"
-            "af23741ffa8886ce2734c3a65719180e335001a0 .agent-upload/chunk-15"
-          )
           : > /tmp/yukimi-delta.b64
-          for segment in "${segments[@]}"; do
-            expected_sha="${segment%% *}"
-            file="${segment#* }"
+          while read -r expected_sha file; do
+            [ -n "$expected_sha" ] || continue
             test -f "$file"
             actual_sha="$(git hash-object "$file")"
             echo "$file expected=$expected_sha actual=$actual_sha"
@@ -71,7 +43,7 @@ jobs:
               exit 1
             fi
             cat "$file" >> /tmp/yukimi-delta.b64
-          done
+          done < .agent-upload/MANIFEST
           actual_characters="$(wc -c < /tmp/yukimi-delta.b64)"
           if [ "$actual_characters" -ne 108272 ]; then
             echo "::error::El paquete reconstruido tiene $actual_characters caracteres; se esperaban 108272."
