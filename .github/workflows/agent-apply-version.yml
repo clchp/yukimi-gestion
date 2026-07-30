@@ -53,6 +53,7 @@ jobs:
           echo "efef34a615d760d60deb69debc21c67ea82f4c118d6b2e293b721f3b74048a19  /tmp/yukimi-delta.tar.xz" | sha256sum -c -
           xz -t /tmp/yukimi-delta.tar.xz
           tar -xJf /tmp/yukimi-delta.tar.xz -C .
+          rsync -a .agent-upload/fixes/ ./
           rm -rf .agent-upload .github/workflows/agent-apply-version.yml
       - name: Instalar dependencias
         id: install
@@ -60,6 +61,12 @@ jobs:
         run: |
           set -o pipefail
           npm ci 2>&1 | tee /tmp/install.log
+      - name: Formatear cambios
+        id: format
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run format 2>&1 | tee /tmp/format.log
       - name: Validar aplicación completa
         id: verify
         shell: bash
@@ -92,10 +99,11 @@ jobs:
             echo "run_url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo "apply=${{ steps.apply.outcome }}"
             echo "install=${{ steps.install.outcome }}"
+            echo "format=${{ steps.format.outcome }}"
             echo "verify=${{ steps.verify.outcome }}"
             echo "db_start=${{ steps.db_start.outcome }}"
             echo "db_test=${{ steps.db_test.outcome }}"
-            for log in /tmp/apply.log /tmp/install.log /tmp/verify.log /tmp/db-start.log /tmp/db-test.log; do
+            for log in /tmp/apply.log /tmp/install.log /tmp/format.log /tmp/verify.log /tmp/db-start.log /tmp/db-test.log; do
               if [ -f "$log" ]; then
                 echo
                 echo "===== $log ====="
