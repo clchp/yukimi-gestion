@@ -18,13 +18,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Verificar configuración de respaldo
+        id: config
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::El respaldo se omite hasta configurar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Exportar respaldo lógico
+        if: steps.config.outputs.ready == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BACKUP_OUTPUT: backups/yukimi-backup.json
         run: node scripts/export-backup.mjs
       - name: Conservar respaldo como artefacto privado
+        if: steps.config.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: yukimi-backup-${{ github.run_id }}
