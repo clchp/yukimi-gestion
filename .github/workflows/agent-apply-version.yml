@@ -54,6 +54,8 @@ jobs:
           xz -t /tmp/yukimi-delta.tar.xz
           tar -xJf /tmp/yukimi-delta.tar.xz -C .
           rsync -a .agent-upload/fixes/ ./
+          node .agent-apply-fixes.mjs
+          rm -f .agent-apply-fixes.mjs
           rm -rf .agent-upload .github/workflows/agent-apply-version.yml
       - name: Instalar dependencias
         id: install
