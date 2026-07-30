@@ -18,7 +18,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Verificar configuración de notificaciones
+        id: config
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::El worker se omite hasta configurar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Ejecutar scheduler y worker de notificaciones
+        if: steps.config.outputs.ready == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
