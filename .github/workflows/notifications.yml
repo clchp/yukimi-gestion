@@ -1,0 +1,32 @@
+name: Yukimi Notifications
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7 * * * *'
+
+concurrency:
+  group: yukimi-notifications
+  cancel-in-progress: false
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Ejecutar scheduler y worker de notificaciones
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_WEBHOOK_URL: ${{ secrets.EMAIL_WEBHOOK_URL }}
+          PUSH_GATEWAY_URL: ${{ secrets.PUSH_GATEWAY_URL }}
+          PUSH_GATEWAY_TOKEN: ${{ secrets.PUSH_GATEWAY_TOKEN }}
+          NOTIFICATION_WORKER_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node scripts/process-notifications.mjs
