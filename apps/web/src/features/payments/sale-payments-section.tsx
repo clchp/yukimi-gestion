@@ -34,6 +34,8 @@ interface PaymentPartForm {
   referenceNumber: string;
 }
 
+type SensitiveActionType = 'REJECT' | 'REVERSE' | 'WAIVE' | 'ANNUL';
+
 export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed: boolean }) {
   const queryClient = useQueryClient();
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -51,6 +53,13 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptKey, setReceiptKey] = useState(() => crypto.randomUUID());
   const [localWarning, setLocalWarning] = useState<string | null>(null);
+  const [sensitiveAction, setSensitiveAction] = useState<{ type: SensitiveActionType; id: string } | null>(null);
+  const [actionReason, setActionReason] = useState('');
+  const [creditNoteTarget, setCreditNoteTarget] = useState<{ receiptId: string; maxAmount: number } | null>(null);
+  const [creditNoteSeries, setCreditNoteSeries] = useState('BC01');
+  const [creditNoteNumber, setCreditNoteNumber] = useState('');
+  const [creditNoteAmount, setCreditNoteAmount] = useState('');
+  const [creditNoteReason, setCreditNoteReason] = useState('');
 
   const financials = useQuery({ queryKey: ['sale-financials', saleId], queryFn: () => getSaleFinancials(saleId) });
   const support = useQuery({ queryKey: ['payment-support'], queryFn: getPaymentSupportData });
@@ -101,17 +110,20 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
   });
 
   const actionMutation = useMutation({
-    mutationFn: async ({ type, id }: { type: 'CONFIRM' | 'REJECT' | 'REVERSE' | 'WAIVE' | 'ANNUL'; id: string }) => {
+    mutationFn: async ({ type, id, reason }: { type: 'CONFIRM' | SensitiveActionType; id: string; reason?: string }) => {
       if (type === 'CONFIRM') return confirmPayment(id);
-      const promptMessage = type === 'REJECT' ? 'Motivo del rechazo:' : type === 'REVERSE' ? 'Motivo de la reversión:' : type === 'WAIVE' ? 'Motivo de la exoneración:' : 'Motivo de la anulación:';
-      const reason = window.prompt(promptMessage)?.trim();
-      if (!reason) throw new Error('La operación fue cancelada.');
-      if (type === 'REJECT') return rejectPayment(id, reason);
-      if (type === 'REVERSE') return reversePayment(id, reason);
-      if (type === 'WAIVE') return waivePenalty(id, reason);
-      return annulReceipt(id, reason);
+      const normalizedReason = reason?.trim();
+      if (!normalizedReason) throw new Error('El motivo es obligatorio.');
+      if (type === 'REJECT') return rejectPayment(id, normalizedReason);
+      if (type === 'REVERSE') return reversePayment(id, normalizedReason);
+      if (type === 'WAIVE') return waivePenalty(id, normalizedReason);
+      return annulReceipt(id, normalizedReason);
     },
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await invalidate();
+      setSensitiveAction(null);
+      setActionReason('');
+    },
   });
 
   const penaltyMutation = useMutation({ mutationFn: () => calculateLatePenalty(saleId), onSuccess: invalidate });
@@ -146,15 +158,24 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
   });
 
   const creditNoteMutation = useMutation({
-    mutationFn: async ({ receiptId, maxAmount }: { receiptId: string; maxAmount: number }) => {
-      const series = window.prompt('Serie de la nota de crédito:', 'BC01')?.trim();
-      const noteNumber = window.prompt('Número de la nota de crédito:')?.trim();
-      const amountText = window.prompt('Importe de la nota de crédito:', String(maxAmount));
-      const reason = window.prompt('Motivo de la nota de crédito:')?.trim();
-      if (!series || !noteNumber || !amountText || !reason) throw new Error('La nota de crédito fue cancelada.');
-      return createCreditNote(receiptId, { series, noteNumber, issueDate: today(), amount: Number(amountText), reason });
+    mutationFn: async () => {
+      if (!creditNoteTarget) throw new Error('No se seleccionó un comprobante.');
+      return createCreditNote(creditNoteTarget.receiptId, {
+        series: creditNoteSeries.trim(),
+        noteNumber: creditNoteNumber.trim(),
+        issueDate: today(),
+        amount: Number(creditNoteAmount),
+        reason: creditNoteReason.trim(),
+      });
     },
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await invalidate();
+      setCreditNoteTarget(null);
+      setCreditNoteSeries('BC01');
+      setCreditNoteNumber('');
+      setCreditNoteAmount('');
+      setCreditNoteReason('');
+    },
   });
 
   const mutationError = paymentMutation.error ?? actionMutation.error ?? penaltyMutation.error ?? receiptMutation.error ?? creditNoteMutation.error;
@@ -201,19 +222,23 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
         {data.payments.length === 0 ? <div className="empty-state"><strong>Sin pagos registrados</strong><p>El saldo pendiente es {money(data.balanceAmount)}.</p></div> : <div className="payment-card-list">{data.payments.map((payment) => (
           <article className="payment-card" key={payment.id}>
             <div className="payment-card-main"><div className="payment-card-head"><div><strong>{payment.code}</strong><small>{dateTime(payment.receivedAt)} · {payment.createdByName ?? 'Administradora'}</small></div><StatusBadge tone={payment.stateCode === 'CONFIRMED' ? 'success' : payment.stateCode === 'PENDING' ? 'warning' : 'danger'}>{payment.stateCode}</StatusBadge></div><div className="payment-part-summary">{payment.parts.map((part) => <span key={part.id}>{part.paymentMethodName} → {part.financialAccountName}: <b>{money(part.amount)}</b>{part.referenceNumber ? ` · ${part.referenceNumber}` : ''}</span>)}</div>{payment.proofs.map((file) => <a className="file-link" key={file.id} href={file.signedUrl ?? '#'} target="_blank" rel="noreferrer"><Upload size={14} /> {file.originalFilename}</a>)}{payment.rejectionReason ? <p className="text-danger">Rechazo: {payment.rejectionReason}</p> : null}{payment.reversalReason ? <p className="text-danger">Reversión: {payment.reversalReason}</p> : null}</div>
-            <div className="payment-card-amount"><strong>{money(payment.declaredAmount)}</strong><small>Sin boleta: {money(payment.unreceiptedAmount)}</small>{payment.stateCode === 'PENDING' ? <div className="inline-actions"><button className="icon-button success" title="Confirmar" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ type: 'CONFIRM', id: payment.id })}><Check size={16} /></button><button className="icon-button danger" title="Rechazar" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ type: 'REJECT', id: payment.id })}><X size={16} /></button></div> : payment.stateCode === 'CONFIRMED' ? <button className="button button-secondary button-compact" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ type: 'REVERSE', id: payment.id })}><RotateCcw size={15} /> Revertir</button> : null}</div>
+            <div className="payment-card-amount"><strong>{money(payment.declaredAmount)}</strong><small>Sin boleta: {money(payment.unreceiptedAmount)}</small>{payment.stateCode === 'PENDING' ? <div className="inline-actions"><button className="icon-button success" title="Confirmar" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ type: 'CONFIRM', id: payment.id })}><Check size={16} /></button><button className="icon-button danger" title="Rechazar" disabled={actionMutation.isPending} onClick={() => { setSensitiveAction({ type: 'REJECT', id: payment.id }); setActionReason(''); }}><X size={16} /></button></div> : payment.stateCode === 'CONFIRMED' ? <button className="button button-secondary button-compact" disabled={actionMutation.isPending} onClick={() => { setSensitiveAction({ type: 'REVERSE', id: payment.id }); setActionReason(''); }}><RotateCcw size={15} /> Revertir</button> : null}</div>
           </article>
         ))}</div>}
       </Panel>
 
       <Panel title="Boletas y notas de crédito" subtitle="La emisión se realiza manualmente en SUNAT y aquí se registra el número y archivo." action={confirmedUnreceipted.length > 0 ? <button className="button button-primary button-compact" onClick={() => setShowReceiptForm((value) => !value)}><ReceiptText size={16} /> Registrar boleta</button> : undefined}>
         {showReceiptForm ? <form className="receipt-form" onSubmit={(event) => { event.preventDefault(); receiptMutation.mutate(); }}><div className="form-grid form-grid-3"><label className="field"><span>Serie</span><input value={receiptSeries} onChange={(event) => setReceiptSeries(event.target.value.toUpperCase())} required /></label><label className="field"><span>Número</span><input value={receiptNumber} onChange={(event) => setReceiptNumber(event.target.value)} required /></label><label className="field"><span>Fecha de emisión</span><input type="date" value={receiptDate} onChange={(event) => setReceiptDate(event.target.value)} required /></label></div><div className="form-grid form-grid-2"><label className="field"><span>Pago confirmado</span><select value={receiptPaymentId} onChange={(event) => { const id = event.target.value; setReceiptPaymentId(id); const selected = confirmedUnreceipted.find((payment) => payment.id === id); setReceiptAmount(selected ? String(selected.unreceiptedAmount) : ''); }} required><option value="">Selecciona</option>{confirmedUnreceipted.map((payment) => <option key={payment.id} value={payment.id}>{payment.code} · disponible {money(payment.unreceiptedAmount)}</option>)}</select></label><label className="field"><span>Importe asignado</span><input type="number" min="0.01" step="0.01" value={receiptAmount} onChange={(event) => setReceiptAmount(event.target.value)} required /></label></div><label className="field"><span>Archivo de la boleta</span><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => setReceiptFile(event.target.files?.[0] ?? null)} /></label><div className="form-actions"><button type="button" className="button button-secondary" onClick={() => setShowReceiptForm(false)}>Cancelar</button><button className="button button-primary" disabled={receiptMutation.isPending}>{receiptMutation.isPending ? 'Registrando…' : 'Registrar boleta'}</button></div></form> : null}
-        {data.receipts.length === 0 ? <div className="empty-state"><strong>Sin boletas registradas</strong><p>Cuando confirmes un pago aparecerá disponible para emitir su boleta.</p></div> : <div className="receipt-list">{data.receipts.map((receipt) => <article className="receipt-card" key={receipt.id}><div><div className="receipt-title"><FileText size={17} /><strong>{receipt.fullNumber ?? receipt.code}</strong><StatusBadge tone={receipt.stateCode === 'ISSUED' ? 'success' : receipt.stateCode === 'CREDIT_NOTE' ? 'warning' : 'danger'}>{receipt.stateCode}</StatusBadge></div><small>{receipt.issueDate ?? 'Sin fecha'} · {money(receipt.amount)}</small>{receipt.allocations.map((allocation) => <span key={allocation.paymentId}>{allocation.paymentCode}: {money(allocation.allocatedAmount)}</span>)}{receipt.files.map((file) => <a className="file-link" href={file.signedUrl ?? '#'} target="_blank" rel="noreferrer" key={file.id}>{file.originalFilename}</a>)}{receipt.annulmentReason ? <p>Anulación: {receipt.annulmentReason}</p> : null}{receipt.creditNotes.map((note) => <p className="credit-note-line" key={note.id}>Nota {note.fullNumber ?? note.code}: {money(note.amount)} · {note.reason}</p>)}</div><div className="inline-actions">{receipt.stateCode === 'ISSUED' ? <button className="button button-secondary button-compact" onClick={() => actionMutation.mutate({ type: 'ANNUL', id: receipt.id })}><Ban size={15} /> Anular</button> : null}{receipt.stateCode === 'ANNULLED' ? <button className="button button-primary button-compact" onClick={() => creditNoteMutation.mutate({ receiptId: receipt.id, maxAmount: receipt.amount })}><FileText size={15} /> Nota de crédito</button> : null}</div></article>)}</div>}
+        {data.receipts.length === 0 ? <div className="empty-state"><strong>Sin boletas registradas</strong><p>Cuando confirmes un pago aparecerá disponible para emitir su boleta.</p></div> : <div className="receipt-list">{data.receipts.map((receipt) => <article className="receipt-card" key={receipt.id}><div><div className="receipt-title"><FileText size={17} /><strong>{receipt.fullNumber ?? receipt.code}</strong><StatusBadge tone={receipt.stateCode === 'ISSUED' ? 'success' : receipt.stateCode === 'CREDIT_NOTE' ? 'warning' : 'danger'}>{receipt.stateCode}</StatusBadge></div><small>{receipt.issueDate ?? 'Sin fecha'} · {money(receipt.amount)}</small>{receipt.allocations.map((allocation) => <span key={allocation.paymentId}>{allocation.paymentCode}: {money(allocation.allocatedAmount)}</span>)}{receipt.files.map((file) => <a className="file-link" href={file.signedUrl ?? '#'} target="_blank" rel="noreferrer" key={file.id}>{file.originalFilename}</a>)}{receipt.annulmentReason ? <p>Anulación: {receipt.annulmentReason}</p> : null}{receipt.creditNotes.map((note) => <p className="credit-note-line" key={note.id}>Nota {note.fullNumber ?? note.code}: {money(note.amount)} · {note.reason}</p>)}</div><div className="inline-actions">{receipt.stateCode === 'ISSUED' ? <button className="button button-secondary button-compact" onClick={() => { setSensitiveAction({ type: 'ANNUL', id: receipt.id }); setActionReason(''); }}><Ban size={15} /> Anular</button> : null}{receipt.stateCode === 'ANNULLED' ? <button className="button button-primary button-compact" onClick={() => { setCreditNoteTarget({ receiptId: receipt.id, maxAmount: receipt.amount }); setCreditNoteAmount(String(receipt.amount)); }}><FileText size={15} /> Nota de crédito</button> : null}</div></article>)}</div>}
       </Panel>
 
       <Panel title="Penalidad por atraso" subtitle={`Regla vigente: ${money(options.latePenalty.amountPerDay)} por cada día posterior al vencimiento.`} action={!closed && data.balanceAmount > 0 ? <button className="button button-secondary button-compact" disabled={penaltyMutation.isPending} onClick={() => penaltyMutation.mutate()}><ShieldAlert size={16} /> Calcular o actualizar</button> : undefined}>
-        {!activePenalty ? <div className="empty-state"><strong>Sin penalidad activa</strong><p>Solo corresponde cuando la venta tiene saldo y ya venció.</p></div> : <article className="penalty-card"><div><StatusBadge tone="danger">{activePenalty.status}</StatusBadge><strong>{activePenalty.reason}</strong><small>{activePenalty.daysLate ?? 0} día(s) · {money(activePenalty.unitAmount ?? 0)} diarios</small></div><div><strong>{money(activePenalty.amount)}</strong><button className="button button-secondary button-compact" onClick={() => actionMutation.mutate({ type: 'WAIVE', id: activePenalty.id })}>Exonerar</button></div></article>}
+        {!activePenalty ? <div className="empty-state"><strong>Sin penalidad activa</strong><p>Solo corresponde cuando la venta tiene saldo y ya venció.</p></div> : <article className="penalty-card"><div><StatusBadge tone="danger">{activePenalty.status}</StatusBadge><strong>{activePenalty.reason}</strong><small>{activePenalty.daysLate ?? 0} día(s) · {money(activePenalty.unitAmount ?? 0)} diarios</small></div><div><strong>{money(activePenalty.amount)}</strong><button className="button button-secondary button-compact" onClick={() => { setSensitiveAction({ type: 'WAIVE', id: activePenalty.id }); setActionReason(''); }}>Exonerar</button></div></article>}
       </Panel>
+
+      {sensitiveAction ? <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSensitiveAction(null); }}><form className="modal-card" role="dialog" aria-modal="true" aria-labelledby="payment-action-title" onSubmit={(event) => { event.preventDefault(); actionMutation.mutate({ ...sensitiveAction, reason: actionReason }); }}><div className="modal-header"><div><small>Operación sensible</small><h2 id="payment-action-title">{sensitiveAction.type === 'REJECT' ? 'Rechazar pago' : sensitiveAction.type === 'REVERSE' ? 'Revertir pago' : sensitiveAction.type === 'WAIVE' ? 'Exonerar penalidad' : 'Anular boleta'}</h2><p>La operación conservará su historial y no eliminará registros.</p></div><button className="icon-button" type="button" aria-label="Cerrar" onClick={() => setSensitiveAction(null)}><X size={18} /></button></div><label className="field"><span>Motivo *</span><textarea rows={4} minLength={3} maxLength={1000} value={actionReason} onChange={(event) => setActionReason(event.target.value)} required autoFocus /></label><div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setSensitiveAction(null)}>Volver</button><button className="button button-danger" type="submit" disabled={actionMutation.isPending}>{actionMutation.isPending ? 'Procesando…' : 'Confirmar operación'}</button></div></form></div> : null}
+
+      {creditNoteTarget ? <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCreditNoteTarget(null); }}><form className="modal-card" role="dialog" aria-modal="true" aria-labelledby="credit-note-title" onSubmit={(event) => { event.preventDefault(); creditNoteMutation.mutate(); }}><div className="modal-header"><div><small>Comprobante compensatorio</small><h2 id="credit-note-title">Registrar nota de crédito</h2><p>Importe máximo disponible: {money(creditNoteTarget.maxAmount)}.</p></div><button className="icon-button" type="button" aria-label="Cerrar" onClick={() => setCreditNoteTarget(null)}><X size={18} /></button></div><div className="form-grid form-grid-2"><label className="field"><span>Serie *</span><input value={creditNoteSeries} onChange={(event) => setCreditNoteSeries(event.target.value.toUpperCase())} required /></label><label className="field"><span>Número *</span><input value={creditNoteNumber} onChange={(event) => setCreditNoteNumber(event.target.value)} required /></label><label className="field field-span-2"><span>Importe *</span><input type="number" min="0.01" max={creditNoteTarget.maxAmount} step="0.01" value={creditNoteAmount} onChange={(event) => setCreditNoteAmount(event.target.value)} required /></label></div><label className="field"><span>Motivo *</span><textarea rows={4} minLength={3} maxLength={1000} value={creditNoteReason} onChange={(event) => setCreditNoteReason(event.target.value)} required /></label><div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setCreditNoteTarget(null)}>Volver</button><button className="button button-primary" type="submit" disabled={creditNoteMutation.isPending}>{creditNoteMutation.isPending ? 'Registrando…' : 'Guardar nota'}</button></div></form></div> : null}
     </div>
   );
 }

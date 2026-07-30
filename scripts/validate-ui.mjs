@@ -11,6 +11,8 @@ const [
   newSale,
   inventory,
   importDetail,
+  deliveryDetail,
+  salePayments,
   finance,
   audit,
   reports,
@@ -20,6 +22,8 @@ const [
   read('apps/web/src/pages/new-sale-page.tsx'),
   read('apps/web/src/pages/inventory-page.tsx'),
   read('apps/web/src/pages/import-detail-page.tsx'),
+  read('apps/web/src/pages/delivery-detail-page.tsx'),
+  read('apps/web/src/features/payments/sale-payments-section.tsx'),
   read('apps/web/src/pages/finance-page.tsx'),
   read('apps/web/src/pages/audit-page.tsx'),
   read('apps/web/src/pages/reports-page.tsx'),
@@ -46,6 +50,9 @@ rejectText(saleDetail, 'window.prompt', 'El flujo sensible de liberación aún u
 rejectText(newSale, 'window.prompt', 'La creación de venta aún usa prompts del navegador.');
 rejectText(newSale, 'Fase 6', 'La creación de venta muestra fases inexistentes.');
 rejectText(newSale, 'Fase 7', 'La creación de venta muestra fases inexistentes.');
+rejectText(importDetail, 'window.prompt', 'Importaciones aún usa prompts del navegador.');
+rejectText(deliveryDetail, 'window.prompt', 'Entregas aún usa prompts del navegador.');
+rejectText(salePayments, 'window.prompt', 'Pagos aún usa prompts del navegador.');
 
 if (failures.length > 0) {
   console.error('Validación UI fallida:');

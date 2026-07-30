@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CreateImportInput, ImportTransportMode } from '@yukimi/shared';
-import { ArrowLeft, Boxes, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Boxes, Plus, Search, Trash2, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PageHeader } from '../components/ui/page-header';
@@ -71,6 +71,9 @@ export function NewImportPage() {
   const [productSearch, setProductSearch] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
+  const [partnerOpen, setPartnerOpen] = useState(false);
+  const [partnerName, setPartnerName] = useState('');
+  const [partnerCountry, setPartnerCountry] = useState('JP');
   const idempotencyKey = useRef(crypto.randomUUID());
 
   const filteredVariants = useMemo(() => {
@@ -94,19 +97,18 @@ export function NewImportPage() {
     mutationFn: async () => {
       setLocalError(null);
       setLocalNotice(null);
-      const name = window.prompt('Nombre del proveedor o tienda:')?.trim();
+      const name = partnerName.trim();
       if (!name) throw new Error('No se ingresó el nombre del proveedor.');
 
       const normalizedName = normalizePartnerName(name);
       const existing = support.data?.suppliers.find((supplier) => normalizePartnerName(supplier.name) === normalizedName);
       if (existing) return { id: existing.id, code: existing.code, reused: true };
 
-      const country = window.prompt('Código de país de dos letras (ej.: JP, US, CN):', 'JP')?.trim().toUpperCase() || null;
       return createImportPartner({
         partnerTypeCode: 'SUPPLIER',
         legalName: name,
         tradeName: name,
-        countryCode: country,
+        countryCode: partnerCountry.trim().toUpperCase() || null,
         contactName: null,
         phone: null,
         email: null,
@@ -119,6 +121,9 @@ export function NewImportPage() {
       setLocalNotice(result.reused
         ? 'Ese proveedor ya existía. Lo seleccionamos sin crear un duplicado.'
         : 'Proveedor creado y seleccionado correctamente.');
+      setPartnerOpen(false);
+      setPartnerName('');
+      setPartnerCountry('JP');
     },
     onError: (error) => setLocalError(error instanceof Error ? error.message : 'No se pudo crear el proveedor.'),
   });
@@ -201,7 +206,7 @@ export function NewImportPage() {
         <div className="import-form-main">
           <Panel title="Datos generales" subtitle="La importación inicia en estado Cotización.">
             <div className="form-grid">
-              <label className="field"><span>Proveedor</span><div className="field-inline"><select value={supplierPartnerId} onChange={(event) => setSupplierPartnerId(event.target.value)}><option value="">Sin proveedor por ahora</option>{support.data?.suppliers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button type="button" className="button button-secondary" disabled={createPartner.isPending} onClick={() => createPartner.mutate()}><Plus size={16} /> Crear</button></div></label>
+              <label className="field"><span>Proveedor</span><div className="field-inline"><select value={supplierPartnerId} onChange={(event) => setSupplierPartnerId(event.target.value)}><option value="">Sin proveedor por ahora</option>{support.data?.suppliers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button type="button" className="button button-secondary" disabled={createPartner.isPending} onClick={() => { setPartnerOpen(true); setPartnerName(''); setPartnerCountry('JP'); }}><Plus size={16} /> Crear</button></div></label>
               <label className="field"><span>Medio de transporte</span><select value={transportMode} onChange={(event) => setTransportMode(event.target.value as ImportTransportMode)}><option value="AIR">Avión</option><option value="SEA">Barco</option><option value="OTHER">Otro</option></select></label>
               <label className="field"><span>Moneda de compra</span><select value={purchaseCurrencyCode} onChange={(event) => { const code = event.target.value; setPurchaseCurrencyCode(code); setBoxes((current) => current.map((box) => ({ ...box, items: box.items.map((item) => ({ ...item, originalCurrencyCode: code })) }))); }}>{support.data?.currencies.map((currency) => <option key={currency.code} value={currency.code}>{currency.code} · {currency.name}</option>)}</select></label>
               <label className="field"><span>Tipo de cambio a soles</span><input type="number" min="0.000001" step="0.000001" value={sunatExchangeRate} onChange={(event) => setSunatExchangeRate(Number(event.target.value))} /></label>
@@ -247,6 +252,7 @@ export function NewImportPage() {
           <Panel title="Resumen"><div className="summary-list"><div><span>Cajas</span><strong>{boxes.length}</strong></div><div><span>Productos</span><strong>{boxes.reduce((sum, box) => sum + box.items.length, 0)}</strong></div><div><span>Unidades esperadas</span><strong>{totals.units}</strong></div><div><span>Valor de compra estimado</span><strong>{money(totals.purchaseValuePen)}</strong></div><div><span>Transporte</span><strong>{transportMode === 'AIR' ? 'Avión' : transportMode === 'SEA' ? 'Barco' : 'Otro'}</strong></div></div><button className="button button-primary button-full" disabled={save.isPending || support.isLoading} onClick={() => { if (validate()) save.mutate(); }}>{save.isPending ? 'Creando…' : 'Crear importación'}</button></Panel>
         </aside>
       </section>
+      {partnerOpen ? <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPartnerOpen(false); }}><form className="modal-card" role="dialog" aria-modal="true" aria-labelledby="new-supplier-title" onSubmit={(event) => { event.preventDefault(); createPartner.mutate(); }}><div className="modal-header"><div><small>Catálogo de proveedores</small><h2 id="new-supplier-title">Nuevo proveedor o tienda</h2><p>Si ya existe un nombre equivalente, el sistema seleccionará el registro existente.</p></div><button className="icon-button" type="button" aria-label="Cerrar" onClick={() => setPartnerOpen(false)}><X size={18} /></button></div><label className="field"><span>Nombre comercial *</span><input value={partnerName} onChange={(event) => setPartnerName(event.target.value)} minLength={2} maxLength={180} required autoFocus /></label><label className="field"><span>País (ISO de 2 letras)</span><input value={partnerCountry} onChange={(event) => setPartnerCountry(event.target.value.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2))} pattern="[A-Z]{2}" maxLength={2} placeholder="JP" /></label>{createPartner.isError ? <div className="alert alert-error">{createPartner.error instanceof Error ? createPartner.error.message : 'No se pudo crear el proveedor.'}</div> : null}<div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setPartnerOpen(false)}>Volver</button><button className="button button-primary" type="submit" disabled={createPartner.isPending}>{createPartner.isPending ? 'Creando…' : 'Crear y seleccionar'}</button></div></form></div> : null}
     </main>
   );
 }

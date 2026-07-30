@@ -2,7 +2,7 @@
 
 Sistema administrativo interno para clientes, productos, inventario, ventas, pagos, entregas, importaciones, finanzas, alertas y reportes.
 
-## Estado — v1.0.0
+## Estado — v1.1.0 en validación
 
 La primera versión funcional completa incluye:
 
@@ -18,21 +18,35 @@ La primera versión funcional completa incluye:
 - Exportación CSV compatible con Excel y guardado como PDF mediante impresión.
 - CI con GitHub Actions y configuración para Cloudflare Pages + Render + Supabase.
 
+La actualización v1.1 añade reglas posteriores a la especificación original:
+
+- Penalidad de liberación calculada por línea, con valor sugerido por categoría y edición auditada.
+- Condiciones VIP negociadas por venta, sin límite monetario global.
+- Costo importado automático con distribución auditable de tarjeta, comisión, aduana, flete y seguro.
+- Obligaciones de tarjeta con banco, alias, últimos cuatro dígitos, cierre, vencimiento, cuotas y alerta de 15 días.
+- Búsqueda global sobre clientes, ventas, productos, importaciones y entregas.
+- Preparación multi-RUC sin cargar datos legales ficticios.
+- Verificaciones estáticas de UI responsive integradas en CI.
+- Carga diferida por ruta para reducir el JavaScript inicial y acelerar la apertura en móvil.
+
+Las decisiones, contradicciones y datos pendientes de la clienta están en `docs/DECISIONES_NEGOCIO_V1_1.md`. La cobertura por requisito está en `docs/MATRIZ_TRAZABILIDAD_V1_1.md`.
+
 Las cuentas definitivas de Lorena y Camila deben crearse mediante invitación al publicar. Durante desarrollo puede mantenerse la cuenta de pruebas de Claudia.
 
 ## Requisitos
 
 - Node.js 24 recomendado.
 - npm 10 o superior.
-- Proyecto Supabase con migraciones 000–022 aplicadas antes de ejecutar la 023.
+- Proyecto Supabase con migraciones previas aplicadas en orden.
 
 ## Actualización de Supabase
 
-Ejecutar en este orden:
+Las migraciones son incrementales y deben aplicarse en orden. Para v1.1:
 
 ```text
-supabase/migrations/023_reports_notifications_audit_release.sql
-supabase/tests/011_phase10_release_checks.sql
+supabase/migrations/024_force_report_exports_rls.sql
+...
+supabase/migrations/032_global_erp_search.sql
 ```
 
 `Success. No rows returned` significa que las comprobaciones pasaron.
@@ -86,6 +100,7 @@ npm run dev:web
 /api/v1/deliveries
 /api/v1/imports
 /api/v1/finance
+/api/v1/search
 ```
 
 ### Panel, reportes y sistema
@@ -107,7 +122,9 @@ npm run typecheck
 npm test
 npm run build
 npm run lint
-npm run format:check
+npm run test:migrations:static
+npm run test:db:static
+npm run test:ui:static
 ```
 
 ## Documentación

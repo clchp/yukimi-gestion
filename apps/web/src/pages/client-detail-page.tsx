@@ -91,6 +91,8 @@ export function ClientDetailPage() {
   const [incidentSeverity, setIncidentSeverity] = useState<ClientIncident['severity']>('MEDIUM');
   const [incidentDescription, setIncidentDescription] = useState('');
   const [incidentAmount, setIncidentAmount] = useState('');
+  const [resolvingIncident, setResolvingIncident] = useState<ClientIncident | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState('');
 
   const refresh = async () => {
     await Promise.all([
@@ -167,7 +169,22 @@ export function ClientDetailPage() {
     onSuccess: async () => { setStatusOpen(false); await refresh(); },
   });
 
-  const pendingMutationError = vipMutation.error ?? addressMutation.error ?? incidentMutation.error ?? statusMutation.error;
+  const resolveMutation = useMutation({
+    mutationFn: async () => {
+      if (!resolvingIncident) throw new Error('No se seleccionó un incidente.');
+      return resolveClientIncident(resolvingIncident.id, {
+        version: resolvingIncident.version,
+        resolutionNotes: resolutionNotes.trim(),
+      });
+    },
+    onSuccess: async () => {
+      setResolvingIncident(null);
+      setResolutionNotes('');
+      await refresh();
+    },
+  });
+
+  const pendingMutationError = vipMutation.error ?? addressMutation.error ?? incidentMutation.error ?? statusMutation.error ?? resolveMutation.error;
   const visibleError = error ?? (pendingMutationError instanceof Error ? pendingMutationError.message : null);
 
   const primaryAddress = useMemo(
@@ -201,18 +218,6 @@ export function ClientDetailPage() {
   function closeAddress() {
     setAddressOpen(false);
     setEditingAddress(null);
-  }
-
-  async function resolveIncident(incident: ClientIncident) {
-    const notes = window.prompt('Describe cómo se resolvió el incidente:');
-    if (!notes?.trim()) return;
-    setError(null);
-    try {
-      await resolveClientIncident(incident.id, { version: incident.version, resolutionNotes: notes.trim() });
-      await refresh();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'No se pudo resolver el incidente.');
-    }
   }
 
   if (client.isLoading) return <main className="page"><div className="empty-state">Cargando cliente…</div></main>;
@@ -284,7 +289,7 @@ export function ClientDetailPage() {
 
       {tab === 'INCIDENTS' ? (
         <Panel title="Incumplimientos e incidencias" subtitle="Registra hechos relevantes sin eliminar el historial." action={<button className="button button-primary button-compact" onClick={() => setIncidentOpen(true)}><Plus size={16} /> Registrar incidente</button>}>
-          <div className="incident-list">{data.incidents.length === 0 ? <div className="empty-state">No hay incidentes registrados.</div> : data.incidents.map((incident) => <article className={`incident-card severity-${incident.severity.toLowerCase()}`} key={incident.id}><div><div className="incident-title"><strong>{incidentLabels[incident.incidentType]}</strong><StatusBadge tone={incident.resolvedAt ? 'success' : incident.severity === 'HIGH' ? 'danger' : 'warning'}>{incident.resolvedAt ? 'Resuelto' : incident.severity}</StatusBadge></div><p>{incident.description}</p><small>{formatDate(incident.occurredAt)} · Registrado por {incident.createdByName ?? 'Sistema'}{incident.amount != null ? ` · ${formatMoney(incident.amount, incident.currencyCode ?? 'PEN')}` : ''}</small>{incident.resolutionNotes ? <div className="resolution-note">Resolución: {incident.resolutionNotes}</div> : null}</div>{!incident.resolvedAt ? <button className="button button-secondary button-compact" onClick={() => void resolveIncident(incident)}>Marcar resuelto</button> : null}</article>)}</div>
+          <div className="incident-list">{data.incidents.length === 0 ? <div className="empty-state">No hay incidentes registrados.</div> : data.incidents.map((incident) => <article className={`incident-card severity-${incident.severity.toLowerCase()}`} key={incident.id}><div><div className="incident-title"><strong>{incidentLabels[incident.incidentType]}</strong><StatusBadge tone={incident.resolvedAt ? 'success' : incident.severity === 'HIGH' ? 'danger' : 'warning'}>{incident.resolvedAt ? 'Resuelto' : incident.severity}</StatusBadge></div><p>{incident.description}</p><small>{formatDate(incident.occurredAt)} · Registrado por {incident.createdByName ?? 'Sistema'}{incident.amount != null ? ` · ${formatMoney(incident.amount, incident.currencyCode ?? 'PEN')}` : ''}</small>{incident.resolutionNotes ? <div className="resolution-note">Resolución: {incident.resolutionNotes}</div> : null}</div>{!incident.resolvedAt ? <button className="button button-secondary button-compact" onClick={() => { setResolvingIncident(incident); setResolutionNotes(''); }}>Marcar resuelto</button> : null}</article>)}</div>
         </Panel>
       ) : null}
 
@@ -299,6 +304,8 @@ export function ClientDetailPage() {
       {addressOpen ? <div className="modal-backdrop"><form className="modal-card modal-card-wide" onSubmit={(event: FormEvent) => { event.preventDefault(); setError(null); addressMutation.mutate(); }}><div className="modal-header"><div><small>Datos de entrega</small><h2>{editingAddress ? 'Editar dirección' : 'Nueva dirección'}</h2></div><button className="icon-button" type="button" onClick={closeAddress}><X /></button></div><div className="form-grid form-grid-2"><label className="field"><span>Etiqueta</span><input value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} /></label><label className="field"><span>Agencia preferida</span><select value={addressPartner} onChange={(event) => setAddressPartner(event.target.value)}><option value="">Sin preferencia</option>{support.data?.preferredPartners.map((partner) => <option value={partner.id} key={partner.id}>{partner.name}</option>)}</select></label><label className="field field-span-2"><span>Dirección *</span><input value={addressLine} onChange={(event) => setAddressLine(event.target.value)} /></label><label className="field"><span>Distrito</span><input value={addressDistrict} onChange={(event) => setAddressDistrict(event.target.value)} /></label><label className="field"><span>Provincia</span><input value={addressProvince} onChange={(event) => setAddressProvince(event.target.value)} /></label><label className="field"><span>Departamento</span><input value={addressDepartment} onChange={(event) => setAddressDepartment(event.target.value)} /></label><label className="field field-span-2"><span>Referencia</span><textarea rows={3} value={addressReference} onChange={(event) => setAddressReference(event.target.value)} /></label><label className="field checkbox-field"><input type="checkbox" checked={addressDefault} onChange={(event) => setAddressDefault(event.target.checked)} /><span>Dirección principal</span></label>{editingAddress ? <label className="field checkbox-field"><input type="checkbox" checked={addressActive} onChange={(event) => setAddressActive(event.target.checked)} /><span>Dirección activa</span></label> : null}</div><div className="modal-actions"><button className="button button-secondary" type="button" onClick={closeAddress}>Cancelar</button><button className="button button-primary" disabled={addressMutation.isPending}>{addressMutation.isPending ? 'Guardando…' : 'Guardar dirección'}</button></div></form></div> : null}
 
       {incidentOpen ? <div className="modal-backdrop"><form className="modal-card" onSubmit={(event) => { event.preventDefault(); setError(null); incidentMutation.mutate(); }}><div className="modal-header"><div><small>Historial del cliente</small><h2>Registrar incidente</h2></div><button className="icon-button" type="button" onClick={() => setIncidentOpen(false)}><X /></button></div><div className="form-grid form-grid-2"><label className="field"><span>Tipo</span><select value={incidentType} onChange={(event) => setIncidentType(event.target.value as ClientIncident['incidentType'])}>{Object.entries(incidentLabels).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><label className="field"><span>Severidad</span><select value={incidentSeverity} onChange={(event) => setIncidentSeverity(event.target.value as ClientIncident['severity'])}><option value="LOW">Baja</option><option value="MEDIUM">Media</option><option value="HIGH">Alta</option></select></label><label className="field field-span-2"><span>Descripción *</span><textarea rows={4} value={incidentDescription} onChange={(event) => setIncidentDescription(event.target.value)} /></label><label className="field"><span>Monto relacionado (opcional)</span><input type="number" min="0" step="0.01" value={incidentAmount} onChange={(event) => setIncidentAmount(event.target.value)} /></label></div><div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setIncidentOpen(false)}>Cancelar</button><button className="button button-primary" disabled={incidentMutation.isPending}>{incidentMutation.isPending ? 'Guardando…' : 'Registrar'}</button></div></form></div> : null}
+
+      {resolvingIncident ? <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setResolvingIncident(null); }}><form className="modal-card" role="dialog" aria-modal="true" aria-labelledby="resolve-incident-title" onSubmit={(event) => { event.preventDefault(); setError(null); resolveMutation.mutate(); }}><div className="modal-header"><div><small>Seguimiento del cliente</small><h2 id="resolve-incident-title">Resolver {incidentLabels[resolvingIncident.incidentType]}</h2><p>La incidencia se conserva y se añade el resultado de la gestión.</p></div><button className="icon-button" type="button" aria-label="Cerrar" onClick={() => setResolvingIncident(null)}><X size={18} /></button></div><div className="note-card"><strong>Incidencia</strong><p>{resolvingIncident.description}</p></div><label className="field"><span>Cómo se resolvió *</span><textarea rows={4} minLength={3} maxLength={1000} value={resolutionNotes} onChange={(event) => setResolutionNotes(event.target.value)} required autoFocus /></label><div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setResolvingIncident(null)}>Volver</button><button className="button button-primary" type="submit" disabled={resolveMutation.isPending}>{resolveMutation.isPending ? 'Guardando…' : 'Marcar resuelto'}</button></div></form></div> : null}
 
       {statusOpen ? <div className="modal-backdrop"><div className="modal-card"><div className="modal-header"><div><small>Operación sensible</small><h2>{data.isActive ? 'Desactivar cliente' : 'Reactivar cliente'}</h2></div><button className="icon-button" onClick={() => setStatusOpen(false)}><X /></button></div><div className="alert alert-warning"><AlertTriangle size={17} /> La información y el historial no se eliminarán.</div><p>{data.isActive ? 'El cliente dejará de estar disponible para nuevas operaciones.' : 'El cliente volverá a estar disponible en el sistema.'}</p><div className="modal-actions"><button className="button button-secondary" onClick={() => setStatusOpen(false)}>Cancelar</button><button className="button button-primary" onClick={() => statusMutation.mutate()} disabled={statusMutation.isPending}>{statusMutation.isPending ? 'Procesando…' : 'Confirmar'}</button></div></div></div> : null}
     </main>

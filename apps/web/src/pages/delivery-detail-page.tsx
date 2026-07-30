@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { DeliveryStateCode } from '@yukimi/shared';
-import { ArrowLeft, ExternalLink, PackageCheck, Pencil, Truck } from 'lucide-react';
+import { ArrowLeft, ExternalLink, PackageCheck, Pencil, Truck, X } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
@@ -35,24 +36,24 @@ export function DeliveryDetailPage() {
   const navigate = useNavigate();
   const { deliveryId } = useParams();
   const queryClient = useQueryClient();
+  const [pendingState, setPendingState] = useState<DeliveryStateCode | null>(null);
+  const [transitionReason, setTransitionReason] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
   const delivery = useQuery({ queryKey: ['delivery', deliveryId], queryFn: () => getDelivery(deliveryId as string), enabled: Boolean(deliveryId) });
 
   const transition = useMutation({
-    mutationFn: async (nextStateCode: DeliveryStateCode) => {
+    mutationFn: async ({ nextStateCode, reason, tracking }: { nextStateCode: DeliveryStateCode; reason: string; tracking: string }) => {
       const data = delivery.data;
       if (!data) throw new Error('La entrega no está disponible.');
-      let trackingNumber: string | null = data.trackingNumber;
-      if (nextStateCode === 'DELIVERED_TO_AGENCY' && !trackingNumber) {
-        trackingNumber = window.prompt('Ingresa el número de seguimiento entregado por la agencia:')?.trim() || null;
-        if (!trackingNumber) throw new Error('El número de seguimiento es obligatorio para la agencia.');
+      const normalizedTracking = tracking.trim() || data.trackingNumber;
+      if (nextStateCode === 'DELIVERED_TO_AGENCY' && !normalizedTracking) {
+        throw new Error('El número de seguimiento es obligatorio para la agencia.');
       }
-      const reason = window.prompt(nextStateCode === 'CANCELLED' ? 'Indica el motivo de cancelación:' : 'Escribe una nota breve sobre este cambio:', transitionLabels[nextStateCode] ?? '')?.trim();
-      if (!reason) throw new Error('El cambio fue cancelado.');
       return advanceDelivery(data.id, {
         nextStateCode,
-        reason,
+        reason: reason.trim(),
         occurredAt: new Date().toISOString(),
-        trackingNumber,
+        trackingNumber: normalizedTracking,
       });
     },
     onSuccess: async () => {
@@ -62,6 +63,8 @@ export function DeliveryDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['sales'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory'] }),
       ]);
+      setPendingState(null);
+      setTransitionReason('');
     },
   });
 
@@ -87,9 +90,24 @@ export function DeliveryDetailPage() {
 
         <aside className="sale-detail-sidebar">
           <Panel title="Fechas"><div className="summary-list"><div><span>Planificado</span><strong>{data.plannedDispatchDate ?? 'Sin fecha'}</strong></div><div><span>Despachado</span><strong>{dateTime(data.dispatchedAt)}</strong></div><div><span>Recibido por agencia</span><strong>{dateTime(data.agencyReceivedAt)}</strong></div><div><span>Entregado al cliente</span><strong>{dateTime(data.deliveredAt)}</strong></div></div></Panel>
-          <Panel title="Siguiente acción" subtitle="Los cambios quedan en el historial y actualizan el inventario cuando el cliente recibe."><div className="delivery-transition-list">{data.allowedTransitions.length === 0 ? <div className="empty-state"><PackageCheck size={28} /><strong>Flujo finalizado</strong></div> : data.allowedTransitions.map((item) => <button key={item.stateCode} className={item.stateCode === 'CANCELLED' ? 'button button-danger button-full' : 'button button-primary button-full'} disabled={transition.isPending} onClick={() => transition.mutate(item.stateCode)}><Truck size={16} /> {transitionLabels[item.stateCode] ?? item.name}</button>)}</div></Panel>
+          <Panel title="Siguiente acción" subtitle="Los cambios quedan en el historial y actualizan el inventario cuando el cliente recibe."><div className="delivery-transition-list">{data.allowedTransitions.length === 0 ? <div className="empty-state"><PackageCheck size={28} /><strong>Flujo finalizado</strong></div> : data.allowedTransitions.map((item) => <button key={item.stateCode} className={item.stateCode === 'CANCELLED' ? 'button button-danger button-full' : 'button button-primary button-full'} disabled={transition.isPending} onClick={() => { setPendingState(item.stateCode); setTransitionReason(transitionLabels[item.stateCode] ?? item.name); setTrackingNumber(data.trackingNumber ?? ''); }}><Truck size={16} /> {transitionLabels[item.stateCode] ?? item.name}</button>)}</div></Panel>
         </aside>
       </section>
+
+      {pendingState ? (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPendingState(null); }}>
+          <form className="modal-card" role="dialog" aria-modal="true" aria-labelledby="delivery-transition-title" onSubmit={(event) => { event.preventDefault(); transition.mutate({ nextStateCode: pendingState, reason: transitionReason, tracking: trackingNumber }); }}>
+            <div className="modal-header">
+              <div><small>Cambio de estado</small><h2 id="delivery-transition-title">{transitionLabels[pendingState] ?? stateLabels[pendingState]}</h2><p>Confirma los datos antes de actualizar la entrega.</p></div>
+              <button className="icon-button" type="button" aria-label="Cerrar" onClick={() => setPendingState(null)}><X size={18} /></button>
+            </div>
+            {pendingState === 'DELIVERED_TO_AGENCY' ? <label className="field"><span>Número de seguimiento *</span><input value={trackingNumber} onChange={(event) => setTrackingNumber(event.target.value)} minLength={3} required /></label> : null}
+            <label className="field"><span>{pendingState === 'CANCELLED' ? 'Motivo de cancelación' : 'Nota del cambio'} *</span><textarea rows={4} minLength={3} maxLength={1000} value={transitionReason} onChange={(event) => setTransitionReason(event.target.value)} required /></label>
+            {transition.isError ? <div className="alert alert-error">{transition.error instanceof Error ? transition.error.message : 'No se pudo actualizar la entrega.'}</div> : null}
+            <div className="modal-actions"><button className="button button-secondary" type="button" onClick={() => setPendingState(null)}>Volver</button><button className={pendingState === 'CANCELLED' ? 'button button-danger' : 'button button-primary'} type="submit" disabled={transition.isPending}>{transition.isPending ? 'Guardando…' : 'Confirmar cambio'}</button></div>
+          </form>
+        </div>
+      ) : null}
     </main>
   );
 }

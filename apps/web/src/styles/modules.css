@@ -451,6 +451,7 @@
 .field-with-action { display: grid; gap: 6px; align-content: end; }
 .field-with-action .field { margin: 0; }
 .field-with-action .text-button { justify-self: start; }
+.inline-create-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 
 /* Fase 10 · panel real, reportes y auditoría */
 .dashboard-real-chart .dual-bar-track {

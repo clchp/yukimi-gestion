@@ -141,6 +141,7 @@
 @media (max-width: 620px) {
   .payment-part-row { grid-template-columns: 1fr; }
   .payment-card, .receipt-card, .penalty-card { grid-template-columns: 1fr; flex-direction: column; }
+  .inline-create-field { grid-template-columns: 1fr; }
   .payment-card-amount { justify-items: start; text-align: left; }
   .receipt-card > .inline-actions { width: 100%; }
 }
