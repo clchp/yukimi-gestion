@@ -30,16 +30,59 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .agent-upload/chunk-* > /tmp/yukimi-delta.b64
+          files=(
+            .agent-upload/chunk-00
+            .agent-upload/chunk-01a
+            .agent-upload/chunk-01b
+            .agent-upload/chunk-02a
+            .agent-upload/chunk-02b
+            .agent-upload/chunk-03a
+            .agent-upload/chunk-03b
+            .agent-upload/chunk-04a
+            .agent-upload/chunk-04b
+            .agent-upload/chunk-05a
+            .agent-upload/chunk-05b
+            .agent-upload/chunk-06a
+            .agent-upload/chunk-06b
+            .agent-upload/chunk-07a
+            .agent-upload/chunk-07b
+            .agent-upload/chunk-08a
+            .agent-upload/chunk-08b
+            .agent-upload/chunk-09
+            .agent-upload/chunk-10a
+            .agent-upload/chunk-10b
+            .agent-upload/chunk-11
+            .agent-upload/chunk-12
+            .agent-upload/chunk-13
+            .agent-upload/chunk-14
+            .agent-upload/chunk-15
+          )
+          : > /tmp/yukimi-delta.b64
+          for file in "${files[@]}"; do
+            test -f "$file"
+            cat "$file" >> /tmp/yukimi-delta.b64
+          done
+          actual_characters="$(wc -c < /tmp/yukimi-delta.b64)"
+          if [ "$actual_characters" -ne 108272 ]; then
+            echo "::error::El paquete reconstruido tiene $actual_characters caracteres; se esperaban 108272."
+            exit 1
+          fi
           base64 --decode /tmp/yukimi-delta.b64 > /tmp/yukimi-delta.tar.xz
+          echo "efef34a615d760d60deb69debc21c67ea82f4c118d6b2e293b721f3b74048a19  /tmp/yukimi-delta.tar.xz" | sha256sum -c -
+          xz -t /tmp/yukimi-delta.tar.xz
           tar -xJf /tmp/yukimi-delta.tar.xz -C .
           rm -rf .agent-upload .github/workflows/agent-apply-version.yml
       - name: Instalar dependencias
         run: npm ci
       - name: Validar aplicación completa
         run: npm run verify
+      - name: Iniciar Supabase local
+        run: npm run db:start
       - name: Validar base de datos en Supabase local
         run: npm run test:db
+      - name: Detener Supabase local
+        if: always()
+        run: npm run db:stop
       - name: Publicar versión validada
         shell: bash
         run: |
