@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: apply-yukimi-v1-1
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validate-and-publish:
@@ -27,9 +27,11 @@ jobs:
           node-version: 24
           cache: npm
       - name: Aplicar mejoras verificadas
+        id: apply
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee /tmp/apply.log) 2>&1
           files=(
             .agent-upload/chunk-00
             .agent-upload/chunk-01a
@@ -73,16 +75,59 @@ jobs:
           tar -xJf /tmp/yukimi-delta.tar.xz -C .
           rm -rf .agent-upload .github/workflows/agent-apply-version.yml
       - name: Instalar dependencias
-        run: npm ci
+        id: install
+        shell: bash
+        run: |
+          set -o pipefail
+          npm ci 2>&1 | tee /tmp/install.log
       - name: Validar aplicación completa
-        run: npm run verify
+        id: verify
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run verify 2>&1 | tee /tmp/verify.log
       - name: Iniciar Supabase local
-        run: npm run db:start
+        id: db_start
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run db:start 2>&1 | tee /tmp/db-start.log
       - name: Validar base de datos en Supabase local
-        run: npm run test:db
+        id: db_test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:db 2>&1 | tee /tmp/db-test.log
       - name: Detener Supabase local
         if: always()
         run: npm run db:stop
+      - name: Registrar diagnóstico de fallo
+        if: failure() && !cancelled()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .agent-upload
+          {
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "run_url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "apply=${{ steps.apply.outcome }}"
+            echo "install=${{ steps.install.outcome }}"
+            echo "verify=${{ steps.verify.outcome }}"
+            echo "db_start=${{ steps.db_start.outcome }}"
+            echo "db_test=${{ steps.db_test.outcome }}"
+            for log in /tmp/apply.log /tmp/install.log /tmp/verify.log /tmp/db-start.log /tmp/db-test.log; do
+              if [ -f "$log" ]; then
+                echo
+                echo "===== $log ====="
+                tail -n 120 "$log"
+              fi
+            done
+          } > .agent-upload/FAILURE
+          git config user.name "Yukimi Validation Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f .agent-upload/FAILURE
+          git commit -m "Record Yukimi v1.1 validation failure"
+          git push origin HEAD:version-1-1
       - name: Publicar versión validada
         shell: bash
         run: |
