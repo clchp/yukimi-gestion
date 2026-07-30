@@ -1,0 +1,33 @@
+name: Yukimi Backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * 1'
+
+concurrency:
+  group: yukimi-backup
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Exportar respaldo lógico
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_OUTPUT: backups/yukimi-backup.json
+        run: node scripts/export-backup.mjs
+      - name: Conservar respaldo como artefacto privado
+        uses: actions/upload-artifact@v4
+        with:
+          name: yukimi-backup-${{ github.run_id }}
+          path: backups/yukimi-backup.json
+          retention-days: 14
+          if-no-files-found: error
