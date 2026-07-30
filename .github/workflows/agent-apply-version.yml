@@ -67,6 +67,8 @@ jobs:
         run: |
           set -o pipefail
           npm run format 2>&1 | tee /tmp/format.log
+          npm run format 2>&1 | tee -a /tmp/format.log
+          npm run format:check 2>&1 | tee -a /tmp/format.log
       - name: Validar aplicación completa
         id: verify
         shell: bash
