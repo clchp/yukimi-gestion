@@ -1,5 +1,5 @@
-run_id=30578083061
-run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30578083061
+run_id=30578751239
+run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30578751239
 apply=success
 install=success
 format=success
@@ -38,7 +38,7 @@ db_test=failure
 
 ===== /tmp/install.log =====
 
-added 260 packages, and audited 264 packages in 7s
+added 260 packages, and audited 264 packages in 8s
 
 80 packages are looking for funding
   run `npm fund` for details
@@ -50,120 +50,120 @@ npm warn allow-scripts
 npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
 
 ===== /tmp/format.log =====
-[90mapps/web/src/components/ui/toolbar.tsx[39m 4ms (unchanged)
-[90mapps/web/src/data/mock-data.ts[39m 11ms (unchanged)
-[90mapps/web/src/features/admin/admin-api.ts[39m 6ms (unchanged)
-[90mapps/web/src/features/auth/auth-context.tsx[39m 11ms (unchanged)
+[90mapps/web/src/components/ui/toolbar.tsx[39m 5ms (unchanged)
+[90mapps/web/src/data/mock-data.ts[39m 19ms (unchanged)
+[90mapps/web/src/features/admin/admin-api.ts[39m 11ms (unchanged)
+[90mapps/web/src/features/auth/auth-context.tsx[39m 9ms (unchanged)
 [90mapps/web/src/features/auth/protected-route.tsx[39m 3ms (unchanged)
-[90mapps/web/src/features/catalog/catalog-api.ts[39m 5ms (unchanged)
-[90mapps/web/src/features/clients/clients-api.ts[39m 11ms (unchanged)
-[90mapps/web/src/features/deliveries/deliveries-api.ts[39m 9ms (unchanged)
-[90mapps/web/src/features/finance/finance-api.ts[39m 16ms (unchanged)
-[90mapps/web/src/features/finance/parse-bank-file.ts[39m 88ms (unchanged)
+[90mapps/web/src/features/catalog/catalog-api.ts[39m 4ms (unchanged)
+[90mapps/web/src/features/clients/clients-api.ts[39m 12ms (unchanged)
+[90mapps/web/src/features/deliveries/deliveries-api.ts[39m 6ms (unchanged)
+[90mapps/web/src/features/finance/finance-api.ts[39m 24ms (unchanged)
+[90mapps/web/src/features/finance/parse-bank-file.ts[39m 63ms (unchanged)
 [90mapps/web/src/features/finance/upload-finance-file.ts[39m 6ms (unchanged)
 [90mapps/web/src/features/imports/imports-api.ts[39m 10ms (unchanged)
 [90mapps/web/src/features/insights/csv-export.ts[39m 4ms (unchanged)
-[90mapps/web/src/features/insights/file-export.ts[39m 36ms (unchanged)
+[90mapps/web/src/features/insights/file-export.ts[39m 26ms (unchanged)
 [90mapps/web/src/features/insights/insights-api.ts[39m 11ms (unchanged)
-[90mapps/web/src/features/payments/payments-api.ts[39m 7ms (unchanged)
-[90mapps/web/src/features/payments/sale-payments-section.tsx[39m 96ms (unchanged)
-[90mapps/web/src/features/payments/upload-payment-files.ts[39m 7ms (unchanged)
-[90mapps/web/src/features/products/compress-image.ts[39m 24ms (unchanged)
+[90mapps/web/src/features/payments/payments-api.ts[39m 6ms (unchanged)
+[90mapps/web/src/features/payments/sale-payments-section.tsx[39m 97ms (unchanged)
+[90mapps/web/src/features/payments/upload-payment-files.ts[39m 23ms (unchanged)
+[90mapps/web/src/features/products/compress-image.ts[39m 8ms (unchanged)
 [90mapps/web/src/features/products/product-image.tsx[39m 4ms (unchanged)
-[90mapps/web/src/features/products/products-api.ts[39m 6ms (unchanged)
-[90mapps/web/src/features/products/qr-code.ts[39m 53ms (unchanged)
-[90mapps/web/src/features/products/upload-product-images.ts[39m 7ms (unchanged)
-[90mapps/web/src/features/sales/sales-api.ts[39m 10ms (unchanged)
-[90mapps/web/src/features/search/search-api.ts[39m 2ms (unchanged)
+[90mapps/web/src/features/products/products-api.ts[39m 7ms (unchanged)
+[90mapps/web/src/features/products/qr-code.ts[39m 56ms (unchanged)
+[90mapps/web/src/features/products/upload-product-images.ts[39m 10ms (unchanged)
+[90mapps/web/src/features/sales/sales-api.ts[39m 8ms (unchanged)
+[90mapps/web/src/features/search/search-api.ts[39m 1ms (unchanged)
 [90mapps/web/src/main.tsx[39m 4ms (unchanged)
-[90mapps/web/src/pages/audit-page.tsx[39m 48ms (unchanged)
-[90mapps/web/src/pages/client-detail-page.tsx[39m 105ms (unchanged)
-[90mapps/web/src/pages/client-form-page.tsx[39m 16ms (unchanged)
-[90mapps/web/src/pages/clients-page.tsx[39m 59ms (unchanged)
-[90mapps/web/src/pages/dashboard-page.tsx[39m 26ms (unchanged)
-[90mapps/web/src/pages/deliveries-page.tsx[39m 40ms (unchanged)
-[90mapps/web/src/pages/delivery-detail-page.tsx[39m 36ms (unchanged)
-[90mapps/web/src/pages/edit-delivery-page.tsx[39m 34ms (unchanged)
-[90mapps/web/src/pages/finance-page.tsx[39m 105ms (unchanged)
-[90mapps/web/src/pages/import-detail-page.tsx[39m 146ms (unchanged)
-[90mapps/web/src/pages/imports-page.tsx[39m 30ms (unchanged)
-[90mapps/web/src/pages/inventory-page.tsx[39m 37ms (unchanged)
+[90mapps/web/src/pages/audit-page.tsx[39m 50ms (unchanged)
+[90mapps/web/src/pages/client-detail-page.tsx[39m 92ms (unchanged)
+[90mapps/web/src/pages/client-form-page.tsx[39m 22ms (unchanged)
+[90mapps/web/src/pages/clients-page.tsx[39m 25ms (unchanged)
+[90mapps/web/src/pages/dashboard-page.tsx[39m 48ms (unchanged)
+[90mapps/web/src/pages/deliveries-page.tsx[39m 45ms (unchanged)
+[90mapps/web/src/pages/delivery-detail-page.tsx[39m 50ms (unchanged)
+[90mapps/web/src/pages/edit-delivery-page.tsx[39m 32ms (unchanged)
+[90mapps/web/src/pages/finance-page.tsx[39m 103ms (unchanged)
+[90mapps/web/src/pages/import-detail-page.tsx[39m 142ms (unchanged)
+[90mapps/web/src/pages/imports-page.tsx[39m 36ms (unchanged)
+[90mapps/web/src/pages/inventory-page.tsx[39m 34ms (unchanged)
 [90mapps/web/src/pages/login-page.tsx[39m 8ms (unchanged)
 [90mapps/web/src/pages/module-placeholder-page.tsx[39m 2ms (unchanged)
-[90mapps/web/src/pages/new-delivery-page.tsx[39m 25ms (unchanged)
+[90mapps/web/src/pages/new-delivery-page.tsx[39m 32ms (unchanged)
 [90mapps/web/src/pages/new-import-page.tsx[39m 32ms (unchanged)
-[90mapps/web/src/pages/new-product-page.tsx[39m 39ms (unchanged)
+[90mapps/web/src/pages/new-product-page.tsx[39m 41ms (unchanged)
 [90mapps/web/src/pages/new-sale-page.tsx[39m 58ms (unchanged)
-[90mapps/web/src/pages/products-page.tsx[39m 46ms (unchanged)
-[90mapps/web/src/pages/reconciliation-page.tsx[39m 35ms (unchanged)
+[90mapps/web/src/pages/products-page.tsx[39m 45ms (unchanged)
+[90mapps/web/src/pages/reconciliation-page.tsx[39m 33ms (unchanged)
 [90mapps/web/src/pages/reports-page.tsx[39m 38ms (unchanged)
-[90mapps/web/src/pages/sale-detail-page.tsx[39m 55ms (unchanged)
+[90mapps/web/src/pages/sale-detail-page.tsx[39m 52ms (unchanged)
 [90mapps/web/src/pages/sales-page.tsx[39m 16ms (unchanged)
-[90mapps/web/src/pages/set-password-page.tsx[39m 7ms (unchanged)
-[90mapps/web/src/pages/settings-page.tsx[39m 65ms (unchanged)
-[90mapps/web/src/styles/auth.css[39m 55ms (unchanged)
-[90mapps/web/src/styles/components.css[39m 103ms (unchanged)
-[90mapps/web/src/styles/global.css[39m 5ms (unchanged)
-[90mapps/web/src/styles/modules.css[39m 191ms (unchanged)
-[90mapps/web/src/styles/responsive.css[39m 60ms (unchanged)
-[90mapps/web/src/styles/shell.css[39m 41ms (unchanged)
-[90mapps/web/src/styles/tokens.css[39m 22ms (unchanged)
+[90mapps/web/src/pages/set-password-page.tsx[39m 6ms (unchanged)
+[90mapps/web/src/pages/settings-page.tsx[39m 53ms (unchanged)
+[90mapps/web/src/styles/auth.css[39m 59ms (unchanged)
+[90mapps/web/src/styles/components.css[39m 98ms (unchanged)
+[90mapps/web/src/styles/global.css[39m 4ms (unchanged)
+[90mapps/web/src/styles/modules.css[39m 192ms (unchanged)
+[90mapps/web/src/styles/responsive.css[39m 57ms (unchanged)
+[90mapps/web/src/styles/shell.css[39m 50ms (unchanged)
+[90mapps/web/src/styles/tokens.css[39m 17ms (unchanged)
 [90mapps/web/tsconfig.app.json[39m 1ms (unchanged)
 [90mapps/web/tsconfig.json[39m 1ms (unchanged)
 [90mapps/web/tsconfig.node.json[39m 1ms (unchanged)
 [90mapps/web/vite.config.ts[39m 2ms (unchanged)
-[90mCHANGELOG_ESTABILIZACION.md[39m 42ms (unchanged)
-[90mdocs/CUMPLIMIENTO_REQUISITOS_V1_1.md[39m 13ms (unchanged)
-[90mdocs/dashboard-preview.html[39m 46ms (unchanged)
-[90mdocs/DECISIONES_NEGOCIO_V1_1.md[39m 47ms (unchanged)
-[90mdocs/FASE_1_FUNDACION.md[39m 7ms (unchanged)
-[90mdocs/FASE_10_REPORTES_ALERTAS_PUBLICACION.md[39m 18ms (unchanged)
-[90mdocs/FASE_2_SISTEMA_VISUAL.md[39m 11ms (unchanged)
-[90mdocs/FASE_3_CATALOGO_PRODUCTOS_INVENTARIO.md[39m 11ms (unchanged)
-[90mdocs/FASE_4_CLIENTES_VIP.md[39m 13ms (unchanged)
-[90mdocs/FASE_5_VENTAS_RESERVAS_STOCK.md[39m 7ms (unchanged)
-[90mdocs/FASE_6_PAGOS_BOLETAS_PENALIDADES.md[39m 5ms (unchanged)
+[90mCHANGELOG_ESTABILIZACION.md[39m 43ms (unchanged)
+[90mdocs/CUMPLIMIENTO_REQUISITOS_V1_1.md[39m 12ms (unchanged)
+[90mdocs/dashboard-preview.html[39m 43ms (unchanged)
+[90mdocs/DECISIONES_NEGOCIO_V1_1.md[39m 39ms (unchanged)
+[90mdocs/FASE_1_FUNDACION.md[39m 8ms (unchanged)
+[90mdocs/FASE_10_REPORTES_ALERTAS_PUBLICACION.md[39m 10ms (unchanged)
+[90mdocs/FASE_2_SISTEMA_VISUAL.md[39m 10ms (unchanged)
+[90mdocs/FASE_3_CATALOGO_PRODUCTOS_INVENTARIO.md[39m 12ms (unchanged)
+[90mdocs/FASE_4_CLIENTES_VIP.md[39m 14ms (unchanged)
+[90mdocs/FASE_5_VENTAS_RESERVAS_STOCK.md[39m 11ms (unchanged)
+[90mdocs/FASE_6_PAGOS_BOLETAS_PENALIDADES.md[39m 6ms (unchanged)
 [90mdocs/FASE_7_1_EDICION_ENTREGAS.md[39m 3ms (unchanged)
-[90mdocs/FASE_7_ENTREGAS_AGENCIAS.md[39m 10ms (unchanged)
+[90mdocs/FASE_7_ENTREGAS_AGENCIAS.md[39m 7ms (unchanged)
 [90mdocs/FASE_8_1_PROVEEDORES_MONEDAS.md[39m 4ms (unchanged)
-[90mdocs/FASE_8_IMPORTACIONES_PREVENTAS.md[39m 6ms (unchanged)
-[90mdocs/FASE_9_FINANZAS_BANCOS_CONCILIACION.md[39m 8ms (unchanged)
-[90mdocs/GUIA_PUBLICACION.md[39m 10ms (unchanged)
-[90mdocs/MATRIZ_TRAZABILIDAD_V1_1.md[39m 30ms (unchanged)
-[90mdocs/NOTIFICACIONES_Y_SCHEDULER.md[39m 7ms (unchanged)
-[90mdocs/PRUEBAS_BASE_DATOS.md[39m 8ms (unchanged)
+[90mdocs/FASE_8_IMPORTACIONES_PREVENTAS.md[39m 4ms (unchanged)
+[90mdocs/FASE_9_FINANZAS_BANCOS_CONCILIACION.md[39m 6ms (unchanged)
+[90mdocs/GUIA_PUBLICACION.md[39m 11ms (unchanged)
+[90mdocs/MATRIZ_TRAZABILIDAD_V1_1.md[39m 53ms (unchanged)
+[90mdocs/NOTIFICACIONES_Y_SCHEDULER.md[39m 5ms (unchanged)
+[90mdocs/PRUEBAS_BASE_DATOS.md[39m 7ms (unchanged)
 [90mdocs/RESPALDO_Y_RESTAURACION.md[39m 3ms (unchanged)
-[90meslint.config.js[39m 4ms (unchanged)
-[90mpackage-lock.json[39m 39ms (unchanged)
+[90meslint.config.js[39m 5ms (unchanged)
+[90mpackage-lock.json[39m 45ms (unchanged)
 [90mpackage.json[39m 1ms (unchanged)
-[90mpackages/shared/package.json[39m 1ms (unchanged)
+[90mpackages/shared/package.json[39m 0ms (unchanged)
 [90mpackages/shared/src/admin.ts[39m 19ms (unchanged)
-[90mpackages/shared/src/auth.ts[39m 5ms (unchanged)
-[90mpackages/shared/src/catalog.ts[39m 38ms (unchanged)
-[90mpackages/shared/src/clients.ts[39m 28ms (unchanged)
-[90mpackages/shared/src/deliveries.ts[39m 21ms (unchanged)
-[90mpackages/shared/src/finance.ts[39m 39ms (unchanged)
+[90mpackages/shared/src/auth.ts[39m 3ms (unchanged)
+[90mpackages/shared/src/catalog.ts[39m 42ms (unchanged)
+[90mpackages/shared/src/clients.ts[39m 30ms (unchanged)
+[90mpackages/shared/src/deliveries.ts[39m 30ms (unchanged)
+[90mpackages/shared/src/finance.ts[39m 38ms (unchanged)
 [90mpackages/shared/src/http.ts[39m 2ms (unchanged)
-[90mpackages/shared/src/imports.ts[39m 55ms (unchanged)
-[90mpackages/shared/src/index.ts[39m 2ms (unchanged)
-[90mpackages/shared/src/insights.ts[39m 36ms (unchanged)
-[90mpackages/shared/src/payments.ts[39m 45ms (unchanged)
-[90mpackages/shared/src/sales.ts[39m 34ms (unchanged)
+[90mpackages/shared/src/imports.ts[39m 54ms (unchanged)
+[90mpackages/shared/src/index.ts[39m 1ms (unchanged)
+[90mpackages/shared/src/insights.ts[39m 52ms (unchanged)
+[90mpackages/shared/src/payments.ts[39m 43ms (unchanged)
+[90mpackages/shared/src/sales.ts[39m 36ms (unchanged)
 [90mpackages/shared/src/search.ts[39m 3ms (unchanged)
 [90mpackages/shared/tsconfig.json[39m 1ms (unchanged)
-[90mREADME.md[39m 13ms (unchanged)
+[90mREADME.md[39m 24ms (unchanged)
 [90mrender.yaml[39m 4ms (unchanged)
-[90mscripts/export-backup.mjs[39m 10ms (unchanged)
-[90mscripts/process-notifications.mjs[39m 28ms (unchanged)
+[90mscripts/export-backup.mjs[39m 9ms (unchanged)
+[90mscripts/process-notifications.mjs[39m 17ms (unchanged)
 [90mscripts/restore-backup.mjs[39m 6ms (unchanged)
-[90mscripts/run-db-lint.mjs[39m 4ms (unchanged)
-[90mscripts/test-db-concurrency.mjs[39m 11ms (unchanged)
-[90mscripts/validate-compliance.mjs[39m 7ms (unchanged)
-[90mscripts/validate-db-tests.mjs[39m 3ms (unchanged)
+[90mscripts/run-db-lint.mjs[39m 3ms (unchanged)
+[90mscripts/test-db-concurrency.mjs[39m 9ms (unchanged)
+[90mscripts/validate-compliance.mjs[39m 6ms (unchanged)
+[90mscripts/validate-db-tests.mjs[39m 6ms (unchanged)
 [90mscripts/validate-migrations.mjs[39m 4ms (unchanged)
 [90mscripts/validate-ui.mjs[39m 3ms (unchanged)
 [90msupabase/migration-archive/README.md[39m 2ms (unchanged)
-[90mtsconfig.base.json[39m 2ms (unchanged)
+[90mtsconfig.base.json[39m 1ms (unchanged)
 
 > yukimi-gestion@1.0.0 format:check
 > prettier --check .
@@ -173,11 +173,11 @@ All matched files use Prettier code style!
 
 ===== /tmp/verify.log =====
 ▶ rutas protegidas
-  ✔ rechaza una solicitud sin token con un error uniforme (9.062525ms)
-✔ rutas protegidas (9.435039ms)
-✔ dashboard contract accepts an empty real-data response (8.780942ms)
-✔ notification contract preserves priority and status (1.581764ms)
-✔ report and audit contracts accept empty datasets (1.872537ms)
+  ✔ rechaza una solicitud sin token con un error uniforme (6.595801ms)
+✔ rutas protegidas (6.937425ms)
+✔ dashboard contract accepts an empty real-data response (3.080765ms)
+✔ notification contract preserves priority and status (1.797804ms)
+✔ report and audit contracts accept empty datasets (2.251336ms)
 ℹ tests 13
 ℹ suites 3
 ℹ pass 13
@@ -185,12 +185,12 @@ All matched files use Prettier code style!
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1844.331802
+ℹ duration_ms 1890.93397
 
 > yukimi-gestion@1.0.0 test:migrations:static
 > node scripts/validate-migrations.mjs
 
-Validación estática correcta: 35 migraciones, versiones únicas y sin duplicados exactos.
+Validación estática correcta: 36 migraciones, versiones únicas y sin duplicados exactos.
 
 > yukimi-gestion@1.0.0 test:db:static
 > node scripts/validate-db-tests.mjs
@@ -291,10 +291,9 @@ dist/assets/hooks-13iSMKXP.js                  69.55 kB │ gzip: 23.02 kB
 dist/assets/supabase-yJJKBn_o.js              288.04 kB │ gzip: 75.74 kB
 dist/assets/index-Kg7n5rLB.js                 321.71 kB │ gzip: 94.81 kB
 
-[32m✓ built in 715ms[39m
+[32m✓ built in 721ms[39m
 
 ===== /tmp/db-start.log =====
-83a5975346e8: Pull complete
 848b1c5912e5: Pull complete
 f2c897740b67: Pull complete
 0f819c04149e: Pull complete
@@ -367,6 +366,7 @@ Applying migration 031_business_entities_receipt_readiness.sql...
 Applying migration 032_global_erp_search.sql...
 Applying migration 033_fix_reverse_payment_and_lint_gate.sql...
 Applying migration 034_compliance_closure.sql...
+Applying migration 035_prepare_operational_financial_accounts.sql...
 Starting containers...
 Waiting for health checks...
 Started [36msupabase[39m local development setup.
@@ -416,34 +416,6 @@ Studio, pgMeta (/pg/*), and analytics have no authentication
 
 
 ===== /tmp/db-test.log =====
-NOTICE (00000): policy "admin_read_only" for relation "public.audit_log" does not exist, skipping
-NOTICE (00000): policy "notification_recipients_select_own" for relation "public.notification_recipients" does not exist, skipping
-NOTICE (00000): policy "notification_recipients_insert_own" for relation "public.notification_recipients" does not exist, skipping
-NOTICE (00000): policy "notification_recipients_update_own" for relation "public.notification_recipients" does not exist, skipping
-NOTICE (00000): policy "notification_preferences_own" for relation "public.notification_preferences" does not exist, skipping
-NOTICE (00000): policy "push_subscriptions_own" for relation "public.push_subscriptions" does not exist, skipping
-NOTICE (00000): policy "yukimi_storage_select" for relation "storage.objects" does not exist, skipping
-NOTICE (00000): policy "yukimi_storage_insert" for relation "storage.objects" does not exist, skipping
-NOTICE (00000): policy "yukimi_storage_update" for relation "storage.objects" does not exist, skipping
-Applying migration 010_seed_initial_configuration.sql...
-Applying migration 011_catalog_products_api.sql...
-Applying migration 012_add_product_attribute_description.sql...
-Applying migration 013_clients_vip_api.sql...
-Applying migration 014_sales_reservations_api.sql...
-Applying migration 015_payments_receipts_penalties_api.sql...
-Applying migration 016_fix_payment_declared_amount.sql...
-Applying migration 017_deliveries_agencies_api.sql...
-NOTICE (00000): trigger "trg_sync_sale_accumulated_inventory" for relation "public.sales" does not exist, skipping
-Applying migration 018_edit_pending_deliveries.sql...
-Applying migration 019_imports_preorders_api.sql...
-Applying migration 020_partner_dedup_and_import_currencies.sql...
-Applying migration 021_finance_banking_reconciliation_api.sql...
-NOTICE (00000): policy "financial_files_select_admin" for relation "storage.objects" does not exist, skipping
-NOTICE (00000): policy "financial_files_insert_admin" for relation "storage.objects" does not exist, skipping
-NOTICE (00000): policy "financial_files_update_admin" for relation "storage.objects" does not exist, skipping
-NOTICE (00000): policy "financial_files_delete_admin" for relation "storage.objects" does not exist, skipping
-Applying migration 022_fix_financial_reversal.sql...
-Applying migration 023_reports_notifications_audit_release.sql...
 NOTICE (00000): policy "report_exports_admin_select" for relation "public.report_exports" does not exist, skipping
 NOTICE (00000): policy "report_exports_admin_insert" for relation "public.report_exports" does not exist, skipping
 Applying migration 024_force_report_exports_rls.sql...
@@ -473,6 +445,7 @@ NOTICE (00000): policy "admin_insert" for relation "public.sale_drafts" does not
 NOTICE (00000): policy "admin_update" for relation "public.sale_drafts" does not exist, skipping
 NOTICE (00000): trigger "trg_touch_version" for relation "public.sale_drafts" does not exist, skipping
 NOTICE (00000): trigger "trg_audit_row_change" for relation "public.sale_drafts" does not exist, skipping
+Applying migration 035_prepare_operational_financial_accounts.sql...
 Restarting containers...
 Finished [36msupabase db reset[39m on branch [36mversion-1-1[39m.
 
@@ -486,6 +459,7 @@ dcccee43ad5d: Pulling fs layer
 a22cb17b3b93: Pulling fs layer
 4f4fb700ef54: Pulling fs layer
 4f4fb700ef54: Waiting
+a22cb17b3b93: Verifying Checksum
 a22cb17b3b93: Download complete
 dcccee43ad5d: Verifying Checksum
 dcccee43ad5d: Download complete
@@ -523,16 +497,42 @@ psql:/home/runner/work/yukimi-gestion/yukimi-gestion/supabase/tests/database/010
 psql:/home/runner/work/yukimi-gestion/yukimi-gestion/supabase/tests/database/011_reverse_payment_lint_fix.test.sql:3: NOTICE:  extension "pgtap" already exists, skipping
 /home/runner/work/yukimi-gestion/yukimi-gestion/supabase/tests/database/011_reverse_payment_lint_fix.test.sql .. ok
 psql:/home/runner/work/yukimi-gestion/yukimi-gestion/supabase/tests/database/012_compliance_closure.test.sql:3: NOTICE:  extension "pgtap" already exists, skipping
-/home/runner/work/yukimi-gestion/yukimi-gestion/supabase/tests/database/012_compliance_closure.test.sql ........ 
-# Failed test 16: "Se prepararon las cuentas operativas requeridas sin inventar números sensibles"
-# Looks like you failed 1 test of 16
-Failed 1/16 subtests 
+/home/runner/work/yukimi-gestion/yukimi-gestion/supabase/tests/database/012_compliance_closure.test.sql ........ ok
+All tests successful.
+Files=12, Tests=84,  0 wallclock secs ( 0.04 usr  0.03 sys +  0.11 cusr  0.06 csys =  0.24 CPU)
+Result: PASS
 
-Test Summary Report
--------------------
-/home/runner/work/yukimi-gestion/yukimi-gestion/supabase/tests/database/012_compliance_closure.test.sql      (Wstat: 0 Tests: 16 Failed: 1)
-  Failed test:  16
-Files=12, Tests=84,  1 wallclock secs ( 0.05 usr  0.01 sys +  0.14 cusr  0.03 csys =  0.23 CPU)
-Result: FAIL
-[31merror running container: exit 1[39m
-Try rerunning the command with --debug to troubleshoot the error.
+> yukimi-gestion@1.0.0 test:db:concurrency
+> node scripts/test-db-concurrency.mjs
+
+Concurrencia correcta: creación idempotente única y una sola actualización ganadora.
+
+> yukimi-gestion@1.0.0 test:db:lint
+> node scripts/run-db-lint.mjs
+
+[
+  {
+    "function": "public.queue_weekly_summary_v1",
+    "issues": [
+      {
+        "level": "error",
+        "message": "function public.get_report_data_v1(date, date, unknown) does not exist",
+        "statement": {
+          "lineNumber": "24",
+          "text": "assignment"
+        },
+        "query": {
+          "position": "13",
+          "text": "v_report := public.get_report_data_v1(v_start,v_end,null)"
+        },
+        "hint": "No function matches the given name and argument types. You might need to add explicit type casts.",
+        "context": "at assignment to variable \"v_report\" declared on line 11",
+        "sqlState": "42883"
+      }
+    ]
+  }
+]
+Connecting to local database...
+Linting schema: public
+Linting schema: private
+Supabase DB lint reportó errores aunque la CLI devolvió código 0; la verificación se marca como fallida.
