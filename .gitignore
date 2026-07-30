@@ -10,3 +10,5 @@ coverage/
 *.log
 .vscode/
 .idea/
+supabase/.branches/
+supabase/.temp/
