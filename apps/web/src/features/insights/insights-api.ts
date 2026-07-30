@@ -13,27 +13,38 @@ export function getDashboard(): Promise<DashboardData> {
   return apiRequest<DashboardData>('/insights/dashboard');
 }
 
-export function getNotifications(filters: { limit?: number | undefined; status?: string | undefined } = {}): Promise<NotificationList> {
+export function getNotifications(
+  filters: { limit?: number | undefined; status?: string | undefined } = {},
+): Promise<NotificationList> {
   const params = new URLSearchParams();
   params.set('limit', String(filters.limit ?? 30));
   if (filters.status) params.set('status', filters.status);
   return apiRequest<NotificationList>(`/insights/notifications?${params.toString()}`);
 }
 
-export function setNotificationStatus(id: string, status: 'READ' | 'RESOLVED' | 'DISMISSED'): Promise<NotificationMutationResult> {
+export function setNotificationStatus(
+  id: string,
+  status: 'READ' | 'RESOLVED' | 'DISMISSED',
+): Promise<NotificationMutationResult> {
   return apiRequest<NotificationMutationResult>(`/insights/notifications/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
 }
 
-export function getReports(filters: { startDate: string; endDate: string; warehouseId?: string | undefined }): Promise<ReportData> {
+export function getReports(filters: {
+  startDate: string;
+  endDate: string;
+  warehouseId?: string | undefined;
+}): Promise<ReportData> {
   const params = new URLSearchParams({ startDate: filters.startDate, endDate: filters.endDate });
   if (filters.warehouseId) params.set('warehouseId', filters.warehouseId);
   return apiRequest<ReportData>(`/insights/reports?${params.toString()}`);
 }
 
-export function registerReportExport(input: RegisterReportExportInput): Promise<ReportExportResult> {
+export function registerReportExport(
+  input: RegisterReportExportInput,
+): Promise<ReportExportResult> {
   return apiRequest<ReportExportResult>('/insights/reports/exports', {
     method: 'POST',
     body: JSON.stringify(input),

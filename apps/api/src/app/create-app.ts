@@ -16,6 +16,7 @@ import { createImportsRouter } from '../modules/imports/imports.routes.js';
 import { createFinanceRouter } from '../modules/finance/finance.routes.js';
 import { createInsightsRouter } from '../modules/insights/insights.routes.js';
 import { createSearchRouter } from '../modules/search/search.routes.js';
+import { createAdminRouter } from '../modules/admin/admin.routes.js';
 import { errorHandler, notFoundHandler } from '../shared/http/error-handler.js';
 import { requestContext } from '../shared/http/request-context.js';
 import type { AppLogger } from '../shared/logging/logger.js';
@@ -71,6 +72,7 @@ export function createApp(dependencies: AppDependencies): Express {
   app.use('/api/v1/finance', createFinanceRouter(authGateway, userClientFactory));
   app.use('/api/v1/insights', createInsightsRouter(authGateway, userClientFactory));
   app.use('/api/v1/search', createSearchRouter(authGateway, userClientFactory));
+  app.use('/api/v1/admin', createAdminRouter(authGateway, userClientFactory));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

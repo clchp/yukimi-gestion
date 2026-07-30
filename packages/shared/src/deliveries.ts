@@ -97,11 +97,13 @@ export const deliverySaleItemOptionSchema = z.object({
   quantity: z.number().int().positive(),
   assignedQuantity: z.number().int().nonnegative(),
   remainingQuantity: z.number().int().nonnegative(),
-  allocations: z.array(z.object({
-    warehouseName: z.string(),
-    quantity: z.number().int().positive(),
-    status: z.string(),
-  })),
+  allocations: z.array(
+    z.object({
+      warehouseName: z.string(),
+      quantity: z.number().int().positive(),
+      status: z.string(),
+    }),
+  ),
 });
 export type DeliverySaleItemOption = z.infer<typeof deliverySaleItemOptionSchema>;
 
@@ -118,16 +120,18 @@ export type DeliveryEligibleSale = z.infer<typeof deliveryEligibleSaleSchema>;
 export const deliverySupportDataSchema = z.object({
   operators: z.array(deliveryOperatorSchema),
   eligibleSales: z.array(deliveryEligibleSaleSchema),
-  selectedSale: z.object({
-    id: z.string().uuid(),
-    code: z.string(),
-    clientId: z.string().uuid(),
-    clientName: z.string(),
-    clientPhone: z.string().nullable(),
-    deliveryStateCode: z.string(),
-    addresses: z.array(deliveryAddressSchema),
-    items: z.array(deliverySaleItemOptionSchema),
-  }).nullable(),
+  selectedSale: z
+    .object({
+      id: z.string().uuid(),
+      code: z.string(),
+      clientId: z.string().uuid(),
+      clientName: z.string(),
+      clientPhone: z.string().nullable(),
+      deliveryStateCode: z.string(),
+      addresses: z.array(deliveryAddressSchema),
+      items: z.array(deliverySaleItemOptionSchema),
+    })
+    .nullable(),
 });
 export type DeliverySupportData = z.infer<typeof deliverySupportDataSchema>;
 
@@ -136,62 +140,97 @@ export const createDeliveryItemSchema = z.object({
   quantity: z.number().int().positive().max(999),
 });
 
-export const createDeliverySchema = z.object({
-  saleId: z.string().uuid(),
-  deliveryMethod: deliveryMethodSchema,
-  operatorPartnerId: z.string().uuid().nullable().optional(),
-  destinationAddressId: z.string().uuid().nullable().optional(),
-  trackingNumber: z.string().trim().max(150).nullable().optional(),
-  shippingCost: z.number().nonnegative().max(999999.99).default(0),
-  costPayer: z.enum(['CLIENT', 'BUSINESS', 'SHARED', 'NOT_APPLICABLE']).default('CLIENT'),
-  plannedDispatchDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  notes: z.string().trim().max(2000).nullable().optional(),
-  items: z.array(createDeliveryItemSchema).min(1).max(100),
-}).superRefine((value, context) => {
-  if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
-    context.addIssue({ code: 'custom', path: ['operatorPartnerId'], message: 'Selecciona la agencia.' });
-  }
-  if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
-    context.addIssue({ code: 'custom', path: ['operatorPartnerId'], message: 'Selecciona el motorizado o courier.' });
-  }
-  const seen = new Set<string>();
-  value.items.forEach((item, index) => {
-    if (seen.has(item.saleItemId)) {
-      context.addIssue({ code: 'custom', path: ['items', index], message: 'Un producto no puede repetirse en la misma entrega.' });
+export const createDeliverySchema = z
+  .object({
+    saleId: z.string().uuid(),
+    deliveryMethod: deliveryMethodSchema,
+    operatorPartnerId: z.string().uuid().nullable().optional(),
+    destinationAddressId: z.string().uuid().nullable().optional(),
+    trackingNumber: z.string().trim().max(150).nullable().optional(),
+    shippingCost: z.number().nonnegative().max(999999.99).default(0),
+    costPayer: z.enum(['CLIENT', 'BUSINESS', 'SHARED', 'NOT_APPLICABLE']).default('CLIENT'),
+    plannedDispatchDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable()
+      .optional(),
+    notes: z.string().trim().max(2000).nullable().optional(),
+    items: z.array(createDeliveryItemSchema).min(1).max(100),
+  })
+  .superRefine((value, context) => {
+    if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['operatorPartnerId'],
+        message: 'Selecciona la agencia.',
+      });
     }
-    seen.add(item.saleItemId);
+    if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['operatorPartnerId'],
+        message: 'Selecciona el motorizado o courier.',
+      });
+    }
+    const seen = new Set<string>();
+    value.items.forEach((item, index) => {
+      if (seen.has(item.saleItemId)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['items', index],
+          message: 'Un producto no puede repetirse en la misma entrega.',
+        });
+      }
+      seen.add(item.saleItemId);
+    });
   });
-});
 export type CreateDeliveryInput = z.infer<typeof createDeliverySchema>;
 
-
-export const updateDeliverySchema = z.object({
-  version: z.number().int().positive(),
-  reason: z.string().trim().min(3).max(1000),
-  deliveryMethod: deliveryMethodSchema,
-  operatorPartnerId: z.string().uuid().nullable().optional(),
-  destinationAddressId: z.string().uuid().nullable().optional(),
-  trackingNumber: z.string().trim().max(150).nullable().optional(),
-  shippingCost: z.number().nonnegative().max(999999.99),
-  costPayer: z.enum(['CLIENT', 'BUSINESS', 'SHARED', 'NOT_APPLICABLE']),
-  plannedDispatchDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  notes: z.string().trim().max(2000).nullable().optional(),
-  items: z.array(createDeliveryItemSchema).min(1).max(100),
-}).superRefine((value, context) => {
-  if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
-    context.addIssue({ code: 'custom', path: ['operatorPartnerId'], message: 'Selecciona la agencia.' });
-  }
-  if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
-    context.addIssue({ code: 'custom', path: ['operatorPartnerId'], message: 'Selecciona el motorizado o courier.' });
-  }
-  const seen = new Set<string>();
-  value.items.forEach((item, index) => {
-    if (seen.has(item.saleItemId)) {
-      context.addIssue({ code: 'custom', path: ['items', index], message: 'Un producto no puede repetirse en la misma entrega.' });
+export const updateDeliverySchema = z
+  .object({
+    version: z.number().int().positive(),
+    reason: z.string().trim().min(3).max(1000),
+    deliveryMethod: deliveryMethodSchema,
+    operatorPartnerId: z.string().uuid().nullable().optional(),
+    destinationAddressId: z.string().uuid().nullable().optional(),
+    trackingNumber: z.string().trim().max(150).nullable().optional(),
+    shippingCost: z.number().nonnegative().max(999999.99),
+    costPayer: z.enum(['CLIENT', 'BUSINESS', 'SHARED', 'NOT_APPLICABLE']),
+    plannedDispatchDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable()
+      .optional(),
+    notes: z.string().trim().max(2000).nullable().optional(),
+    items: z.array(createDeliveryItemSchema).min(1).max(100),
+  })
+  .superRefine((value, context) => {
+    if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['operatorPartnerId'],
+        message: 'Selecciona la agencia.',
+      });
     }
-    seen.add(item.saleItemId);
+    if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['operatorPartnerId'],
+        message: 'Selecciona el motorizado o courier.',
+      });
+    }
+    const seen = new Set<string>();
+    value.items.forEach((item, index) => {
+      if (seen.has(item.saleItemId)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['items', index],
+          message: 'Un producto no puede repetirse en la misma entrega.',
+        });
+      }
+      seen.add(item.saleItemId);
+    });
   });
-});
 export type UpdateDeliveryInput = z.infer<typeof updateDeliverySchema>;
 
 export const updateDeliveryStateSchema = z.object({
@@ -239,20 +278,24 @@ export const deliveryDetailSchema = z.object({
   createdByName: z.string().nullable(),
   createdAt: z.string(),
   version: z.number().int().positive(),
-  items: z.array(z.object({
-    id: z.string().uuid(),
-    saleItemId: z.string().uuid(),
-    productName: z.string(),
-    variantName: z.string(),
-    sku: z.string(),
-    quantity: z.number().int().positive(),
-  })),
+  items: z.array(
+    z.object({
+      id: z.string().uuid(),
+      saleItemId: z.string().uuid(),
+      productName: z.string(),
+      variantName: z.string(),
+      sku: z.string(),
+      quantity: z.number().int().positive(),
+    }),
+  ),
   history: z.array(deliveryHistoryItemSchema),
-  allowedTransitions: z.array(z.object({
-    stateCode: deliveryStateCodeSchema,
-    name: z.string(),
-    requiresReason: z.boolean(),
-  })),
+  allowedTransitions: z.array(
+    z.object({
+      stateCode: deliveryStateCodeSchema,
+      name: z.string(),
+      requiresReason: z.boolean(),
+    }),
+  ),
 });
 export type DeliveryDetail = z.infer<typeof deliveryDetailSchema>;
 

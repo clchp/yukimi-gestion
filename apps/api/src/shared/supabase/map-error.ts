@@ -32,7 +32,6 @@ export function mapSupabaseError(error: DatabaseErrorLike, fallbackMessage: stri
     });
   }
 
-
   if (error.code === '40001') {
     return new AppError({
       code: 'OPTIMISTIC_LOCK_CONFLICT',

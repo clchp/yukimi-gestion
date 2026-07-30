@@ -169,23 +169,35 @@ const clientCoreInputSchema = z.object({
   notes: nullableText(2000),
 });
 
-export const createClientSchema = clientCoreInputSchema.extend({
-  address: createClientAddressInputSchema.nullable().optional(),
-}).superRefine((value, context) => {
-  if (value.documentNumber && !value.documentType) {
-    context.addIssue({ code: 'custom', path: ['documentType'], message: 'Selecciona el tipo de documento.' });
-  }
-});
+export const createClientSchema = clientCoreInputSchema
+  .extend({
+    address: createClientAddressInputSchema.nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.documentNumber && !value.documentType) {
+      context.addIssue({
+        code: 'custom',
+        path: ['documentType'],
+        message: 'Selecciona el tipo de documento.',
+      });
+    }
+  });
 
 export type CreateClientInput = z.infer<typeof createClientSchema>;
 
-export const updateClientSchema = clientCoreInputSchema.extend({
-  version: z.number().int().positive(),
-}).superRefine((value, context) => {
-  if (value.documentNumber && !value.documentType) {
-    context.addIssue({ code: 'custom', path: ['documentType'], message: 'Selecciona el tipo de documento.' });
-  }
-});
+export const updateClientSchema = clientCoreInputSchema
+  .extend({
+    version: z.number().int().positive(),
+  })
+  .superRefine((value, context) => {
+    if (value.documentNumber && !value.documentType) {
+      context.addIssue({
+        code: 'custom',
+        path: ['documentType'],
+        message: 'Selecciona el tipo de documento.',
+      });
+    }
+  });
 
 export type UpdateClientInput = z.infer<typeof updateClientSchema>;
 
@@ -235,10 +247,12 @@ export const resolveClientIncidentSchema = z.object({
 export type ResolveClientIncidentInput = z.infer<typeof resolveClientIncidentSchema>;
 
 export const clientSupportDataSchema = z.object({
-  preferredPartners: z.array(z.object({
-    id: z.string().uuid(),
-    name: z.string(),
-  })),
+  preferredPartners: z.array(
+    z.object({
+      id: z.string().uuid(),
+      name: z.string(),
+    }),
+  ),
 });
 
 export type ClientSupportData = z.infer<typeof clientSupportDataSchema>;

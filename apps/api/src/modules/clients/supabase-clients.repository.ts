@@ -44,7 +44,9 @@ export class SupabaseClientRepository implements ClientRepository {
   }
 
   public async getById(clientId: string): Promise<ClientDetail> {
-    const { data, error } = await this.client.rpc('get_client_detail_v1', { p_client_id: clientId });
+    const { data, error } = await this.client.rpc('get_client_detail_v1', {
+      p_client_id: clientId,
+    });
     if (error) throw mapSupabaseError(error, 'No se pudo cargar el cliente.');
     return clientDetailSchema.parse(data);
   }
@@ -54,7 +56,8 @@ export class SupabaseClientRepository implements ClientRepository {
       .from('business_partner_types')
       .select('partner_id')
       .eq('partner_type_code', 'AGENCY');
-    if (assignments.error) throw mapSupabaseError(assignments.error, 'No se pudieron cargar las agencias.');
+    if (assignments.error)
+      throw mapSupabaseError(assignments.error, 'No se pudieron cargar las agencias.');
 
     const partnerIds = [...new Set((assignments.data ?? []).map((row) => String(row.partner_id)))];
     if (partnerIds.length === 0) return { preferredPartners: [] };
@@ -65,7 +68,8 @@ export class SupabaseClientRepository implements ClientRepository {
       .in('id', partnerIds)
       .eq('is_active', true)
       .order('trade_name');
-    if (partners.error) throw mapSupabaseError(partners.error, 'No se pudieron cargar las agencias.');
+    if (partners.error)
+      throw mapSupabaseError(partners.error, 'No se pudieron cargar las agencias.');
 
     return clientSupportDataSchema.parse({
       preferredPartners: (partners.data ?? []).map((row) => ({
@@ -75,7 +79,10 @@ export class SupabaseClientRepository implements ClientRepository {
     });
   }
 
-  public async create(input: CreateClientInput, idempotencyKey: string): Promise<ClientMutationResult> {
+  public async create(
+    input: CreateClientInput,
+    idempotencyKey: string,
+  ): Promise<ClientMutationResult> {
     const { data, error } = await this.client.rpc('create_client_v1', {
       p_input: input,
       p_idempotency_key: idempotencyKey,
@@ -95,7 +102,10 @@ export class SupabaseClientRepository implements ClientRepository {
     return data as RpcMutationRow;
   }
 
-  public async setStatus(clientId: string, input: SetClientStatusInput): Promise<ClientMutationResult> {
+  public async setStatus(
+    clientId: string,
+    input: SetClientStatusInput,
+  ): Promise<ClientMutationResult> {
     const { data, error } = await this.client.rpc('set_client_status_v1', {
       p_client_id: clientId,
       p_expected_version: input.version,

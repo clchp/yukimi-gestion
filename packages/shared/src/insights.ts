@@ -84,21 +84,25 @@ export const dashboardSchema = z.object({
     transitBoxes: z.number().int().nonnegative(),
     delayedImports: z.number().int().nonnegative(),
   }),
-  weekly: z.array(z.object({
-    date: z.string(),
-    salesAmount: z.number(),
-    collectionsAmount: z.number(),
-  })),
-  accounts: z.array(z.object({
-    id: z.string().uuid(),
-    code: z.string(),
-    name: z.string(),
-    currencyCode: z.string().length(3),
-    currentBalance: z.number(),
-    monthInflows: z.number(),
-    monthOutflows: z.number(),
-    balanceAsOf: z.string().optional(),
-  })),
+  weekly: z.array(
+    z.object({
+      date: z.string(),
+      salesAmount: z.number(),
+      collectionsAmount: z.number(),
+    }),
+  ),
+  accounts: z.array(
+    z.object({
+      id: z.string().uuid(),
+      code: z.string(),
+      name: z.string(),
+      currencyCode: z.string().length(3),
+      currentBalance: z.number(),
+      monthInflows: z.number(),
+      monthOutflows: z.number(),
+      balanceAsOf: z.string().optional(),
+    }),
+  ),
   priorities: z.array(dashboardPrioritySchema),
   recentActivity: z.array(dashboardActivitySchema),
   recentSales: z.array(dashboardRecentSaleSchema),
@@ -132,54 +136,66 @@ export const reportDataSchema = z.object({
     previousNetSales: z.number(),
     salesChangePercent: z.number().nullable(),
   }),
-  daily: z.array(z.object({
-    date: z.string(),
-    salesAmount: z.number(),
-    collectionsAmount: z.number(),
-    salesCount: z.number().int().nonnegative(),
-  })),
-  topProducts: z.array(z.object({
-    variantId: z.string().uuid(),
-    productName: z.string(),
-    variantName: z.string(),
-    sku: z.string(),
-    units: z.number().int().nonnegative(),
-    revenue: z.number(),
-    cost: z.number(),
-    profit: z.number(),
-  })),
-  categories: z.array(z.object({
-    name: z.string(),
-    units: z.number().int().nonnegative(),
-    revenue: z.number(),
-  })),
-  topClients: z.array(z.object({
-    clientId: z.string().uuid(),
-    clientName: z.string(),
-    salesCount: z.number().int().nonnegative(),
-    purchased: z.number(),
-    outstanding: z.number(),
-  })),
+  daily: z.array(
+    z.object({
+      date: z.string(),
+      salesAmount: z.number(),
+      collectionsAmount: z.number(),
+      salesCount: z.number().int().nonnegative(),
+    }),
+  ),
+  topProducts: z.array(
+    z.object({
+      variantId: z.string().uuid(),
+      productName: z.string(),
+      variantName: z.string(),
+      sku: z.string(),
+      units: z.number().int().nonnegative(),
+      revenue: z.number(),
+      cost: z.number(),
+      profit: z.number(),
+    }),
+  ),
+  categories: z.array(
+    z.object({
+      name: z.string(),
+      units: z.number().int().nonnegative(),
+      revenue: z.number(),
+    }),
+  ),
+  topClients: z.array(
+    z.object({
+      clientId: z.string().uuid(),
+      clientName: z.string(),
+      salesCount: z.number().int().nonnegative(),
+      purchased: z.number(),
+      outstanding: z.number(),
+    }),
+  ),
   inventory: z.object({
     availableUnits: z.number().int().nonnegative(),
     reservedUnits: z.number().int().nonnegative(),
     lowStockVariants: z.number().int().nonnegative(),
     valuationPen: z.number(),
   }),
-  lowStock: z.array(z.object({
-    variantId: z.string().uuid(),
-    productName: z.string(),
-    variantName: z.string(),
-    sku: z.string(),
-    available: z.number().int(),
-    minimum: z.number().int().nonnegative(),
-  })),
-  channels: z.array(z.object({
-    code: z.string(),
-    name: z.string(),
-    salesCount: z.number().int().nonnegative(),
-    amount: z.number(),
-  })),
+  lowStock: z.array(
+    z.object({
+      variantId: z.string().uuid(),
+      productName: z.string(),
+      variantName: z.string(),
+      sku: z.string(),
+      available: z.number().int(),
+      minimum: z.number().int().nonnegative(),
+    }),
+  ),
+  channels: z.array(
+    z.object({
+      code: z.string(),
+      name: z.string(),
+      salesCount: z.number().int().nonnegative(),
+      amount: z.number(),
+    }),
+  ),
 });
 export type ReportData = z.infer<typeof reportDataSchema>;
 
@@ -215,9 +231,17 @@ export type AuditLogData = z.infer<typeof auditLogSchema>;
 
 export const registerReportExportSchema = z.object({
   reportType: z.string().trim().min(1).max(50),
-  format: z.enum(['CSV', 'PDF_PRINT']),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  format: z.enum(['CSV', 'XLSX', 'PDF', 'PDF_PRINT']),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
   filename: z.string().trim().min(1).max(255),
   objectPath: z.string().trim().max(500).nullable().optional(),
   filters: z.record(z.string(), z.unknown()).default({}),

@@ -34,7 +34,10 @@ export class SupabaseDeliveriesRepository implements DeliveriesRepository {
     return deliveryListResponseSchema.parse(data);
   }
 
-  public async getSupportData(saleId?: string | undefined, deliveryId?: string | undefined): Promise<DeliverySupportData> {
+  public async getSupportData(
+    saleId?: string | undefined,
+    deliveryId?: string | undefined,
+  ): Promise<DeliverySupportData> {
     const functionName = deliveryId ? 'get_delivery_edit_support_v1' : 'get_delivery_support_v1';
     const args = deliveryId ? { p_delivery_id: deliveryId } : { p_sale_id: saleId ?? null };
     const { data, error } = await this.client.rpc(functionName, args);
@@ -50,7 +53,10 @@ export class SupabaseDeliveriesRepository implements DeliveriesRepository {
     return deliveryDetailSchema.parse(data);
   }
 
-  public async create(input: CreateDeliveryInput, idempotencyKey: string): Promise<DeliveryMutationResult> {
+  public async create(
+    input: CreateDeliveryInput,
+    idempotencyKey: string,
+  ): Promise<DeliveryMutationResult> {
     const { data, error } = await this.client.rpc('create_delivery_v1', {
       p_input: input,
       p_idempotency_key: idempotencyKey,
@@ -59,8 +65,10 @@ export class SupabaseDeliveriesRepository implements DeliveriesRepository {
     return deliveryMutationResultSchema.parse(data);
   }
 
-
-  public async update(deliveryId: string, input: UpdateDeliveryInput): Promise<DeliveryMutationResult> {
+  public async update(
+    deliveryId: string,
+    input: UpdateDeliveryInput,
+  ): Promise<DeliveryMutationResult> {
     const { data, error } = await this.client.rpc('update_delivery_v1', {
       p_delivery_id: deliveryId,
       p_input: input,
@@ -69,7 +77,10 @@ export class SupabaseDeliveriesRepository implements DeliveriesRepository {
     return deliveryMutationResultSchema.parse(data);
   }
 
-  public async advance(deliveryId: string, input: UpdateDeliveryStateInput): Promise<DeliveryMutationResult> {
+  public async advance(
+    deliveryId: string,
+    input: UpdateDeliveryStateInput,
+  ): Promise<DeliveryMutationResult> {
     const { data, error } = await this.client.rpc('advance_delivery_v1', {
       p_delivery_id: deliveryId,
       p_next_state_code: input.nextStateCode,

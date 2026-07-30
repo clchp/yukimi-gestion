@@ -1,7 +1,9 @@
 import type {
   AttachmentRegistrationInput,
+  CreateInventoryMovementInput,
   CreateProductInput,
   CreateProductResult,
+  InventoryMovementResult,
   InventoryResponse,
   ProductListResponse,
 } from '@yukimi/shared';
@@ -25,7 +27,10 @@ export function getProducts(filters: ProductListFilters): Promise<ProductListRes
   return apiRequest<ProductListResponse>(`/products?${params.toString()}`);
 }
 
-export function createProduct(input: CreateProductInput, idempotencyKey = crypto.randomUUID()): Promise<CreateProductResult> {
+export function createProduct(
+  input: CreateProductInput,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<CreateProductResult> {
   return apiRequest<CreateProductResult>('/products', {
     method: 'POST',
     headers: { 'idempotency-key': idempotencyKey },
@@ -53,4 +58,15 @@ export function getInventory(filters: {
   if (filters.warehouseId) params.set('warehouseId', filters.warehouseId);
   params.set('includeVirtual', String(filters.includeVirtual ?? false));
   return apiRequest<InventoryResponse>(`/products/inventory/summary?${params.toString()}`);
+}
+
+export function createInventoryMovement(
+  input: CreateInventoryMovementInput,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<InventoryMovementResult> {
+  return apiRequest<InventoryMovementResult>('/products/inventory/movements', {
+    method: 'POST',
+    headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
 }

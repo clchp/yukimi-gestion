@@ -24,7 +24,10 @@ export function getDeliveries(filters: {
   return apiRequest<DeliveryListResponse>(`/deliveries?${params.toString()}`);
 }
 
-export function getDeliverySupportData(saleId?: string | undefined, deliveryId?: string | undefined): Promise<DeliverySupportData> {
+export function getDeliverySupportData(
+  saleId?: string | undefined,
+  deliveryId?: string | undefined,
+): Promise<DeliverySupportData> {
   const params = new URLSearchParams();
   if (saleId) params.set('saleId', saleId);
   if (deliveryId) params.set('deliveryId', deliveryId);
@@ -36,7 +39,10 @@ export function getDelivery(deliveryId: string): Promise<DeliveryDetail> {
   return apiRequest<DeliveryDetail>(`/deliveries/${deliveryId}`);
 }
 
-export function createDelivery(input: CreateDeliveryInput, idempotencyKey: string): Promise<DeliveryMutationResult> {
+export function createDelivery(
+  input: CreateDeliveryInput,
+  idempotencyKey: string,
+): Promise<DeliveryMutationResult> {
   return apiRequest<DeliveryMutationResult>('/deliveries', {
     method: 'POST',
     headers: { 'idempotency-key': idempotencyKey },
@@ -44,15 +50,20 @@ export function createDelivery(input: CreateDeliveryInput, idempotencyKey: strin
   });
 }
 
-
-export function updateDelivery(deliveryId: string, input: UpdateDeliveryInput): Promise<DeliveryMutationResult> {
+export function updateDelivery(
+  deliveryId: string,
+  input: UpdateDeliveryInput,
+): Promise<DeliveryMutationResult> {
   return apiRequest<DeliveryMutationResult>(`/deliveries/${deliveryId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
 }
 
-export function advanceDelivery(deliveryId: string, input: UpdateDeliveryStateInput): Promise<DeliveryMutationResult> {
+export function advanceDelivery(
+  deliveryId: string,
+  input: UpdateDeliveryStateInput,
+): Promise<DeliveryMutationResult> {
   return apiRequest<DeliveryMutationResult>(`/deliveries/${deliveryId}/state`, {
     method: 'POST',
     body: JSON.stringify(input),

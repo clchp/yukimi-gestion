@@ -1,9 +1,9 @@
-import type { AttachmentRegistrationInput, CreateProductInput } from '@yukimi/shared';
 import type {
-  InventoryQuery,
-  ProductListQuery,
-  ProductRepository,
-} from './products.repository.js';
+  AttachmentRegistrationInput,
+  CreateInventoryMovementInput,
+  CreateProductInput,
+} from '@yukimi/shared';
+import type { InventoryQuery, ProductListQuery, ProductRepository } from './products.repository.js';
 
 export class ProductService {
   public constructor(private readonly repository: ProductRepository) {}
@@ -22,5 +22,9 @@ export class ProductService {
 
   public listInventory(query: InventoryQuery) {
     return this.repository.listInventory(query);
+  }
+
+  public createInventoryMovement(input: CreateInventoryMovementInput, idempotencyKey: string) {
+    return this.repository.createInventoryMovement(input, idempotencyKey);
   }
 }

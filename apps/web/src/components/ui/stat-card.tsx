@@ -10,10 +10,19 @@ interface StatCardProps {
   trend?: string;
 }
 
-export function StatCard({ label, value, detail, icon: Icon, tone = 'primary', trend }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+  tone = 'primary',
+  trend,
+}: StatCardProps) {
   return (
     <article className="stat-card">
-      <div className={`stat-icon stat-${tone}`}><Icon size={19} aria-hidden="true" /></div>
+      <div className={`stat-icon stat-${tone}`}>
+        <Icon size={19} aria-hidden="true" />
+      </div>
       <div className="stat-copy">
         <span>{label}</span>
         <strong>{value}</strong>

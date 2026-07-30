@@ -44,7 +44,11 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
         parsed.data.error.details,
       );
     }
-    throw new ApiClientError('UNEXPECTED_API_ERROR', 'La API devolvió una respuesta inesperada.', response.status);
+    throw new ApiClientError(
+      'UNEXPECTED_API_ERROR',
+      'La API devolvió una respuesta inesperada.',
+      response.status,
+    );
   }
 
   return (body as ApiSuccess<T>).data;

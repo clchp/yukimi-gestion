@@ -1,5 +1,6 @@
 import { supabase } from '../../app/supabase';
 import { registerProductAttachment } from './products-api';
+import { compressProductImage } from './compress-image';
 
 function safeFilename(filename: string): string {
   const extension = filename.includes('.') ? filename.split('.').pop()?.toLowerCase() : 'jpg';
@@ -14,7 +15,8 @@ function safeFilename(filename: string): string {
 }
 
 export async function uploadProductImages(productId: string, files: File[]): Promise<void> {
-  for (const [index, file] of files.entries()) {
+  for (const [index, originalFile] of files.entries()) {
+    const file = await compressProductImage(originalFile);
     const path = `${productId}/${crypto.randomUUID()}-${safeFilename(file.name)}`;
     const { error } = await supabase.storage.from('product-images').upload(path, file, {
       cacheControl: '3600',
@@ -27,7 +29,7 @@ export async function uploadProductImages(productId: string, files: File[]): Pro
       await registerProductAttachment(productId, {
         bucketId: 'product-images',
         objectPath: path,
-        originalFilename: file.name,
+        originalFilename: originalFile.name,
         mimeType: file.type as 'image/jpeg' | 'image/png' | 'image/webp',
         sizeBytes: file.size,
         isCover: index === 0,

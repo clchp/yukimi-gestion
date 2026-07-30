@@ -73,11 +73,18 @@ export function createClientAddress(clientId: string, input: CreateClientAddress
   });
 }
 
-export function updateClientAddress(clientId: string, addressId: string, input: UpdateClientAddressInput) {
-  return apiRequest<{ id: string; version: number }>(`/clients/${clientId}/addresses/${addressId}`, {
-    method: 'PUT',
-    body: JSON.stringify(input),
-  });
+export function updateClientAddress(
+  clientId: string,
+  addressId: string,
+  input: UpdateClientAddressInput,
+) {
+  return apiRequest<{ id: string; version: number }>(
+    `/clients/${clientId}/addresses/${addressId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export function createClientIncident(clientId: string, input: CreateClientIncidentInput) {

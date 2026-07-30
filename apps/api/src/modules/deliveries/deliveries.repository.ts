@@ -18,7 +18,10 @@ export interface DeliveryListQuery {
 
 export interface DeliveriesRepository {
   list(query: DeliveryListQuery): Promise<DeliveryListResponse>;
-  getSupportData(saleId?: string | undefined, deliveryId?: string | undefined): Promise<DeliverySupportData>;
+  getSupportData(
+    saleId?: string | undefined,
+    deliveryId?: string | undefined,
+  ): Promise<DeliverySupportData>;
   getById(deliveryId: string): Promise<DeliveryDetail>;
   create(input: CreateDeliveryInput, idempotencyKey: string): Promise<DeliveryMutationResult>;
   update(deliveryId: string, input: UpdateDeliveryInput): Promise<DeliveryMutationResult>;

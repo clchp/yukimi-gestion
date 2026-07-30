@@ -135,6 +135,7 @@ export const saleDetailSchema = z.object({
   balanceAmount: z.number(),
   negotiatedMinimumDepositAmount: z.number().nonnegative().nullable(),
   negotiatedMinimumDepositReason: z.string().nullable(),
+  dueDateReason: z.string().nullable().default(null),
   negotiatedTermsSnapshot: z.record(z.string(), z.unknown()).default({}),
   notes: z.string().nullable(),
   cancellationReason: z.string().nullable(),
@@ -175,60 +176,89 @@ export const saleReleaseQuoteSchema = z.object({
 });
 export type SaleReleaseQuote = z.infer<typeof saleReleaseQuoteSchema>;
 
-export const createSaleItemSchema = z.object({
-  variantId: z.string().uuid(),
-  warehouseId: z.string().uuid(),
-  quantity: z.number().int().positive().max(999),
-  originalUnitPrice: z.number().nonnegative(),
-  finalUnitPrice: z.number().nonnegative(),
-  discountTypeCode: z.string().trim().min(1).max(50).nullable().optional(),
-  discountReason: z.string().trim().max(500).nullable().optional(),
-  notes: z.string().trim().max(1000).nullable().optional(),
-}).superRefine((value, context) => {
-  if (value.finalUnitPrice > value.originalUnitPrice) {
-    context.addIssue({ code: 'custom', path: ['finalUnitPrice'], message: 'El precio final no puede superar el precio original.' });
-  }
-  if (value.finalUnitPrice < value.originalUnitPrice) {
-    if (!value.discountTypeCode) {
-      context.addIssue({ code: 'custom', path: ['discountTypeCode'], message: 'Selecciona el tipo de descuento.' });
+export const createSaleItemSchema = z
+  .object({
+    variantId: z.string().uuid(),
+    warehouseId: z.string().uuid(),
+    quantity: z.number().int().positive().max(999),
+    originalUnitPrice: z.number().nonnegative(),
+    finalUnitPrice: z.number().nonnegative(),
+    discountTypeCode: z.string().trim().min(1).max(50).nullable().optional(),
+    discountReason: z.string().trim().max(500).nullable().optional(),
+    notes: z.string().trim().max(1000).nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.finalUnitPrice > value.originalUnitPrice) {
+      context.addIssue({
+        code: 'custom',
+        path: ['finalUnitPrice'],
+        message: 'El precio final no puede superar el precio original.',
+      });
     }
-    if (!value.discountReason || value.discountReason.trim().length < 3) {
-      context.addIssue({ code: 'custom', path: ['discountReason'], message: 'Indica el motivo del descuento.' });
+    if (value.finalUnitPrice < value.originalUnitPrice) {
+      if (!value.discountTypeCode) {
+        context.addIssue({
+          code: 'custom',
+          path: ['discountTypeCode'],
+          message: 'Selecciona el tipo de descuento.',
+        });
+      }
+      if (!value.discountReason || value.discountReason.trim().length < 3) {
+        context.addIssue({
+          code: 'custom',
+          path: ['discountReason'],
+          message: 'Indica el motivo del descuento.',
+        });
+      }
     }
-  }
-});
+  });
 export type CreateSaleItemInput = z.infer<typeof createSaleItemSchema>;
 
-export const createSaleSchema = z.object({
-  clientId: z.string().uuid(),
-  salesChannelCode: z.string().trim().min(1).max(50),
-  currencyCode: z.literal('PEN').default('PEN'),
-  deliveryMode: z.enum(['PENDING', 'ACCUMULATED']).default('PENDING'),
-  dueAt: z.string().datetime().nullable().optional(),
-  negotiatedMinimumDepositAmount: z.number().nonnegative().nullable().optional(),
-  negotiatedMinimumDepositReason: z.string().trim().max(500).nullable().optional(),
-  notes: z.string().trim().max(2000).nullable().optional(),
-  items: z.array(createSaleItemSchema).min(1).max(100),
-}).superRefine((value, context) => {
-  const seen = new Set<string>();
-  value.items.forEach((item, index) => {
-    const key = `${item.variantId}:${item.warehouseId}`;
-    if (seen.has(key)) {
-      context.addIssue({ code: 'custom', path: ['items', index], message: 'La misma variante y almacén no pueden repetirse.' });
-    }
-    seen.add(key);
-  });
-  if (
-    value.negotiatedMinimumDepositAmount != null
-    && (!value.negotiatedMinimumDepositReason || value.negotiatedMinimumDepositReason.length < 3)
-  ) {
-    context.addIssue({
-      code: 'custom',
-      path: ['negotiatedMinimumDepositReason'],
-      message: 'Explica el acuerdo del adelanto mínimo.',
+export const createSaleSchema = z
+  .object({
+    clientId: z.string().uuid(),
+    salesChannelCode: z.string().trim().min(1).max(50),
+    currencyCode: z.literal('PEN').default('PEN'),
+    deliveryMode: z.enum(['PENDING', 'ACCUMULATED']).default('PENDING'),
+    dueAt: z.string().datetime().nullable().optional(),
+    dueDateReason: z.string().trim().max(500).nullable().optional(),
+    saleTypeCode: z.enum(['REGULAR', 'CUSTOM_ORDER']).default('REGULAR'),
+    negotiatedMinimumDepositAmount: z.number().nonnegative().nullable().optional(),
+    negotiatedMinimumDepositReason: z.string().trim().max(500).nullable().optional(),
+    notes: z.string().trim().max(2000).nullable().optional(),
+    items: z.array(createSaleItemSchema).min(1).max(100),
+  })
+  .superRefine((value, context) => {
+    const seen = new Set<string>();
+    value.items.forEach((item, index) => {
+      const key = `${item.variantId}:${item.warehouseId}`;
+      if (seen.has(key)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['items', index],
+          message: 'La misma variante y almacén no pueden repetirse.',
+        });
+      }
+      seen.add(key);
     });
-  }
-});
+    if (value.dueAt && (!value.dueDateReason || value.dueDateReason.trim().length < 5)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['dueDateReason'],
+        message: 'Explica por qué se usa un vencimiento personalizado.',
+      });
+    }
+    if (
+      value.negotiatedMinimumDepositAmount != null &&
+      (!value.negotiatedMinimumDepositReason || value.negotiatedMinimumDepositReason.length < 3)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['negotiatedMinimumDepositReason'],
+        message: 'Explica el acuerdo del adelanto mínimo.',
+      });
+    }
+  });
 export type CreateSaleInput = z.infer<typeof createSaleSchema>;
 
 export const createSaleResultSchema = z.object({
@@ -249,3 +279,62 @@ export const reviewSaleReleaseSchema = z.object({
   reviewNotes: z.string().trim().min(3).max(1000),
 });
 export type ReviewSaleReleaseInput = z.infer<typeof reviewSaleReleaseSchema>;
+
+export const saleDraftSummarySchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  clientId: z.string().uuid(),
+  clientName: z.string(),
+  status: z.enum(['DRAFT', 'CONFIRMED', 'CANCELLED']),
+  totalAmount: z.number().nonnegative(),
+  itemLines: z.number().int().nonnegative(),
+  updatedAt: z.string(),
+  version: z.number().int().positive(),
+});
+export type SaleDraftSummary = z.infer<typeof saleDraftSummarySchema>;
+
+export const saleDraftDetailSchema = saleDraftSummarySchema.extend({
+  payload: createSaleSchema,
+  confirmedSaleId: z.string().uuid().nullable(),
+});
+export type SaleDraftDetail = z.infer<typeof saleDraftDetailSchema>;
+
+export const saleDraftListSchema = z.object({
+  items: z.array(saleDraftSummarySchema),
+});
+export type SaleDraftList = z.infer<typeof saleDraftListSchema>;
+
+export const saveSaleDraftSchema = z.object({
+  draftId: z.string().uuid().nullable().optional(),
+  input: createSaleSchema,
+  version: z.number().int().positive().nullable().optional(),
+});
+export type SaveSaleDraftInput = z.infer<typeof saveSaleDraftSchema>;
+
+export const createReturnCaseSchema = z.object({
+  caseType: z.enum(['RETURN', 'EXCHANGE']),
+  reason: z.string().trim().min(5).max(1000),
+  items: z
+    .array(
+      z.object({
+        saleItemId: z.string().uuid(),
+        quantity: z.number().int().positive(),
+        receivedCondition: z.enum(['NEW', 'OPENED', 'DAMAGED', 'DEFECTIVE', 'OTHER']),
+        destinationWarehouseId: z.string().uuid(),
+        replacementVariantId: z.string().uuid().nullable().optional(),
+        notes: z.string().trim().max(500).nullable().optional(),
+      }),
+    )
+    .min(1)
+    .max(100),
+});
+export type CreateReturnCaseInput = z.infer<typeof createReturnCaseSchema>;
+
+export const returnCaseResultSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  stateCode: z.string(),
+  caseType: z.enum(['RETURN', 'EXCHANGE']),
+  version: z.number().int().positive(),
+});
+export type ReturnCaseResult = z.infer<typeof returnCaseResultSchema>;

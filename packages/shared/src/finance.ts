@@ -19,6 +19,8 @@ export const financeCategorySchema = z.object({
   name: z.string(),
   nature: z.enum(['INCOME', 'EXPENSE', 'BOTH', 'TRANSFER', 'LOAN', 'ADJUSTMENT']),
   description: z.string().nullable().optional(),
+  isActive: z.boolean().default(true),
+  version: z.number().int().positive().default(1),
 });
 export type FinanceCategory = z.infer<typeof financeCategorySchema>;
 
@@ -81,12 +83,14 @@ export const financeDashboardSchema = z.object({
   accounts: z.array(financeAccountSchema),
   monthIncome: z.number().nonnegative(),
   monthExpense: z.number().nonnegative(),
-  monthlySummary: z.array(z.object({
-    month: z.string(),
-    label: z.string(),
-    income: z.number().nonnegative(),
-    expense: z.number().nonnegative(),
-  })),
+  monthlySummary: z.array(
+    z.object({
+      month: z.string(),
+      label: z.string(),
+      income: z.number().nonnegative(),
+      expense: z.number().nonnegative(),
+    }),
+  ),
   obligations: z.array(financeObligationSchema),
   loans: z.array(financeLoanSummarySchema),
   recentTransactions: z.array(financeTransactionSchema),
@@ -119,62 +123,80 @@ export const createManualFinanceTransactionSchema = z.object({
   notes: z.string().trim().max(1000).nullable().optional(),
   reason: z.string().trim().max(500).nullable().optional(),
 });
-export type CreateManualFinanceTransactionInput = z.infer<typeof createManualFinanceTransactionSchema>;
+export type CreateManualFinanceTransactionInput = z.infer<
+  typeof createManualFinanceTransactionSchema
+>;
 
-export const createFinanceTransferSchema = z.object({
-  sourceAccountId: z.string().uuid(),
-  destinationAccountId: z.string().uuid(),
-  amount: z.number().positive().max(999999999.99),
-  occurredAt: z.string().datetime(),
-  description: z.string().trim().max(300).nullable().optional(),
-  reference: z.string().trim().max(150).nullable().optional(),
-  reason: z.string().trim().max(500).nullable().optional(),
-}).superRefine((value, context) => {
-  if (value.sourceAccountId === value.destinationAccountId) {
-    context.addIssue({ code: 'custom', path: ['destinationAccountId'], message: 'Selecciona una cuenta de destino diferente.' });
-  }
-});
+export const createFinanceTransferSchema = z
+  .object({
+    sourceAccountId: z.string().uuid(),
+    destinationAccountId: z.string().uuid(),
+    amount: z.number().positive().max(999999999.99),
+    occurredAt: z.string().datetime(),
+    description: z.string().trim().max(300).nullable().optional(),
+    reference: z.string().trim().max(150).nullable().optional(),
+    reason: z.string().trim().max(500).nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.sourceAccountId === value.destinationAccountId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['destinationAccountId'],
+        message: 'Selecciona una cuenta de destino diferente.',
+      });
+    }
+  });
 export type CreateFinanceTransferInput = z.infer<typeof createFinanceTransferSchema>;
 
-export const createObligationSchema = z.object({
-  obligationType: z.enum(['CREDIT_CARD', 'SUNAT', 'CUSTOMS', 'SERVICE', 'OTHER']),
-  title: z.string().trim().min(3).max(180),
-  description: z.string().trim().max(1000).nullable().optional(),
-  amount: z.number().positive().max(999999999.99),
-  currencyCode: z.string().length(3),
-  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  alertDaysBefore: z.number().int().min(0).max(90).default(3),
-  recurrenceRule: z.string().trim().max(300).nullable().optional(),
-  cardBankName: z.string().trim().max(120).nullable().optional(),
-  cardAlias: z.string().trim().max(120).nullable().optional(),
-  cardLastFour: z.string().regex(/^\d{4}$/).nullable().optional(),
-  statementClosingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  installmentCount: z.number().int().positive().max(240).nullable().optional(),
-  installmentNumber: z.number().int().positive().max(240).nullable().optional(),
-  defaultPaymentAccountId: z.string().uuid().nullable().optional(),
-}).superRefine((value, context) => {
-  if (value.obligationType !== 'CREDIT_CARD') return;
-  const required: Array<[keyof typeof value, unknown, string]> = [
-    ['cardBankName', value.cardBankName, 'Registra el banco de la tarjeta.'],
-    ['cardAlias', value.cardAlias, 'Registra un alias para la tarjeta.'],
-    ['cardLastFour', value.cardLastFour, 'Registra los últimos cuatro dígitos.'],
-    ['statementClosingDate', value.statementClosingDate, 'Registra la fecha de cierre.'],
-  ];
-  required.forEach(([path, fieldValue, message]) => {
-    if (!fieldValue) context.addIssue({ code: 'custom', path: [path], message });
-  });
-  if (
-    value.installmentCount != null
-    && value.installmentNumber != null
-    && value.installmentNumber > value.installmentCount
-  ) {
-    context.addIssue({
-      code: 'custom',
-      path: ['installmentNumber'],
-      message: 'La cuota actual no puede superar el total de cuotas.',
+export const createObligationSchema = z
+  .object({
+    obligationType: z.enum(['CREDIT_CARD', 'SUNAT', 'CUSTOMS', 'SERVICE', 'OTHER']),
+    title: z.string().trim().min(3).max(180),
+    description: z.string().trim().max(1000).nullable().optional(),
+    amount: z.number().positive().max(999999999.99),
+    currencyCode: z.string().length(3),
+    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    alertDaysBefore: z.number().int().min(0).max(90).default(3),
+    recurrenceRule: z.string().trim().max(300).nullable().optional(),
+    cardBankName: z.string().trim().max(120).nullable().optional(),
+    cardAlias: z.string().trim().max(120).nullable().optional(),
+    cardLastFour: z
+      .string()
+      .regex(/^\d{4}$/)
+      .nullable()
+      .optional(),
+    statementClosingDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable()
+      .optional(),
+    installmentCount: z.number().int().positive().max(240).nullable().optional(),
+    installmentNumber: z.number().int().positive().max(240).nullable().optional(),
+    defaultPaymentAccountId: z.string().uuid().nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.obligationType !== 'CREDIT_CARD') return;
+    const required: Array<[keyof typeof value, unknown, string]> = [
+      ['cardBankName', value.cardBankName, 'Registra el banco de la tarjeta.'],
+      ['cardAlias', value.cardAlias, 'Registra un alias para la tarjeta.'],
+      ['cardLastFour', value.cardLastFour, 'Registra los últimos cuatro dígitos.'],
+      ['statementClosingDate', value.statementClosingDate, 'Registra la fecha de cierre.'],
+    ];
+    required.forEach(([path, fieldValue, message]) => {
+      if (!fieldValue) context.addIssue({ code: 'custom', path: [path], message });
     });
-  }
-});
+    if (
+      value.installmentCount != null &&
+      value.installmentNumber != null &&
+      value.installmentNumber > value.installmentCount
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['installmentNumber'],
+        message: 'La cuota actual no puede superar el total de cuotas.',
+      });
+    }
+  });
 export type CreateObligationInput = z.infer<typeof createObligationSchema>;
 
 export const payObligationSchema = z.object({
@@ -225,9 +247,15 @@ export const financeAttachmentRegistrationSchema = z.object({
   objectPath: z.string().trim().min(1).max(500),
   originalFilename: z.string().trim().min(1).max(255),
   mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
-  sizeBytes: z.number().int().nonnegative().max(10 * 1024 * 1024),
+  sizeBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(10 * 1024 * 1024),
 });
-export type FinanceAttachmentRegistrationInput = z.infer<typeof financeAttachmentRegistrationSchema>;
+export type FinanceAttachmentRegistrationInput = z.infer<
+  typeof financeAttachmentRegistrationSchema
+>;
 
 export const financeMutationResultSchema = z.object({
   id: z.string().uuid(),
@@ -294,38 +322,44 @@ export const bankReconciliationRowSchema = z.object({
   balanceAfter: z.number().nullable(),
   reconciliationStatus: z.enum(['UNMATCHED', 'SUGGESTED', 'RECONCILED', 'IGNORED']),
   candidates: z.array(bankCandidateSchema),
-  activeReconciliation: z.object({
-    id: z.string().uuid(),
-    matchedType: z.string(),
-    matchedId: z.string().uuid(),
-    matchedAmount: z.number().positive(),
-    notes: z.string().nullable(),
-    reconciledAt: z.string(),
-  }).nullable(),
+  activeReconciliation: z
+    .object({
+      id: z.string().uuid(),
+      matchedType: z.string(),
+      matchedId: z.string().uuid(),
+      matchedAmount: z.number().positive(),
+      notes: z.string().nullable(),
+      reconciledAt: z.string(),
+    })
+    .nullable(),
 });
 
 export const bankReconciliationDataSchema = z.object({
-  accounts: z.array(z.object({
-    id: z.string().uuid(),
-    code: z.string(),
-    name: z.string(),
-    currencyCode: z.string().length(3),
-    currentBalance: z.number(),
-  })),
+  accounts: z.array(
+    z.object({
+      id: z.string().uuid(),
+      code: z.string(),
+      name: z.string(),
+      currencyCode: z.string().length(3),
+      currentBalance: z.number(),
+    }),
+  ),
   selectedAccountId: z.string().uuid().nullable(),
   selectedBatchId: z.string().uuid().nullable(),
-  batches: z.array(z.object({
-    id: z.string().uuid(),
-    code: z.string(),
-    originalFilename: z.string(),
-    importedFrom: z.string().nullable(),
-    importedTo: z.string().nullable(),
-    totalRows: z.number().int().nonnegative(),
-    validRows: z.number().int().nonnegative(),
-    invalidRows: z.number().int().nonnegative(),
-    status: z.string(),
-    importedAt: z.string(),
-  })),
+  batches: z.array(
+    z.object({
+      id: z.string().uuid(),
+      code: z.string(),
+      originalFilename: z.string(),
+      importedFrom: z.string().nullable(),
+      importedTo: z.string().nullable(),
+      totalRows: z.number().int().nonnegative(),
+      validRows: z.number().int().nonnegative(),
+      invalidRows: z.number().int().nonnegative(),
+      status: z.string(),
+      importedAt: z.string(),
+    }),
+  ),
   summary: z.object({
     total: z.number().int().nonnegative(),
     suggested: z.number().int().nonnegative(),
@@ -343,3 +377,13 @@ export const confirmBankReconciliationSchema = z.object({
   notes: z.string().trim().max(500).nullable().optional(),
 });
 export type ConfirmBankReconciliationInput = z.infer<typeof confirmBankReconciliationSchema>;
+
+export const updateFinanceCategorySchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  nature: z.enum(['INCOME', 'EXPENSE', 'BOTH']),
+  description: z.string().trim().max(500).nullable().optional(),
+  isActive: z.boolean(),
+  version: z.number().int().positive(),
+  reason: z.string().trim().min(5).max(500),
+});
+export type UpdateFinanceCategoryInput = z.infer<typeof updateFinanceCategorySchema>;

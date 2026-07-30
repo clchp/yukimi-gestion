@@ -1,4 +1,8 @@
-import type { CreateDeliveryInput, UpdateDeliveryInput, UpdateDeliveryStateInput } from '@yukimi/shared';
+import type {
+  CreateDeliveryInput,
+  UpdateDeliveryInput,
+  UpdateDeliveryStateInput,
+} from '@yukimi/shared';
 import type { DeliveriesRepository, DeliveryListQuery } from './deliveries.repository.js';
 
 export class DeliveriesService {

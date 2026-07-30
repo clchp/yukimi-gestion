@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createCatalogItemSchema } from '@yukimi/shared';
+import { createCatalogItemSchema, updateCatalogItemSchema } from '@yukimi/shared';
 import { z } from 'zod';
 import type { SupabaseAuthGateway } from '../auth/supabase-auth.gateway.js';
 import { requireAuth } from '../auth/require-auth.js';
@@ -17,14 +17,22 @@ const statusSchema = z.object({
 
 function actorIdOrThrow(id: string | undefined): string {
   if (!id) {
-    throw new AppError({ code: 'INVALID_SESSION', message: 'No se encontró el usuario de la sesión.', statusCode: 401 });
+    throw new AppError({
+      code: 'INVALID_SESSION',
+      message: 'No se encontró el usuario de la sesión.',
+      statusCode: 401,
+    });
   }
   return id;
 }
 
 function accessTokenOrThrow(token: string | undefined): string {
   if (!token) {
-    throw new AppError({ code: 'INVALID_SESSION', message: 'No se encontró la sesión.', statusCode: 401 });
+    throw new AppError({
+      code: 'INVALID_SESSION',
+      message: 'No se encontró la sesión.',
+      statusCode: 401,
+    });
   }
   return token;
 }
@@ -61,6 +69,23 @@ export function createCatalogRouter(
         ),
       );
       response.status(201).json({ data: await service.create(kind, input) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch('/:kind/:id', async (request, response, next) => {
+    try {
+      const kind = kindSchema.parse(request.params.kind) as CatalogKind;
+      const id = z.string().uuid().parse(request.params.id);
+      const input = updateCatalogItemSchema.parse(request.body);
+      const service = new CatalogService(
+        new SupabaseCatalogRepository(
+          clientFactory.create(accessTokenOrThrow(request.currentAccessToken)),
+          actorIdOrThrow(request.currentUser?.id),
+        ),
+      );
+      response.json({ data: await service.update(kind, id, input) });
     } catch (error) {
       next(error);
     }

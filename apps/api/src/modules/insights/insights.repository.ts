@@ -21,9 +21,16 @@ export interface AuditListQuery {
 export interface InsightsRepository {
   refreshNotifications(): Promise<{ processed: number; refreshedAt: string }>;
   getNotifications(limit: number, status?: string | undefined): Promise<NotificationList>;
-  setNotificationStatus(notificationId: string, status: 'READ' | 'RESOLVED' | 'DISMISSED'): Promise<NotificationMutationResult>;
+  setNotificationStatus(
+    notificationId: string,
+    status: 'READ' | 'RESOLVED' | 'DISMISSED',
+  ): Promise<NotificationMutationResult>;
   getDashboard(): Promise<DashboardData>;
-  getReports(startDate: string, endDate: string, warehouseId?: string | undefined): Promise<ReportData>;
+  getReports(
+    startDate: string,
+    endDate: string,
+    warehouseId?: string | undefined,
+  ): Promise<ReportData>;
   getAuditLog(query: AuditListQuery): Promise<AuditLogData>;
   registerReportExport(input: RegisterReportExportInput): Promise<ReportExportResult>;
 }

@@ -17,3 +17,5 @@ export * from './finance.js';
 export * from './insights.js';
 
 export * from './search.js';
+
+export * from './admin.js';

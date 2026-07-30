@@ -5,7 +5,12 @@ import { useNavigate, useParams } from 'react-router';
 import type { CreateClientInput, UpdateClientInput } from '@yukimi/shared';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
-import { createClient, getClient, getClientSupportData, updateClient } from '../features/clients/clients-api';
+import {
+  createClient,
+  getClient,
+  getClientSupportData,
+  updateClient,
+} from '../features/clients/clients-api';
 
 export function ClientFormPage() {
   const navigate = useNavigate();
@@ -50,10 +55,13 @@ export function ClientFormPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       if (fullName.trim().length < 3) throw new Error('El nombre completo es obligatorio.');
-      if (documentNumber.trim() && !documentType) throw new Error('Selecciona el tipo de documento.');
+      if (documentNumber.trim() && !documentType)
+        throw new Error('Selecciona el tipo de documento.');
       const base = {
         fullName: fullName.trim(),
-        documentType: documentNumber.trim() ? documentType as 'DNI' | 'CE' | 'PASSPORT' | 'RUC' | 'OTHER' : null,
+        documentType: documentNumber.trim()
+          ? (documentType as 'DNI' | 'CE' | 'PASSPORT' | 'RUC' | 'OTHER')
+          : null,
         documentNumber: documentNumber.trim() || null,
         phone: phone.trim() || null,
         secondaryPhone: secondaryPhone.trim() || null,
@@ -62,7 +70,8 @@ export function ClientFormPage() {
       };
 
       if (isEditing) {
-        if (!client.data || !clientId) throw new Error('No se pudo cargar el cliente para editarlo.');
+        if (!client.data || !clientId)
+          throw new Error('No se pudo cargar el cliente para editarlo.');
         const input: UpdateClientInput = { ...base, version: client.data.version };
         return updateClient(clientId, input);
       }
@@ -105,41 +114,177 @@ export function ClientFormPage() {
 
   return (
     <main className="page">
-      <button className="back-link" type="button" onClick={() => navigate(isEditing && clientId ? `/clientes/${clientId}` : '/clientes')}><ArrowLeft size={17} /> Volver</button>
+      <button
+        className="back-link"
+        type="button"
+        onClick={() => navigate(isEditing && clientId ? `/clientes/${clientId}` : '/clientes')}
+      >
+        <ArrowLeft size={17} /> Volver
+      </button>
       <form onSubmit={submit}>
         <PageHeader
           eyebrow="Relaciones comerciales"
           title={isEditing ? 'Editar cliente' : 'Nuevo cliente'}
-          description={isEditing ? 'Actualiza la información de contacto sin perder su historial.' : 'Registra los datos principales. El código se generará automáticamente.'}
-          actions={<button className="button button-primary" type="submit" disabled={mutation.isPending || client.isLoading}><Save size={17} /> {mutation.isPending ? 'Guardando…' : 'Guardar cliente'}</button>}
+          description={
+            isEditing
+              ? 'Actualiza la información de contacto sin perder su historial.'
+              : 'Registra los datos principales. El código se generará automáticamente.'
+          }
+          actions={
+            <button
+              className="button button-primary"
+              type="submit"
+              disabled={mutation.isPending || client.isLoading}
+            >
+              <Save size={17} /> {mutation.isPending ? 'Guardando…' : 'Guardar cliente'}
+            </button>
+          }
         />
 
         {formError ? <div className="alert alert-error product-form-alert">{formError}</div> : null}
-        {client.isError ? <div className="alert alert-error product-form-alert">No se pudo cargar el cliente.</div> : null}
+        {client.isError ? (
+          <div className="alert alert-error product-form-alert">No se pudo cargar el cliente.</div>
+        ) : null}
 
         <section className="form-layout">
           <div className="form-main">
-            <Panel title="Información personal" subtitle="Datos para identificar y contactar al cliente.">
+            <Panel
+              title="Información personal"
+              subtitle="Datos para identificar y contactar al cliente."
+            >
               <div className="form-grid form-grid-2">
-                <label className="field field-span-2"><span>Nombre completo *</span><input value={fullName} onChange={(event) => setFullName(event.target.value)} maxLength={200} placeholder="Ej. María López" /></label>
-                <label className="field"><span>Tipo de documento</span><select value={documentType} onChange={(event) => setDocumentType(event.target.value)}><option value="DNI">DNI</option><option value="CE">Carné de extranjería</option><option value="PASSPORT">Pasaporte</option><option value="RUC">RUC</option><option value="OTHER">Otro</option></select></label>
-                <label className="field"><span>Número de documento</span><input value={documentNumber} onChange={(event) => setDocumentNumber(event.target.value)} maxLength={30} /></label>
-                <label className="field"><span>Celular</span><input value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={30} placeholder="987 654 321" /></label>
-                <label className="field"><span>Celular alternativo</span><input value={secondaryPhone} onChange={(event) => setSecondaryPhone(event.target.value)} maxLength={30} /></label>
-                <label className="field field-span-2"><span>Correo</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={254} placeholder="cliente@correo.com" /></label>
-                <label className="field field-span-2"><span>Notas internas</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={2000} rows={4} placeholder="Preferencias o información útil para atenderlo." /></label>
+                <label className="field field-span-2">
+                  <span>Nombre completo *</span>
+                  <input
+                    value={fullName}
+                    onChange={(event) => setFullName(event.target.value)}
+                    maxLength={200}
+                    placeholder="Ej. María López"
+                  />
+                </label>
+                <label className="field">
+                  <span>Tipo de documento</span>
+                  <select
+                    value={documentType}
+                    onChange={(event) => setDocumentType(event.target.value)}
+                  >
+                    <option value="DNI">DNI</option>
+                    <option value="CE">Carné de extranjería</option>
+                    <option value="PASSPORT">Pasaporte</option>
+                    <option value="RUC">RUC</option>
+                    <option value="OTHER">Otro</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Número de documento</span>
+                  <input
+                    value={documentNumber}
+                    onChange={(event) => setDocumentNumber(event.target.value)}
+                    maxLength={30}
+                  />
+                </label>
+                <label className="field">
+                  <span>Celular</span>
+                  <input
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    maxLength={30}
+                    placeholder="987 654 321"
+                  />
+                </label>
+                <label className="field">
+                  <span>Celular alternativo</span>
+                  <input
+                    value={secondaryPhone}
+                    onChange={(event) => setSecondaryPhone(event.target.value)}
+                    maxLength={30}
+                  />
+                </label>
+                <label className="field field-span-2">
+                  <span>Correo</span>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    maxLength={254}
+                    placeholder="cliente@correo.com"
+                  />
+                </label>
+                <label className="field field-span-2">
+                  <span>Notas internas</span>
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    maxLength={2000}
+                    rows={4}
+                    placeholder="Preferencias o información útil para atenderlo."
+                  />
+                </label>
               </div>
             </Panel>
 
             {!isEditing ? (
-              <Panel title="Dirección inicial" subtitle="Es opcional; después podrás registrar varias direcciones.">
+              <Panel
+                title="Dirección inicial"
+                subtitle="Es opcional; después podrás registrar varias direcciones."
+              >
                 <div className="form-grid form-grid-2">
-                  <label className="field field-span-2"><span>Dirección</span><input value={addressLine} onChange={(event) => setAddressLine(event.target.value)} maxLength={300} placeholder="Av., calle, número y urbanización" /></label>
-                  <label className="field"><span>Distrito</span><input value={district} onChange={(event) => setDistrict(event.target.value)} maxLength={120} /></label>
-                  <label className="field"><span>Provincia</span><input value={province} onChange={(event) => setProvince(event.target.value)} maxLength={120} /></label>
-                  <label className="field"><span>Departamento</span><input value={department} onChange={(event) => setDepartment(event.target.value)} maxLength={120} /></label>
-                  <label className="field"><span>Agencia preferida</span><select value={preferredPartnerId} onChange={(event) => setPreferredPartnerId(event.target.value)}><option value="">Sin preferencia</option>{support.data?.preferredPartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.name}</option>)}</select></label>
-                  <label className="field field-span-2"><span>Referencia</span><textarea value={reference} onChange={(event) => setReference(event.target.value)} maxLength={500} rows={3} /></label>
+                  <label className="field field-span-2">
+                    <span>Dirección</span>
+                    <input
+                      value={addressLine}
+                      onChange={(event) => setAddressLine(event.target.value)}
+                      maxLength={300}
+                      placeholder="Av., calle, número y urbanización"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Distrito</span>
+                    <input
+                      value={district}
+                      onChange={(event) => setDistrict(event.target.value)}
+                      maxLength={120}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Provincia</span>
+                    <input
+                      value={province}
+                      onChange={(event) => setProvince(event.target.value)}
+                      maxLength={120}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Departamento</span>
+                    <input
+                      value={department}
+                      onChange={(event) => setDepartment(event.target.value)}
+                      maxLength={120}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Agencia preferida</span>
+                    <select
+                      value={preferredPartnerId}
+                      onChange={(event) => setPreferredPartnerId(event.target.value)}
+                    >
+                      <option value="">Sin preferencia</option>
+                      {support.data?.preferredPartners.map((partner) => (
+                        <option key={partner.id} value={partner.id}>
+                          {partner.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field field-span-2">
+                    <span>Referencia</span>
+                    <textarea
+                      value={reference}
+                      onChange={(event) => setReference(event.target.value)}
+                      maxLength={500}
+                      rows={3}
+                    />
+                  </label>
                 </div>
               </Panel>
             ) : null}
@@ -147,8 +292,24 @@ export function ClientFormPage() {
 
           <aside className="form-sidebar">
             <Panel title="Acerca del registro">
-              <div className="form-help-card"><span className="stat-icon stat-primary"><UserRoundPlus size={19} /></span><div><strong>Historial protegido</strong><p>El cliente no se eliminará físicamente. Si deja de atenderse, se marcará como inactivo.</p></div></div>
-              <div className="form-help-card"><div><strong>Condición VIP</strong><p>Se gestiona después de crear el cliente y siempre requiere un motivo.</p></div></div>
+              <div className="form-help-card">
+                <span className="stat-icon stat-primary">
+                  <UserRoundPlus size={19} />
+                </span>
+                <div>
+                  <strong>Historial protegido</strong>
+                  <p>
+                    El cliente no se eliminará físicamente. Si deja de atenderse, se marcará como
+                    inactivo.
+                  </p>
+                </div>
+              </div>
+              <div className="form-help-card">
+                <div>
+                  <strong>Condición VIP</strong>
+                  <p>Se gestiona después de crear el cliente y siempre requiere un motivo.</p>
+                </div>
+              </div>
             </Panel>
           </aside>
         </section>

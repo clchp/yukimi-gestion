@@ -1,8 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { inventoryMovementResultSchema } from '@yukimi/shared';
 import type {
   AttachmentRegistrationInput,
+  CreateInventoryMovementInput,
   CreateProductInput,
   CreateProductResult,
+  InventoryMovementResult,
   InventoryResponse,
   InventoryRow,
   ProductListItem,
@@ -10,11 +13,7 @@ import type {
 } from '@yukimi/shared';
 import { AppError } from '../../shared/errors/app-error.js';
 import { mapSupabaseError } from '../../shared/supabase/map-error.js';
-import type {
-  InventoryQuery,
-  ProductListQuery,
-  ProductRepository,
-} from './products.repository.js';
+import type { InventoryQuery, ProductListQuery, ProductRepository } from './products.repository.js';
 
 interface ProductIdRow {
   id: string;
@@ -89,7 +88,10 @@ function numeric(value: number | string): number {
 }
 
 function normalizeSearch(search: string): string {
-  return search.replace(/[,%()]/g, ' ').trim().slice(0, 100);
+  return search
+    .replace(/[,%()]/g, ' ')
+    .trim()
+    .slice(0, 100);
 }
 
 function toRpcPayload(input: CreateProductInput): Record<string, unknown> {
@@ -152,11 +154,13 @@ export class SupabaseProductRepository implements ProductRepository {
           .ilike('name', `%${search}%`)
           .limit(30)
           .returns<Array<{ id: string }>>();
-        if (franchiseError) throw mapSupabaseError(franchiseError, 'No se pudo completar la búsqueda de productos.');
+        if (franchiseError)
+          throw mapSupabaseError(franchiseError, 'No se pudo completar la búsqueda de productos.');
 
-        const franchiseFilter = (matchingFranchises ?? []).length > 0
-          ? `,franchise_id.in.(${(matchingFranchises ?? []).map((item) => item.id).join(',')})`
-          : '';
+        const franchiseFilter =
+          (matchingFranchises ?? []).length > 0
+            ? `,franchise_id.in.(${(matchingFranchises ?? []).map((item) => item.id).join(',')})`
+            : '';
         idQuery = idQuery.or(
           `code.ilike.%${search}%,name.ilike.%${search}%,character_name.ilike.%${search}%${franchiseFilter}`,
         );
@@ -165,7 +169,11 @@ export class SupabaseProductRepository implements ProductRepository {
 
     const from = (query.page - 1) * query.pageSize;
     const to = from + query.pageSize - 1;
-    const { data: idRows, error: idError, count } = await idQuery.range(from, to).returns<ProductIdRow[]>();
+    const {
+      data: idRows,
+      error: idError,
+      count,
+    } = await idQuery.range(from, to).returns<ProductIdRow[]>();
     if (idError) throw mapSupabaseError(idError, 'No se pudieron cargar los productos.');
 
     const productIds = (idRows ?? []).map((row) => row.id);
@@ -179,26 +187,34 @@ export class SupabaseProductRepository implements ProductRepository {
       };
     }
 
-    const [{ data: rows, error: rowsError }, { data: attachments, error: attachmentsError }, summary] =
-      await Promise.all([
-        this.client
-          .from('v_product_catalog')
-          .select('*')
-          .in('product_id', productIds)
-          .returns<ProductCatalogRow[]>(),
-        this.client
-          .from('attachments')
-          .select('id,entity_id,object_path,metadata')
-          .eq('entity_type', 'PRODUCT')
-          .eq('attachment_type', 'IMAGE')
-          .eq('is_active', true)
-          .in('entity_id', productIds)
-          .returns<AttachmentRow[]>(),
-        this.loadSummary(),
-      ]);
+    const [
+      { data: rows, error: rowsError },
+      { data: attachments, error: attachmentsError },
+      summary,
+    ] = await Promise.all([
+      this.client
+        .from('v_product_catalog')
+        .select('*')
+        .in('product_id', productIds)
+        .returns<ProductCatalogRow[]>(),
+      this.client
+        .from('attachments')
+        .select('id,entity_id,object_path,metadata')
+        .eq('entity_type', 'PRODUCT')
+        .eq('attachment_type', 'IMAGE')
+        .eq('is_active', true)
+        .in('entity_id', productIds)
+        .returns<AttachmentRow[]>(),
+      this.loadSummary(),
+    ]);
 
-    if (rowsError) throw mapSupabaseError(rowsError, 'No se pudieron cargar las variantes de los productos.');
-    if (attachmentsError) throw mapSupabaseError(attachmentsError, 'No se pudieron cargar las imágenes de los productos.');
+    if (rowsError)
+      throw mapSupabaseError(rowsError, 'No se pudieron cargar las variantes de los productos.');
+    if (attachmentsError)
+      throw mapSupabaseError(
+        attachmentsError,
+        'No se pudieron cargar las imágenes de los productos.',
+      );
 
     const order = new Map(productIds.map((id, index) => [id, index]));
     const coverByProduct = new Map<string, string>();
@@ -262,16 +278,24 @@ export class SupabaseProductRepository implements ProductRepository {
   }
 
   private async loadSummary(): Promise<ProductListResponse['summary']> {
-    const [{ count, error: productError }, { data: inventoryRows, error: inventoryError }] = await Promise.all([
-      this.client.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true),
-      this.client
-        .from('v_inventory_summary')
-        .select('variant_id,available_quantity,preorder_expected_quantity,minimum_stock,is_active,is_visible_in_operations')
-        .eq('is_active', true),
-    ]);
+    const [{ count, error: productError }, { data: inventoryRows, error: inventoryError }] =
+      await Promise.all([
+        this.client
+          .from('products')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_active', true),
+        this.client
+          .from('v_inventory_summary')
+          .select(
+            'variant_id,available_quantity,preorder_expected_quantity,minimum_stock,is_active,is_visible_in_operations',
+          )
+          .eq('is_active', true),
+      ]);
 
-    if (productError) throw mapSupabaseError(productError, 'No se pudo calcular el resumen de productos.');
-    if (inventoryError) throw mapSupabaseError(inventoryError, 'No se pudo calcular el resumen de inventario.');
+    if (productError)
+      throw mapSupabaseError(productError, 'No se pudo calcular el resumen de productos.');
+    if (inventoryError)
+      throw mapSupabaseError(inventoryError, 'No se pudo calcular el resumen de inventario.');
 
     const rows = (inventoryRows ?? []) as Array<{
       variant_id: string;
@@ -286,7 +310,8 @@ export class SupabaseProductRepository implements ProductRepository {
     for (const row of rows) {
       if (row.is_visible_in_operations) {
         availableUnits += row.available_quantity;
-        if (row.minimum_stock > 0 && row.available_quantity <= row.minimum_stock) lowStock.add(row.variant_id);
+        if (row.minimum_stock > 0 && row.available_quantity <= row.minimum_stock)
+          lowStock.add(row.variant_id);
       }
       preorderUnits += row.preorder_expected_quantity;
     }
@@ -299,7 +324,10 @@ export class SupabaseProductRepository implements ProductRepository {
     };
   }
 
-  public async create(input: CreateProductInput, idempotencyKey: string): Promise<CreateProductResult> {
+  public async create(
+    input: CreateProductInput,
+    idempotencyKey: string,
+  ): Promise<CreateProductResult> {
     const { data, error } = await this.client.rpc('create_product_bundle', {
       p_payload: toRpcPayload(input),
       p_idempotency_key: idempotencyKey,
@@ -319,7 +347,11 @@ export class SupabaseProductRepository implements ProductRepository {
       .maybeSingle();
     if (productError) throw mapSupabaseError(productError, 'No se pudo verificar el producto.');
     if (!product) {
-      throw new AppError({ code: 'PRODUCT_NOT_FOUND', message: 'El producto no existe.', statusCode: 404 });
+      throw new AppError({
+        code: 'PRODUCT_NOT_FOUND',
+        message: 'El producto no existe.',
+        statusCode: 404,
+      });
     }
 
     const { data, error } = await this.client
@@ -339,7 +371,8 @@ export class SupabaseProductRepository implements ProductRepository {
       .select('id')
       .single<{ id: string }>();
 
-    if (error) throw mapSupabaseError(error, 'La imagen se subió, pero no se pudo asociar al producto.');
+    if (error)
+      throw mapSupabaseError(error, 'La imagen se subió, pero no se pudo asociar al producto.');
     return data;
   }
 
@@ -355,7 +388,10 @@ export class SupabaseProductRepository implements ProductRepository {
     if (query.warehouseId) inventoryQuery = inventoryQuery.eq('warehouse_id', query.warehouseId);
     if (query.search) {
       const search = normalizeSearch(query.search);
-      if (search) inventoryQuery = inventoryQuery.or(`product_name.ilike.%${search}%,sku.ilike.%${search}%,product_code.ilike.%${search}%`);
+      if (search)
+        inventoryQuery = inventoryQuery.or(
+          `product_name.ilike.%${search}%,sku.ilike.%${search}%,product_code.ilike.%${search}%`,
+        );
     }
 
     const { data, error } = await inventoryQuery.returns<InventoryViewRow[]>();
@@ -382,7 +418,8 @@ export class SupabaseProductRepository implements ProductRepository {
       preorderExpectedQuantity: row.preorder_expected_quantity,
       minimumStock: row.minimum_stock,
       salePrice: numeric(row.sale_price),
-      currentUnitCostPen: row.current_unit_cost_pen == null ? null : numeric(row.current_unit_cost_pen),
+      currentUnitCostPen:
+        row.current_unit_cost_pen == null ? null : numeric(row.current_unit_cost_pen),
       currencyCode: row.currency_code,
       isActive: row.is_active,
     }));
@@ -399,8 +436,27 @@ export class SupabaseProductRepository implements ProductRepository {
           inTransit: totals.inTransit + item.inTransitQuantity,
           preorderExpected: totals.preorderExpected + item.preorderExpectedQuantity,
         }),
-        { available: 0, reserved: 0, accumulated: 0, damaged: 0, lost: 0, inTransit: 0, preorderExpected: 0 },
+        {
+          available: 0,
+          reserved: 0,
+          accumulated: 0,
+          damaged: 0,
+          lost: 0,
+          inTransit: 0,
+          preorderExpected: 0,
+        },
       ),
     };
+  }
+  public async createInventoryMovement(
+    input: CreateInventoryMovementInput,
+    idempotencyKey: string,
+  ): Promise<InventoryMovementResult> {
+    const { data, error } = await this.client.rpc('create_inventory_movement_v1', {
+      p_input: input,
+      p_idempotency_key: idempotencyKey,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudo registrar el movimiento de inventario.');
+    return inventoryMovementResultSchema.parse(data);
   }
 }

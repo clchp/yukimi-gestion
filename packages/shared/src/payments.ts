@@ -9,16 +9,22 @@ export const paymentPartInputSchema = z.object({
 });
 export type PaymentPartInput = z.infer<typeof paymentPartInputSchema>;
 
-export const createPaymentSchema = z.object({
-  receivedAt: z.string().datetime(),
-  notes: z.string().trim().max(1000).nullable().optional(),
-  parts: z.array(paymentPartInputSchema).min(1).max(10),
-}).superRefine((value, context) => {
-  const total = value.parts.reduce((sum, part) => sum + part.amount, 0);
-  if (total <= 0) {
-    context.addIssue({ code: 'custom', path: ['parts'], message: 'El pago debe tener un importe mayor que cero.' });
-  }
-});
+export const createPaymentSchema = z
+  .object({
+    receivedAt: z.string().datetime(),
+    notes: z.string().trim().max(1000).nullable().optional(),
+    parts: z.array(paymentPartInputSchema).min(1).max(10),
+  })
+  .superRefine((value, context) => {
+    const total = value.parts.reduce((sum, part) => sum + part.amount, 0);
+    if (total <= 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['parts'],
+        message: 'El pago debe tener un importe mayor que cero.',
+      });
+    }
+  });
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 
 export const paymentAttachmentRegistrationSchema = z.object({
@@ -26,43 +32,66 @@ export const paymentAttachmentRegistrationSchema = z.object({
   objectPath: z.string().trim().min(1).max(500),
   originalFilename: z.string().trim().min(1).max(255),
   mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
-  sizeBytes: z.number().int().nonnegative().max(10 * 1024 * 1024),
+  sizeBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(10 * 1024 * 1024),
 });
-export type PaymentAttachmentRegistrationInput = z.infer<typeof paymentAttachmentRegistrationSchema>;
+export type PaymentAttachmentRegistrationInput = z.infer<
+  typeof paymentAttachmentRegistrationSchema
+>;
 
 export const receiptAttachmentRegistrationSchema = z.object({
   bucketId: z.literal('receipt-files'),
   objectPath: z.string().trim().min(1).max(500),
   originalFilename: z.string().trim().min(1).max(255),
   mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
-  sizeBytes: z.number().int().nonnegative().max(10 * 1024 * 1024),
+  sizeBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(10 * 1024 * 1024),
 });
-export type ReceiptAttachmentRegistrationInput = z.infer<typeof receiptAttachmentRegistrationSchema>;
+export type ReceiptAttachmentRegistrationInput = z.infer<
+  typeof receiptAttachmentRegistrationSchema
+>;
 
 export const paymentActionReasonSchema = z.object({
   reason: z.string().trim().min(5).max(1000),
 });
 export type PaymentActionReasonInput = z.infer<typeof paymentActionReasonSchema>;
 
-export const createReceiptSchema = z.object({
-  receiptType: z.enum(['BOLETA', 'CLIENTES_VARIOS', 'OTHER']).default('BOLETA'),
-  series: z.string().trim().min(1).max(20),
-  receiptNumber: z.string().trim().min(1).max(30),
-  issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  notes: z.string().trim().max(1000).nullable().optional(),
-  allocations: z.array(z.object({
-    paymentId: z.string().uuid(),
-    amount: z.number().positive().max(999999999.99),
-  })).min(1).max(20),
-}).superRefine((value, context) => {
-  const ids = new Set<string>();
-  value.allocations.forEach((allocation, index) => {
-    if (ids.has(allocation.paymentId)) {
-      context.addIssue({ code: 'custom', path: ['allocations', index], message: 'Un pago no puede repetirse en la misma boleta.' });
-    }
-    ids.add(allocation.paymentId);
+export const createReceiptSchema = z
+  .object({
+    receiptType: z.enum(['BOLETA', 'CLIENTES_VARIOS', 'OTHER']).default('BOLETA'),
+    series: z.string().trim().min(1).max(20),
+    receiptNumber: z.string().trim().min(1).max(30),
+    issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    notes: z.string().trim().max(1000).nullable().optional(),
+    allocations: z
+      .array(
+        z.object({
+          paymentId: z.string().uuid(),
+          amount: z.number().positive().max(999999999.99),
+        }),
+      )
+      .min(1)
+      .max(20),
+  })
+  .superRefine((value, context) => {
+    const ids = new Set<string>();
+    value.allocations.forEach((allocation, index) => {
+      if (ids.has(allocation.paymentId)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['allocations', index],
+          message: 'Un pago no puede repetirse en la misma boleta.',
+        });
+      }
+      ids.add(allocation.paymentId);
+    });
   });
-});
 export type CreateReceiptInput = z.infer<typeof createReceiptSchema>;
 
 export const createCreditNoteSchema = z.object({
@@ -75,18 +104,22 @@ export const createCreditNoteSchema = z.object({
 export type CreateCreditNoteInput = z.infer<typeof createCreditNoteSchema>;
 
 export const paymentSupportDataSchema = z.object({
-  paymentMethods: z.array(z.object({
-    code: z.string(),
-    name: z.string(),
-    requiresProof: z.boolean(),
-  })),
-  financialAccounts: z.array(z.object({
-    id: z.string().uuid(),
-    code: z.string(),
-    name: z.string(),
-    accountTypeCode: z.string(),
-    currencyCode: z.string().length(3),
-  })),
+  paymentMethods: z.array(
+    z.object({
+      code: z.string(),
+      name: z.string(),
+      requiresProof: z.boolean(),
+    }),
+  ),
+  financialAccounts: z.array(
+    z.object({
+      id: z.string().uuid(),
+      code: z.string(),
+      name: z.string(),
+      accountTypeCode: z.string(),
+      currencyCode: z.string().length(3),
+    }),
+  ),
   latePenalty: z.object({
     enabled: z.boolean(),
     amountPerDay: z.number().nonnegative(),
@@ -168,11 +201,13 @@ export const receiptDetailSchema = z.object({
   annulledAt: z.string().nullable(),
   annulmentReason: z.string().nullable(),
   createdByName: z.string().nullable(),
-  allocations: z.array(z.object({
-    paymentId: z.string().uuid(),
-    paymentCode: z.string(),
-    allocatedAmount: z.number().positive(),
-  })),
+  allocations: z.array(
+    z.object({
+      paymentId: z.string().uuid(),
+      paymentCode: z.string(),
+      allocatedAmount: z.number().positive(),
+    }),
+  ),
   files: z.array(paymentFileSchema),
   creditNotes: z.array(creditNoteDetailSchema),
   createdAt: z.string(),

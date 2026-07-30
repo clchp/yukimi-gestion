@@ -48,13 +48,21 @@ export class SupabaseImportsRepository implements ImportsRepository {
   }
 
   public async getById(importId: string): Promise<ImportDetail> {
-    const { data, error } = await this.client.rpc('get_import_detail_v1', { p_import_id: importId });
+    const { data, error } = await this.client.rpc('get_import_detail_v1', {
+      p_import_id: importId,
+    });
     if (error) throw mapSupabaseError(error, 'No se pudo cargar la importación.');
     return importDetailSchema.parse(data);
   }
 
-  public async create(input: CreateImportInput, idempotencyKey: string): Promise<ImportMutationResult> {
-    const { data, error } = await this.client.rpc('create_import_v1', { p_input: input, p_idempotency_key: idempotencyKey });
+  public async create(
+    input: CreateImportInput,
+    idempotencyKey: string,
+  ): Promise<ImportMutationResult> {
+    const { data, error } = await this.client.rpc('create_import_v1', {
+      p_input: input,
+      p_idempotency_key: idempotencyKey,
+    });
     if (error) throw mapSupabaseError(error, 'No se pudo crear la importación.');
     return importMutationResultSchema.parse(data);
   }
@@ -65,13 +73,22 @@ export class SupabaseImportsRepository implements ImportsRepository {
     return importGenericResultSchema.parse(data);
   }
 
-  public async createPreorder(input: CreatePreorderSaleInput, idempotencyKey: string): Promise<PreorderSaleResult> {
-    const { data, error } = await this.client.rpc('create_preorder_sale_v1', { p_input: input, p_idempotency_key: idempotencyKey });
+  public async createPreorder(
+    input: CreatePreorderSaleInput,
+    idempotencyKey: string,
+  ): Promise<PreorderSaleResult> {
+    const { data, error } = await this.client.rpc('create_preorder_sale_v1', {
+      p_input: input,
+      p_idempotency_key: idempotencyKey,
+    });
     if (error) throw mapSupabaseError(error, 'No se pudo crear la preventa.');
     return preorderSaleResultSchema.parse(data);
   }
 
-  public async advance(importId: string, input: UpdateImportStateInput): Promise<ImportMutationResult> {
+  public async advance(
+    importId: string,
+    input: UpdateImportStateInput,
+  ): Promise<ImportMutationResult> {
     const { data, error } = await this.client.rpc('advance_import_v1', {
       p_import_id: importId,
       p_next_state_code: input.nextStateCode,
@@ -83,7 +100,10 @@ export class SupabaseImportsRepository implements ImportsRepository {
     return importMutationResultSchema.parse(data);
   }
 
-  public async advanceBox(boxId: string, input: UpdateImportBoxStateInput): Promise<ImportMutationResult> {
+  public async advanceBox(
+    boxId: string,
+    input: UpdateImportBoxStateInput,
+  ): Promise<ImportMutationResult> {
     const { data, error } = await this.client.rpc('advance_import_box_v1', {
       p_box_id: boxId,
       p_next_state_code: input.nextStateCode,
@@ -95,26 +115,50 @@ export class SupabaseImportsRepository implements ImportsRepository {
     return importMutationResultSchema.parse(data);
   }
 
-  public async addCost(importId: string, input: CreateImportCostInput): Promise<ImportGenericResult> {
-    const { data, error } = await this.client.rpc('add_import_cost_v2', { p_import_id: importId, p_input: input });
+  public async addCost(
+    importId: string,
+    input: CreateImportCostInput,
+  ): Promise<ImportGenericResult> {
+    const { data, error } = await this.client.rpc('add_import_cost_v2', {
+      p_import_id: importId,
+      p_input: input,
+    });
     if (error) throw mapSupabaseError(error, 'No se pudo registrar el costo.');
     return importGenericResultSchema.parse(data);
   }
 
-  public async createIncident(importId: string, input: CreateImportIncidentInput): Promise<ImportGenericResult> {
-    const { data, error } = await this.client.rpc('create_import_incident_v1', { p_import_id: importId, p_input: input });
+  public async createIncident(
+    importId: string,
+    input: CreateImportIncidentInput,
+  ): Promise<ImportGenericResult> {
+    const { data, error } = await this.client.rpc('create_import_incident_v1', {
+      p_import_id: importId,
+      p_input: input,
+    });
     if (error) throw mapSupabaseError(error, 'No se pudo registrar la incidencia.');
     return importGenericResultSchema.parse(data);
   }
 
-  public async createInsuranceClaim(importId: string, input: CreateInsuranceClaimInput): Promise<ImportGenericResult> {
-    const { data, error } = await this.client.rpc('create_insurance_claim_v1', { p_import_id: importId, p_input: input });
+  public async createInsuranceClaim(
+    importId: string,
+    input: CreateInsuranceClaimInput,
+  ): Promise<ImportGenericResult> {
+    const { data, error } = await this.client.rpc('create_insurance_claim_v1', {
+      p_import_id: importId,
+      p_input: input,
+    });
     if (error) throw mapSupabaseError(error, 'No se pudo registrar el reclamo al seguro.');
     return importGenericResultSchema.parse(data);
   }
 
-  public async updateInsuranceClaim(claimId: string, input: UpdateInsuranceClaimInput): Promise<ImportGenericResult> {
-    const { data, error } = await this.client.rpc('update_insurance_claim_v1', { p_claim_id: claimId, p_input: input });
+  public async updateInsuranceClaim(
+    claimId: string,
+    input: UpdateInsuranceClaimInput,
+  ): Promise<ImportGenericResult> {
+    const { data, error } = await this.client.rpc('update_insurance_claim_v1', {
+      p_claim_id: claimId,
+      p_input: input,
+    });
     if (error) throw mapSupabaseError(error, 'No se pudo actualizar el reclamo al seguro.');
     return importGenericResultSchema.parse(data);
   }
@@ -125,7 +169,11 @@ export class SupabaseImportsRepository implements ImportsRepository {
     return importGenericResultSchema.parse(data);
   }
 
-  public async receiveBox(boxId: string, input: ReceiveImportBoxInput, idempotencyKey: string): Promise<ImportMutationResult> {
+  public async receiveBox(
+    boxId: string,
+    input: ReceiveImportBoxInput,
+    idempotencyKey: string,
+  ): Promise<ImportMutationResult> {
     const { data, error } = await this.client.rpc('receive_import_box_v2', {
       p_box_id: boxId,
       p_input: input,

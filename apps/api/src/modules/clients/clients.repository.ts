@@ -34,7 +34,10 @@ export interface ClientRepository {
   create(input: CreateClientInput, idempotencyKey: string): Promise<ClientMutationResult>;
   update(clientId: string, input: UpdateClientInput): Promise<ClientMutationResult>;
   setStatus(clientId: string, input: SetClientStatusInput): Promise<ClientMutationResult>;
-  setVip(clientId: string, input: SetClientVipInput): Promise<ClientMutationResult & { isVip: boolean }>;
+  setVip(
+    clientId: string,
+    input: SetClientVipInput,
+  ): Promise<ClientMutationResult & { isVip: boolean }>;
   saveAddress(
     clientId: string,
     addressId: string | null,
@@ -42,5 +45,8 @@ export interface ClientRepository {
     expectedVersion: number | null,
   ): Promise<ClientMutationResult>;
   createIncident(clientId: string, input: CreateClientIncidentInput): Promise<ClientMutationResult>;
-  resolveIncident(incidentId: string, input: ResolveClientIncidentInput): Promise<ClientMutationResult>;
+  resolveIncident(
+    incidentId: string,
+    input: ResolveClientIncidentInput,
+  ): Promise<ClientMutationResult>;
 }

@@ -1,14 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   createSaleResultSchema,
+  returnCaseResultSchema,
+  saleDraftDetailSchema,
+  saleDraftListSchema,
   saleDetailSchema,
   saleListResponseSchema,
   saleReleaseQuoteSchema,
   saleSupportDataSchema,
+  type CreateReturnCaseInput,
   type CreateSaleInput,
   type CreateSaleResult,
   type RequestSaleReleaseInput,
+  type ReturnCaseResult,
   type ReviewSaleReleaseInput,
+  type SaleDraftDetail,
+  type SaleDraftList,
+  type SaveSaleDraftInput,
   type SaleDetail,
   type SaleListResponse,
   type SaleReleaseQuote,
@@ -16,7 +24,6 @@ import {
 } from '@yukimi/shared';
 import { mapSupabaseError } from '../../shared/supabase/map-error.js';
 import type { SaleListQuery, SalesRepository } from './sales.repository.js';
-
 
 export class SupabaseSalesRepository implements SalesRepository {
   public constructor(
@@ -42,18 +49,68 @@ export class SupabaseSalesRepository implements SalesRepository {
   }
 
   public async getById(saleId: string): Promise<SaleDetail> {
-    const { data, error } = await this.client.rpc('get_sale_detail_v2', { p_sale_id: saleId });
+    const { data, error } = await this.client.rpc('get_sale_detail_v3', { p_sale_id: saleId });
     if (error) throw mapSupabaseError(error, 'No se pudo cargar la venta.');
     return saleDetailSchema.parse(data);
   }
 
   public async create(input: CreateSaleInput, idempotencyKey: string): Promise<CreateSaleResult> {
-    const { data, error } = await this.client.rpc('create_sale_v2', {
+    const { data, error } = await this.client.rpc('create_sale_v3', {
       p_input: input,
       p_idempotency_key: idempotencyKey,
     });
     if (error) throw mapSupabaseError(error, 'No se pudo crear la venta.');
     return createSaleResultSchema.parse(data);
+  }
+
+  public async listDrafts(): Promise<SaleDraftList> {
+    const { data, error } = await this.client.rpc('list_sale_drafts_v1');
+    if (error) throw mapSupabaseError(error, 'No se pudieron cargar los borradores.');
+    return saleDraftListSchema.parse(data);
+  }
+
+  public async getDraft(draftId: string): Promise<SaleDraftDetail> {
+    const { data, error } = await this.client.rpc('get_sale_draft_v1', { p_draft_id: draftId });
+    if (error) throw mapSupabaseError(error, 'No se pudo cargar el borrador.');
+    return saleDraftDetailSchema.parse(data);
+  }
+
+  public async saveDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetail> {
+    const { data, error } = await this.client.rpc('save_sale_draft_v1', {
+      p_input: input.input,
+      p_draft_id: input.draftId ?? null,
+      p_expected_version: input.version ?? null,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudo guardar el borrador.');
+    return saleDraftDetailSchema.parse(data);
+  }
+
+  public async confirmDraft(
+    draftId: string,
+    version: number,
+    idempotencyKey: string,
+  ): Promise<CreateSaleResult> {
+    const { data, error } = await this.client.rpc('confirm_sale_draft_v1', {
+      p_draft_id: draftId,
+      p_expected_version: version,
+      p_idempotency_key: idempotencyKey,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudo confirmar el borrador.');
+    return createSaleResultSchema.parse(data);
+  }
+
+  public async createReturnCase(
+    saleId: string,
+    input: CreateReturnCaseInput,
+    idempotencyKey: string,
+  ): Promise<ReturnCaseResult> {
+    const { data, error } = await this.client.rpc('create_return_case_v1', {
+      p_sale_id: saleId,
+      p_input: input,
+      p_idempotency_key: idempotencyKey,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudo registrar la devolución o cambio.');
+    return returnCaseResultSchema.parse(data);
   }
 
   public async getReleaseQuote(saleItemId: string): Promise<SaleReleaseQuote> {

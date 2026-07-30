@@ -7,6 +7,8 @@ export const catalogItemSchema = z.object({
   description: z.string().nullable().optional(),
   isActive: z.boolean(),
   version: z.number().int().positive().optional(),
+  releasePenaltyAmount: z.number().nonnegative().nullable().optional(),
+  releasePenaltyCurrency: z.string().length(3).nullable().optional(),
 });
 
 export type CatalogItem = z.infer<typeof catalogItemSchema>;
@@ -64,6 +66,18 @@ export const createCatalogItemSchema = z.object({
 
 export type CreateCatalogItemInput = z.infer<typeof createCatalogItemSchema>;
 
+export const updateCatalogItemSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  description: z.string().trim().max(500).nullable().optional(),
+  brandId: z.string().uuid().nullable().optional(),
+  releasePenaltyAmount: z.number().nonnegative().nullable().optional(),
+  releasePenaltyCurrency: z.string().length(3).nullable().optional(),
+  isActive: z.boolean(),
+  version: z.number().int().positive(),
+  reason: z.string().trim().min(5).max(500),
+});
+export type UpdateCatalogItemInput = z.infer<typeof updateCatalogItemSchema>;
+
 export const initialStockInputSchema = z.object({
   warehouseId: z.string().uuid(),
   quantity: z.number().int().nonnegative(),
@@ -80,7 +94,10 @@ export const variantAttributeInputSchema = z
     valueText: z.string().trim().min(1).optional(),
     valueNumber: z.number().optional(),
     valueBoolean: z.boolean().optional(),
-    valueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    valueDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
   })
   .superRefine((value, context) => {
     const count = [value.valueText, value.valueNumber, value.valueBoolean, value.valueDate].filter(
@@ -243,8 +260,59 @@ export const attachmentRegistrationSchema = z.object({
   objectPath: z.string().trim().min(1).max(500),
   originalFilename: z.string().trim().min(1).max(255),
   mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
-  sizeBytes: z.number().int().nonnegative().max(5 * 1024 * 1024),
+  sizeBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(5 * 1024 * 1024),
   isCover: z.boolean().default(false),
 });
 
 export type AttachmentRegistrationInput = z.infer<typeof attachmentRegistrationSchema>;
+
+export const inventoryMovementActionSchema = z.enum([
+  'TRANSFER',
+  'DAMAGE',
+  'LOSS',
+  'GIFT',
+  'DYNAMIC',
+]);
+export type InventoryMovementAction = z.infer<typeof inventoryMovementActionSchema>;
+
+export const createInventoryMovementSchema = z
+  .object({
+    action: inventoryMovementActionSchema,
+    variantId: z.string().uuid(),
+    sourceWarehouseId: z.string().uuid(),
+    destinationWarehouseId: z.string().uuid().nullable().optional(),
+    quantity: z.number().int().positive().max(999999),
+    reason: z.string().trim().min(5).max(1000),
+    notes: z.string().trim().max(1000).nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.action === 'TRANSFER') {
+      if (!value.destinationWarehouseId) {
+        context.addIssue({
+          code: 'custom',
+          path: ['destinationWarehouseId'],
+          message: 'Selecciona el almacén de destino.',
+        });
+      } else if (value.destinationWarehouseId === value.sourceWarehouseId) {
+        context.addIssue({
+          code: 'custom',
+          path: ['destinationWarehouseId'],
+          message: 'El destino debe ser diferente al origen.',
+        });
+      }
+    }
+  });
+export type CreateInventoryMovementInput = z.infer<typeof createInventoryMovementSchema>;
+
+export const inventoryMovementResultSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  action: inventoryMovementActionSchema,
+  quantity: z.number().int().positive(),
+  createdAt: z.string(),
+});
+export type InventoryMovementResult = z.infer<typeof inventoryMovementResultSchema>;

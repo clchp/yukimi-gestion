@@ -1,8 +1,13 @@
 import type {
+  CreateReturnCaseInput,
   CreateSaleInput,
   CreateSaleResult,
   RequestSaleReleaseInput,
+  ReturnCaseResult,
   ReviewSaleReleaseInput,
+  SaleDraftDetail,
+  SaleDraftList,
+  SaveSaleDraftInput,
   SaleDetail,
   SaleFilter,
   SaleListResponse,
@@ -33,7 +38,10 @@ export function getSale(saleId: string): Promise<SaleDetail> {
   return apiRequest<SaleDetail>(`/sales/${saleId}`);
 }
 
-export function createSale(input: CreateSaleInput, idempotencyKey: string): Promise<CreateSaleResult> {
+export function createSale(
+  input: CreateSaleInput,
+  idempotencyKey: string,
+): Promise<CreateSaleResult> {
   return apiRequest<CreateSaleResult>('/sales', {
     method: 'POST',
     headers: { 'idempotency-key': idempotencyKey },
@@ -46,15 +54,60 @@ export function getSaleReleaseQuote(saleItemId: string): Promise<SaleReleaseQuot
 }
 
 export function requestSaleRelease(saleItemId: string, input: RequestSaleReleaseInput) {
-  return apiRequest<{ id: string; stateCode: string; version: number }>(`/sales/items/${saleItemId}/release-requests`, {
+  return apiRequest<{ id: string; stateCode: string; version: number }>(
+    `/sales/items/${saleItemId}/release-requests`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function reviewSaleRelease(requestId: string, input: ReviewSaleReleaseInput) {
+  return apiRequest<{ id: string; stateCode: string; version: number }>(
+    `/sales/release-requests/${requestId}/review`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function getSaleDrafts(): Promise<SaleDraftList> {
+  return apiRequest<SaleDraftList>('/sales/drafts');
+}
+
+export function getSaleDraft(draftId: string): Promise<SaleDraftDetail> {
+  return apiRequest<SaleDraftDetail>(`/sales/drafts/${draftId}`);
+}
+
+export function saveSaleDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetail> {
+  return apiRequest<SaleDraftDetail>('/sales/drafts', {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
-export function reviewSaleRelease(requestId: string, input: ReviewSaleReleaseInput) {
-  return apiRequest<{ id: string; stateCode: string; version: number }>(`/sales/release-requests/${requestId}/review`, {
+export function confirmSaleDraft(
+  draftId: string,
+  version: number,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<CreateSaleResult> {
+  return apiRequest<CreateSaleResult>(`/sales/drafts/${draftId}/confirm`, {
     method: 'POST',
+    headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify({ version }),
+  });
+}
+
+export function createReturnCase(
+  saleId: string,
+  input: CreateReturnCaseInput,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<ReturnCaseResult> {
+  return apiRequest<ReturnCaseResult>(`/sales/${saleId}/returns`, {
+    method: 'POST',
+    headers: { 'idempotency-key': idempotencyKey },
     body: JSON.stringify(input),
   });
 }

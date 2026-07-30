@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import {
   attachmentRegistrationSchema,
+  createInventoryMovementSchema,
   createProductSchema,
 } from '@yukimi/shared';
 import { z } from 'zod';
@@ -34,14 +35,22 @@ const inventoryQuerySchema = z.object({
 
 function actorIdOrThrow(id: string | undefined): string {
   if (!id) {
-    throw new AppError({ code: 'INVALID_SESSION', message: 'No se encontró el usuario de la sesión.', statusCode: 401 });
+    throw new AppError({
+      code: 'INVALID_SESSION',
+      message: 'No se encontró el usuario de la sesión.',
+      statusCode: 401,
+    });
   }
   return id;
 }
 
 function accessTokenOrThrow(token: string | undefined): string {
   if (!token) {
-    throw new AppError({ code: 'INVALID_SESSION', message: 'No se encontró la sesión.', statusCode: 401 });
+    throw new AppError({
+      code: 'INVALID_SESSION',
+      message: 'No se encontró la sesión.',
+      statusCode: 401,
+    });
   }
   return token;
 }
@@ -84,17 +93,19 @@ export function createProductsRouter(
     }
   });
 
-  router.post('/:productId/attachments', async (request, response, next) => {
+  router.post('/inventory/movements', async (request, response, next) => {
     try {
-      const productId = z.string().uuid().parse(request.params.productId);
-      const input = attachmentRegistrationSchema.parse(request.body);
+      const input = createInventoryMovementSchema.parse(request.body);
+      const idempotencyKey = request.header('idempotency-key')?.trim() || randomUUID();
       const service = new ProductService(
         new SupabaseProductRepository(
           clientFactory.create(accessTokenOrThrow(request.currentAccessToken)),
           actorIdOrThrow(request.currentUser?.id),
         ),
       );
-      response.status(201).json({ data: await service.registerAttachment(productId, input) });
+      response
+        .status(201)
+        .json({ data: await service.createInventoryMovement(input, idempotencyKey) });
     } catch (error) {
       next(error);
     }
@@ -110,6 +121,22 @@ export function createProductsRouter(
         ),
       );
       response.json({ data: await service.listInventory(query) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/:productId/attachments', async (request, response, next) => {
+    try {
+      const productId = z.string().uuid().parse(request.params.productId);
+      const input = attachmentRegistrationSchema.parse(request.body);
+      const service = new ProductService(
+        new SupabaseProductRepository(
+          clientFactory.create(accessTokenOrThrow(request.currentAccessToken)),
+          actorIdOrThrow(request.currentUser?.id),
+        ),
+      );
+      response.status(201).json({ data: await service.registerAttachment(productId, input) });
     } catch (error) {
       next(error);
     }

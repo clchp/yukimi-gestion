@@ -2,6 +2,8 @@ import type {
   AttachmentRegistrationInput,
   CreateProductInput,
   CreateProductResult,
+  CreateInventoryMovementInput,
+  InventoryMovementResult,
   InventoryResponse,
   ProductListResponse,
 } from '@yukimi/shared';
@@ -23,6 +25,13 @@ export interface InventoryQuery {
 export interface ProductRepository {
   list(query: ProductListQuery): Promise<ProductListResponse>;
   create(input: CreateProductInput, idempotencyKey: string): Promise<CreateProductResult>;
-  registerAttachment(productId: string, input: AttachmentRegistrationInput): Promise<{ id: string }>;
+  registerAttachment(
+    productId: string,
+    input: AttachmentRegistrationInput,
+  ): Promise<{ id: string }>;
   listInventory(query: InventoryQuery): Promise<InventoryResponse>;
+  createInventoryMovement(
+    input: CreateInventoryMovementInput,
+    idempotencyKey: string,
+  ): Promise<InventoryMovementResult>;
 }

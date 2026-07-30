@@ -18,7 +18,10 @@ import { z } from 'zod';
 import { mapSupabaseError } from '../../shared/supabase/map-error.js';
 import type { AuditListQuery, InsightsRepository } from './insights.repository.js';
 
-const refreshResultSchema = z.object({ processed: z.number().int().nonnegative(), refreshedAt: z.string() });
+const refreshResultSchema = z.object({
+  processed: z.number().int().nonnegative(),
+  refreshedAt: z.string(),
+});
 
 export class SupabaseInsightsRepository implements InsightsRepository {
   public constructor(private readonly client: SupabaseClient) {}
@@ -29,7 +32,10 @@ export class SupabaseInsightsRepository implements InsightsRepository {
     return refreshResultSchema.parse(data);
   }
 
-  public async getNotifications(limit: number, status?: string | undefined): Promise<NotificationList> {
+  public async getNotifications(
+    limit: number,
+    status?: string | undefined,
+  ): Promise<NotificationList> {
     const { data, error } = await this.client.rpc('get_notifications_v1', {
       p_limit: limit,
       p_status: status ?? null,
@@ -38,7 +44,10 @@ export class SupabaseInsightsRepository implements InsightsRepository {
     return notificationListSchema.parse(data);
   }
 
-  public async setNotificationStatus(notificationId: string, status: 'READ' | 'RESOLVED' | 'DISMISSED'): Promise<NotificationMutationResult> {
+  public async setNotificationStatus(
+    notificationId: string,
+    status: 'READ' | 'RESOLVED' | 'DISMISSED',
+  ): Promise<NotificationMutationResult> {
     const { data, error } = await this.client.rpc('set_notification_status_v1', {
       p_notification_id: notificationId,
       p_status: status,
@@ -53,7 +62,11 @@ export class SupabaseInsightsRepository implements InsightsRepository {
     return dashboardSchema.parse(data);
   }
 
-  public async getReports(startDate: string, endDate: string, warehouseId?: string | undefined): Promise<ReportData> {
+  public async getReports(
+    startDate: string,
+    endDate: string,
+    warehouseId?: string | undefined,
+  ): Promise<ReportData> {
     const { data, error } = await this.client.rpc('get_reports_v1', {
       p_start_date: startDate,
       p_end_date: endDate,
@@ -79,7 +92,11 @@ export class SupabaseInsightsRepository implements InsightsRepository {
 
   public async registerReportExport(input: RegisterReportExportInput): Promise<ReportExportResult> {
     const { data, error } = await this.client.rpc('register_report_export_v1', { p_input: input });
-    if (error) throw mapSupabaseError(error, 'El archivo se generó, pero no se pudo registrar la exportación.');
+    if (error)
+      throw mapSupabaseError(
+        error,
+        'El archivo se generó, pero no se pudo registrar la exportación.',
+      );
     return reportExportResultSchema.parse(data);
   }
 }

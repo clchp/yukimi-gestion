@@ -28,7 +28,11 @@
     "dev:api": "npm run dev -w @yukimi/api",
     "dev:web": "npm run dev -w @yukimi/web",
     "build:shared": "npm run build -w @yukimi/shared",
-    "verify": "npm run lint && npm run build:shared && npm run typecheck && npm test && npm run test:migrations:static && npm run test:db:static && npm run test:ui:static && npm run build"
+    "verify": "npm run lint && npm run format:check && npm run build:shared && npm run typecheck && npm test && npm run test:migrations:static && npm run test:db:static && npm run test:ui:static && npm run test:compliance:static && npm run build",
+    "test:compliance:static": "node scripts/validate-compliance.mjs",
+    "notifications:process": "node scripts/process-notifications.mjs",
+    "backup:export": "node scripts/export-backup.mjs",
+    "backup:restore": "node scripts/restore-backup.mjs"
   },
   "engines": {
     "node": ">=22.0.0"

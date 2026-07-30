@@ -1,8 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type {
-  CatalogItem,
-  CatalogsResponse,
-  CreateCatalogItemInput,
+import {
+  catalogItemSchema,
+  type CatalogItem,
+  type CatalogsResponse,
+  type CreateCatalogItemInput,
+  type UpdateCatalogItemInput,
 } from '@yukimi/shared';
 import { AppError } from '../../shared/errors/app-error.js';
 import { mapSupabaseError } from '../../shared/supabase/map-error.js';
@@ -15,6 +17,8 @@ interface BaseCatalogRow {
   description: string | null;
   is_active: boolean;
   version: number;
+  release_penalty_amount?: number | null;
+  release_penalty_currency?: string | null;
 }
 
 function toCode(name: string): string {
@@ -36,6 +40,8 @@ function toItem(row: BaseCatalogRow): CatalogItem {
     description: row.description,
     isActive: row.is_active,
     version: row.version,
+    releasePenaltyAmount: row.release_penalty_amount ?? null,
+    releasePenaltyCurrency: row.release_penalty_currency ?? null,
   };
 }
 
@@ -53,67 +59,105 @@ export class SupabaseCatalogRepository implements CatalogRepository {
   ) {}
 
   public async listAll(): Promise<CatalogsResponse> {
-    const [categoriesResult, franchisesResult, brandsResult, linesResult, attributesResult, warehousesResult, currenciesResult] =
-      await Promise.all([
-        this.client.from('product_categories').select('id,code,name,description,is_active,version').order('sort_order').order('name'),
-        this.client.from('franchises').select('id,code,name,description,is_active,version').order('name'),
-        this.client.from('brands').select('id,code,name,description,is_active,version').order('name'),
-        this.client.from('product_lines').select('id,brand_id,code,name,description,is_active,version').order('name'),
-        this.client
-          .from('product_attribute_definitions')
-          .select('id,code,name,description,data_type,allowed_values,sort_order,is_active,version')
-          .order('sort_order'),
-        this.client
-          .from('warehouses')
-          .select('id,code,name,description,warehouse_type,is_virtual,is_visible_in_operations,is_active,version')
-          .order('name'),
-        this.client.from('currencies').select('code,name,symbol,decimal_places,is_active').order('code'),
-      ]);
+    const [
+      categoriesResult,
+      franchisesResult,
+      brandsResult,
+      linesResult,
+      attributesResult,
+      warehousesResult,
+      currenciesResult,
+    ] = await Promise.all([
+      this.client
+        .from('product_categories')
+        .select(
+          'id,code,name,description,is_active,version,release_penalty_amount,release_penalty_currency',
+        )
+        .order('sort_order')
+        .order('name'),
+      this.client
+        .from('franchises')
+        .select('id,code,name,description,is_active,version')
+        .order('name'),
+      this.client.from('brands').select('id,code,name,description,is_active,version').order('name'),
+      this.client
+        .from('product_lines')
+        .select('id,brand_id,code,name,description,is_active,version')
+        .order('name'),
+      this.client
+        .from('product_attribute_definitions')
+        .select('id,code,name,description,data_type,allowed_values,sort_order,is_active,version')
+        .order('sort_order'),
+      this.client
+        .from('warehouses')
+        .select(
+          'id,code,name,description,warehouse_type,is_virtual,is_visible_in_operations,is_active,version',
+        )
+        .order('name'),
+      this.client
+        .from('currencies')
+        .select('code,name,symbol,decimal_places,is_active')
+        .order('code'),
+    ]);
 
-    const failed = [categoriesResult, franchisesResult, brandsResult, linesResult, attributesResult, warehousesResult, currenciesResult].find(
-      (result) => result.error,
-    );
+    const failed = [
+      categoriesResult,
+      franchisesResult,
+      brandsResult,
+      linesResult,
+      attributesResult,
+      warehousesResult,
+      currenciesResult,
+    ].find((result) => result.error);
     if (failed?.error) throw mapSupabaseError(failed.error, 'No se pudieron cargar los catálogos.');
 
     return {
       categories: ((categoriesResult.data ?? []) as BaseCatalogRow[]).map(toItem),
       franchises: ((franchisesResult.data ?? []) as BaseCatalogRow[]).map(toItem),
       brands: ((brandsResult.data ?? []) as BaseCatalogRow[]).map(toItem),
-      productLines: ((linesResult.data ?? []) as Array<BaseCatalogRow & { brand_id: string | null }>).map((row) => ({
+      productLines: (
+        (linesResult.data ?? []) as Array<BaseCatalogRow & { brand_id: string | null }>
+      ).map((row) => ({
         ...toItem(row),
         brandId: row.brand_id,
       })),
-      attributeDefinitions: ((attributesResult.data ?? []) as Array<
-        BaseCatalogRow & {
-          data_type: 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'COLOR' | 'DATE';
-          allowed_values: string[] | null;
-          sort_order: number;
-        }
-      >).map((row) => ({
+      attributeDefinitions: (
+        (attributesResult.data ?? []) as Array<
+          BaseCatalogRow & {
+            data_type: 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'COLOR' | 'DATE';
+            allowed_values: string[] | null;
+            sort_order: number;
+          }
+        >
+      ).map((row) => ({
         ...toItem(row),
         dataType: row.data_type,
         allowedValues: Array.isArray(row.allowed_values) ? row.allowed_values : null,
         sortOrder: row.sort_order,
       })),
-      warehouses: ((warehousesResult.data ?? []) as Array<
-        BaseCatalogRow & {
-          warehouse_type: 'OPERATIONAL' | 'FOREIGN' | 'TRANSIT' | 'OTHER';
-          is_virtual: boolean;
-          is_visible_in_operations: boolean;
-        }
-      >).map((row) => ({
+      warehouses: (
+        (warehousesResult.data ?? []) as Array<
+          BaseCatalogRow & {
+            warehouse_type: 'OPERATIONAL' | 'FOREIGN' | 'TRANSIT' | 'OTHER';
+            is_virtual: boolean;
+            is_visible_in_operations: boolean;
+          }
+        >
+      ).map((row) => ({
         ...toItem(row),
         warehouseType: row.warehouse_type,
         isVirtual: row.is_virtual,
         isVisibleInOperations: row.is_visible_in_operations,
       })),
-      currencies: ((currenciesResult.data ?? []) as Array<{
-        code: string;
-        name: string;
-        symbol: string;
-        decimal_places: number;
-        is_active: boolean;
-      }>).map((row) => ({
+      currencies: (
+        (currenciesResult.data ?? []) as Array<{
+          code: string;
+          name: string;
+          symbol: string;
+          decimal_places: number;
+          is_active: boolean;
+        }>
+      ).map((row) => ({
         code: row.code,
         name: row.name,
         symbol: row.symbol,
@@ -152,6 +196,20 @@ export class SupabaseCatalogRepository implements CatalogRepository {
     return toItem(data);
   }
 
+  public async update(
+    kind: CatalogKind,
+    id: string,
+    input: UpdateCatalogItemInput,
+  ): Promise<CatalogItem> {
+    const { data, error } = await this.client.rpc('update_catalog_item_v1', {
+      p_kind: kind,
+      p_item_id: id,
+      p_input: input,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudo editar el elemento del catálogo.');
+    return catalogItemSchema.parse(data);
+  }
+
   public async setActive(
     kind: CatalogKind,
     id: string,
@@ -172,7 +230,8 @@ export class SupabaseCatalogRepository implements CatalogRepository {
     if (!data) {
       throw new AppError({
         code: 'OPTIMISTIC_LOCK_CONFLICT',
-        message: 'El catálogo fue modificado por otra administradora. Actualiza la pantalla e inténtalo nuevamente.',
+        message:
+          'El catálogo fue modificado por otra administradora. Actualiza la pantalla e inténtalo nuevamente.',
         statusCode: 409,
       });
     }

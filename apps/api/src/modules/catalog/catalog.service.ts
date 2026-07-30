@@ -1,4 +1,4 @@
-import type { CreateCatalogItemInput } from '@yukimi/shared';
+import type { CreateCatalogItemInput, UpdateCatalogItemInput } from '@yukimi/shared';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { CatalogKind, CatalogRepository } from './catalog.repository.js';
 
@@ -18,6 +18,16 @@ export class CatalogService {
       });
     }
     return this.repository.create(kind, input);
+  }
+
+  public update(kind: CatalogKind, id: string, input: UpdateCatalogItemInput) {
+    if (kind === 'product-lines' && !input.brandId)
+      throw new AppError({
+        code: 'BRAND_REQUIRED',
+        message: 'Debes seleccionar una marca.',
+        statusCode: 400,
+      });
+    return this.repository.update(kind, id, input);
   }
 
   public setActive(kind: CatalogKind, id: string, isActive: boolean, version: number) {

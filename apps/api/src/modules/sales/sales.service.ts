@@ -1,4 +1,10 @@
-import type { CreateSaleInput, RequestSaleReleaseInput, ReviewSaleReleaseInput } from '@yukimi/shared';
+import type {
+  CreateReturnCaseInput,
+  CreateSaleInput,
+  RequestSaleReleaseInput,
+  ReviewSaleReleaseInput,
+  SaveSaleDraftInput,
+} from '@yukimi/shared';
 import type { SaleListQuery, SalesRepository } from './sales.repository.js';
 
 export class SalesService {
@@ -18,6 +24,26 @@ export class SalesService {
 
   public create(input: CreateSaleInput, idempotencyKey: string) {
     return this.repository.create(input, idempotencyKey);
+  }
+
+  public listDrafts() {
+    return this.repository.listDrafts();
+  }
+
+  public getDraft(draftId: string) {
+    return this.repository.getDraft(draftId);
+  }
+
+  public saveDraft(input: SaveSaleDraftInput) {
+    return this.repository.saveDraft(input);
+  }
+
+  public confirmDraft(draftId: string, version: number, idempotencyKey: string) {
+    return this.repository.confirmDraft(draftId, version, idempotencyKey);
+  }
+
+  public createReturnCase(saleId: string, input: CreateReturnCaseInput, idempotencyKey: string) {
+    return this.repository.createReturnCase(saleId, input, idempotencyKey);
   }
 
   public getReleaseQuote(saleItemId: string) {

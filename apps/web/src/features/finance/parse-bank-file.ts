@@ -1,10 +1,16 @@
 import type { BankStatementRowInput } from '@yukimi/shared';
 
 function normalizeHeader(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 function cell(record: Record<string, unknown>, aliases: string[]): unknown {
-  const normalized = new Map(Object.entries(record).map(([key, value]) => [normalizeHeader(key), value]));
+  const normalized = new Map(
+    Object.entries(record).map(([key, value]) => [normalizeHeader(key), value]),
+  );
   for (const alias of aliases) {
     const value = normalized.get(normalizeHeader(alias));
     if (value !== undefined && value !== null && String(value).trim() !== '') return value;
@@ -14,7 +20,11 @@ function cell(record: Record<string, unknown>, aliases: string[]): unknown {
 function numberValue(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (value === null || value === undefined) return null;
-  const text = String(value).trim().replace(/S\/?\.?/gi, '').replace(/\s/g, '').replace(/,/g, '');
+  const text = String(value)
+    .trim()
+    .replace(/S\/?\.?/gi, '')
+    .replace(/\s/g, '')
+    .replace(/,/g, '');
   const parsed = Number(text);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -43,25 +53,46 @@ function parseCsv(text: string): Record<string, unknown>[] {
   for (let index = 0; index < text.length; index += 1) {
     const char = text[index]!;
     if (quoted) {
-      if (char === '"' && text[index + 1] === '"') { value += '"'; index += 1; }
-      else if (char === '"') quoted = false;
+      if (char === '"' && text[index + 1] === '"') {
+        value += '"';
+        index += 1;
+      } else if (char === '"') quoted = false;
       else value += char;
     } else if (char === '"') quoted = true;
-    else if (char === ',' || char === ';' || char === '\t') { row.push(value.trim()); value = ''; }
-    else if (char === '\n') { row.push(value.trim()); rows.push(row); row = []; value = ''; }
-    else if (char !== '\r') value += char;
+    else if (char === ',' || char === ';' || char === '\t') {
+      row.push(value.trim());
+      value = '';
+    } else if (char === '\n') {
+      row.push(value.trim());
+      rows.push(row);
+      row = [];
+      value = '';
+    } else if (char !== '\r') value += char;
   }
-  if (value.length > 0 || row.length > 0) { row.push(value.trim()); rows.push(row); }
+  if (value.length > 0 || row.length > 0) {
+    row.push(value.trim());
+    rows.push(row);
+  }
   const headers = rows.shift()?.map((item) => item.trim()) ?? [];
-  return rows.filter((items) => items.some((item) => item !== '')).map((items) => Object.fromEntries(headers.map((header, index) => [header, items[index] ?? ''])));
+  return rows
+    .filter((items) => items.some((item) => item !== ''))
+    .map((items) =>
+      Object.fromEntries(headers.map((header, index) => [header, items[index] ?? ''])),
+    );
 }
 
-function u16(view: DataView, offset: number): number { return view.getUint16(offset, true); }
-function u32(view: DataView, offset: number): number { return view.getUint32(offset, true); }
+function u16(view: DataView, offset: number): number {
+  return view.getUint16(offset, true);
+}
+function u32(view: DataView, offset: number): number {
+  return view.getUint32(offset, true);
+}
 async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
   const copy = new Uint8Array(data.byteLength);
   copy.set(data);
-  const stream = new Blob([copy.buffer]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  const stream = new Blob([copy.buffer])
+    .stream()
+    .pipeThrough(new DecompressionStream('deflate-raw'));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
@@ -70,7 +101,10 @@ async function unzip(buffer: ArrayBuffer): Promise<Map<string, Uint8Array>> {
   const view = new DataView(buffer);
   let eocd = -1;
   for (let offset = bytes.length - 22; offset >= Math.max(0, bytes.length - 65557); offset -= 1) {
-    if (u32(view, offset) === 0x06054b50) { eocd = offset; break; }
+    if (u32(view, offset) === 0x06054b50) {
+      eocd = offset;
+      break;
+    }
   }
   if (eocd < 0) throw new Error('El archivo XLSX no tiene una estructura ZIP válida.');
   const entryCount = u16(view, eocd + 10);
@@ -100,7 +134,10 @@ async function unzip(buffer: ArrayBuffer): Promise<Map<string, Uint8Array>> {
 
 function xml(bytes: Uint8Array | undefined, label: string): XMLDocument {
   if (!bytes) throw new Error(`El XLSX no contiene ${label}.`);
-  const document = new DOMParser().parseFromString(new TextDecoder().decode(bytes), 'application/xml');
+  const document = new DOMParser().parseFromString(
+    new TextDecoder().decode(bytes),
+    'application/xml',
+  );
   if (document.querySelector('parsererror')) throw new Error(`No se pudo leer ${label}.`);
   return document;
 }
@@ -116,15 +153,30 @@ async function parseXlsx(buffer: ArrayBuffer): Promise<Record<string, unknown>[]
   const workbook = xml(files.get('xl/workbook.xml'), 'el libro de Excel');
   const relationships = xml(files.get('xl/_rels/workbook.xml.rels'), 'las relaciones del libro');
   const firstSheet = workbook.getElementsByTagNameNS('*', 'sheet')[0];
-  const relationId = firstSheet?.getAttribute('r:id') ?? firstSheet?.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+  const relationId =
+    firstSheet?.getAttribute('r:id') ??
+    firstSheet?.getAttributeNS(
+      'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+      'id',
+    );
   if (!relationId) throw new Error('El XLSX no contiene una hoja utilizable.');
-  const relation = Array.from(relationships.getElementsByTagNameNS('*', 'Relationship')).find((item) => item.getAttribute('Id') === relationId);
+  const relation = Array.from(relationships.getElementsByTagNameNS('*', 'Relationship')).find(
+    (item) => item.getAttribute('Id') === relationId,
+  );
   const target = relation?.getAttribute('Target');
   if (!target) throw new Error('No se encontró la primera hoja del XLSX.');
   const sheetPath = target.startsWith('/') ? target.slice(1) : `xl/${target.replace(/^\.\//, '')}`;
   const sheet = xml(files.get(sheetPath), 'la primera hoja');
-  const sharedDoc = files.has('xl/sharedStrings.xml') ? xml(files.get('xl/sharedStrings.xml'), 'los textos compartidos') : null;
-  const shared = sharedDoc ? Array.from(sharedDoc.getElementsByTagNameNS('*', 'si')).map((item) => Array.from(item.getElementsByTagNameNS('*', 't')).map((node) => node.textContent ?? '').join('')) : [];
+  const sharedDoc = files.has('xl/sharedStrings.xml')
+    ? xml(files.get('xl/sharedStrings.xml'), 'los textos compartidos')
+    : null;
+  const shared = sharedDoc
+    ? Array.from(sharedDoc.getElementsByTagNameNS('*', 'si')).map((item) =>
+        Array.from(item.getElementsByTagNameNS('*', 't'))
+          .map((node) => node.textContent ?? '')
+          .join(''),
+      )
+    : [];
   const matrix: unknown[][] = [];
   for (const rowNode of Array.from(sheet.getElementsByTagNameNS('*', 'row'))) {
     const row: unknown[] = [];
@@ -134,7 +186,10 @@ async function parseXlsx(buffer: ArrayBuffer): Promise<Record<string, unknown>[]
       const raw = cellNode.getElementsByTagNameNS('*', 'v')[0]?.textContent ?? '';
       let value: unknown = raw;
       if (type === 's') value = shared[Number(raw)] ?? '';
-      else if (type === 'inlineStr') value = Array.from(cellNode.getElementsByTagNameNS('*', 't')).map((node) => node.textContent ?? '').join('');
+      else if (type === 'inlineStr')
+        value = Array.from(cellNode.getElementsByTagNameNS('*', 't'))
+          .map((node) => node.textContent ?? '')
+          .join('');
       else if (type === 'b') value = raw === '1';
       else if (raw !== '' && Number.isFinite(Number(raw))) value = Number(raw);
       row[index] = value;
@@ -142,28 +197,72 @@ async function parseXlsx(buffer: ArrayBuffer): Promise<Record<string, unknown>[]
     matrix.push(row);
   }
   const headers = (matrix.shift() ?? []).map((item) => String(item ?? '').trim());
-  return matrix.filter((row) => row.some((item) => item !== null && item !== undefined && String(item).trim() !== '')).map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? null])));
+  return matrix
+    .filter((row) =>
+      row.some((item) => item !== null && item !== undefined && String(item).trim() !== ''),
+    )
+    .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? null])));
 }
 
-export async function parseBankFile(file: File, currencyCode: string): Promise<{ rows: BankStatementRowInput[]; checksum: string }> {
+export async function parseBankFile(
+  file: File,
+  currencyCode: string,
+): Promise<{ rows: BankStatementRowInput[]; checksum: string }> {
   const buffer = await file.arrayBuffer();
   const digest = await crypto.subtle.digest('SHA-256', buffer);
-  const checksum = Array.from(new Uint8Array(digest)).map((item) => item.toString(16).padStart(2, '0')).join('');
+  const checksum = Array.from(new Uint8Array(digest))
+    .map((item) => item.toString(16).padStart(2, '0'))
+    .join('');
   const lowerName = file.name.toLowerCase();
-  const records = lowerName.endsWith('.xlsx') ? await parseXlsx(buffer) : parseCsv(new TextDecoder().decode(buffer));
+  const records = lowerName.endsWith('.xlsx')
+    ? await parseXlsx(buffer)
+    : parseCsv(new TextDecoder().decode(buffer));
   const rows: BankStatementRowInput[] = [];
   records.forEach((record) => {
-    const transactionDate = dateValue(cell(record, ['fecha', 'fecha operación', 'fecha operacion', 'transaction date', 'date']));
-    const description = String(cell(record, ['descripcion', 'descripción', 'concepto', 'detalle', 'movimiento', 'description']) ?? '').trim();
-    const referenceRaw = cell(record, ['referencia', 'operacion', 'operación', 'numero operacion', 'nro operacion', 'reference']);
-    const directAmount = numberValue(cell(record, ['importe', 'monto', 'amount', 'importe movimiento']));
-    const income = numberValue(cell(record, ['abono', 'ingreso', 'credito', 'crédito', 'haber', 'credit'])) ?? 0;
-    const expense = numberValue(cell(record, ['cargo', 'egreso', 'debito', 'débito', 'debe', 'debit'])) ?? 0;
-    const amountSigned = directAmount ?? (income - expense);
+    const transactionDate = dateValue(
+      cell(record, ['fecha', 'fecha operación', 'fecha operacion', 'transaction date', 'date']),
+    );
+    const description = String(
+      cell(record, [
+        'descripcion',
+        'descripción',
+        'concepto',
+        'detalle',
+        'movimiento',
+        'description',
+      ]) ?? '',
+    ).trim();
+    const referenceRaw = cell(record, [
+      'referencia',
+      'operacion',
+      'operación',
+      'numero operacion',
+      'nro operacion',
+      'reference',
+    ]);
+    const directAmount = numberValue(
+      cell(record, ['importe', 'monto', 'amount', 'importe movimiento']),
+    );
+    const income =
+      numberValue(cell(record, ['abono', 'ingreso', 'credito', 'crédito', 'haber', 'credit'])) ?? 0;
+    const expense =
+      numberValue(cell(record, ['cargo', 'egreso', 'debito', 'débito', 'debe', 'debit'])) ?? 0;
+    const amountSigned = directAmount ?? income - expense;
     const balanceAfter = numberValue(cell(record, ['saldo', 'saldo disponible', 'balance']));
     if (!transactionDate || !description || !amountSigned) return;
-    rows.push({ transactionDate, postedAt: null, description, reference: referenceRaw === null ? null : String(referenceRaw).trim(), amountSigned, currencyCode, balanceAfter });
+    rows.push({
+      transactionDate,
+      postedAt: null,
+      description,
+      reference: referenceRaw === null ? null : String(referenceRaw).trim(),
+      amountSigned,
+      currencyCode,
+      balanceAfter,
+    });
   });
-  if (rows.length === 0) throw new Error('No se reconocieron filas. El archivo debe tener fecha, descripción y monto; también se aceptan columnas Cargo y Abono.');
+  if (rows.length === 0)
+    throw new Error(
+      'No se reconocieron filas. El archivo debe tener fecha, descripción y monto; también se aceptan columnas Cargo y Abono.',
+    );
   return { rows, checksum };
 }
