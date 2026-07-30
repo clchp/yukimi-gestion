@@ -2,9 +2,9 @@ name: Yukimi CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, version-1-1]
   pull_request:
-    branches: [main]
+    branches: [main, version-1-1]
 
 jobs:
   verify:
@@ -17,12 +17,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run format:check
       - run: npm run build:shared
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:migrations:static
       - run: npm run test:db:static
       - run: npm run test:ui:static
+      - run: npm run test:compliance:static
       - run: npm run build
 
   database:
