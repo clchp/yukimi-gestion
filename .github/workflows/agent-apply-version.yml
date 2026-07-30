@@ -1,0 +1,51 @@
+name: Apply Yukimi v1.1
+
+on:
+  push:
+    branches: [version-1-1]
+    paths:
+      - .agent-upload/READY
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-yukimi-v1-1
+  cancel-in-progress: false
+
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: version-1-1
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Aplicar mejoras verificadas
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .agent-upload/chunk-* > /tmp/yukimi-delta.b64
+          base64 --decode /tmp/yukimi-delta.b64 > /tmp/yukimi-delta.tar.xz
+          tar -xJf /tmp/yukimi-delta.tar.xz -C .
+          rm -rf .agent-upload .github/workflows/agent-apply-version.yml
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Validar aplicación completa
+        run: npm run verify
+      - name: Validar base de datos en Supabase local
+        run: npm run test:db
+      - name: Publicar versión validada
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Yukimi Validation Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Complete Yukimi Gestión v1.1 requirements"
+          git push origin HEAD:version-1-1
