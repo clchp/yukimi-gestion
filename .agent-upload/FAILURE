@@ -1,5 +1,5 @@
-run_id=30576448728
-run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30576448728
+run_id=30576577409
+run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30576577409
 apply=failure
 install=skipped
 verify=skipped
@@ -7,5 +7,9 @@ db_start=skipped
 db_test=skipped
 
 ===== /tmp/apply.log =====
-/tmp/yukimi-delta.tar.xz: FAILED
-sha256sum: WARNING: 1 computed checksum did NOT match
+.agent-upload/chunk-00 expected=4e32f2233ae03105bf13d7862d5e33ef5c38891f actual=4e32f2233ae03105bf13d7862d5e33ef5c38891f
+.agent-upload/chunk-01a expected=3c846d891a27fa941b4ed636dab75a656ab5643d actual=3c846d891a27fa941b4ed636dab75a656ab5643d
+.agent-upload/chunk-01b expected=cd63ab44d03d0405c40222f9ff4aa3bad1b0a71d actual=cd63ab44d03d0405c40222f9ff4aa3bad1b0a71d
+.agent-upload/chunk-02a expected=835ab673ced16a5509f69061c1157e6caab8ca1d actual=835ab673ced16a5509f69061c1157e6caab8ca1d
+.agent-upload/chunk-02b expected=c03741c54dea65d78b9cc6e51c4dc302f46a7b67 actual=db10992d33b07aca8013829cc78741321092d141
+::error::El segmento .agent-upload/chunk-02b no coincide con el original.
