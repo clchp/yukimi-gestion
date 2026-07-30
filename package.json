@@ -20,7 +20,7 @@
     "db:reset": "supabase db reset --local --no-seed",
     "test:db:unit": "supabase test db supabase/tests/database --local",
     "test:db:concurrency": "node scripts/test-db-concurrency.mjs",
-    "test:db:lint": "supabase db lint --local --level error --schema public,private",
+    "test:db:lint": "node scripts/run-db-lint.mjs",
     "test:db": "npm run db:reset && npm run test:db:unit && npm run test:db:concurrency && npm run test:db:lint",
     "lint": "eslint .",
     "format": "prettier --write .",
