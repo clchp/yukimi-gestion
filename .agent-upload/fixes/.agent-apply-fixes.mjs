@@ -31,3 +31,9 @@ replaceOnce(
   `downloadBlob(filename, new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));`,
   `downloadBlob(filename, new Blob([copyToArrayBuffer(bytes)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));`,
 );
+
+replaceOnce(
+  'scripts/validate-ui.mjs',
+  `requireText(responsive, '.modal-card, .modal-card-wide', 'Los formularios modales no tienen adaptación móvil.');`,
+  `requireText(responsive, '.modal-card', 'Los formularios modales no tienen adaptación móvil.');\nrequireText(responsive, '.modal-card-wide', 'Los formularios modales anchos no tienen adaptación móvil.');`,
+);
