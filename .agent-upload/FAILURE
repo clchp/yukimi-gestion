@@ -1,0 +1,11 @@
+run_id=30576448728
+run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30576448728
+apply=failure
+install=skipped
+verify=skipped
+db_start=skipped
+db_test=skipped
+
+===== /tmp/apply.log =====
+/tmp/yukimi-delta.tar.xz: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
