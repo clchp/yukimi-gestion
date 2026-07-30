@@ -1,0 +1,45 @@
+{
+  "name": "yukimi-gestion",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sistema interno de gestión para Yukimi",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @yukimi/shared && npm run build -w @yukimi/api && npm run build -w @yukimi/web",
+    "typecheck": "npm run typecheck -w @yukimi/shared && npm run typecheck -w @yukimi/api && npm run typecheck -w @yukimi/web",
+    "test": "npm run test -w @yukimi/api",
+    "test:migrations:static": "node scripts/validate-migrations.mjs",
+    "test:db:static": "node scripts/validate-db-tests.mjs",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop --no-backup",
+    "db:reset": "supabase db reset --local --no-seed",
+    "test:db:unit": "supabase test db supabase/tests/database --local",
+    "test:db:concurrency": "node scripts/test-db-concurrency.mjs",
+    "test:db:lint": "supabase db lint --local --level error --schema public,private",
+    "test:db": "npm run db:reset && npm run test:db:unit && npm run test:db:concurrency && npm run test:db:lint",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev:api": "npm run dev -w @yukimi/api",
+    "dev:web": "npm run dev -w @yukimi/web",
+    "build:shared": "npm run build -w @yukimi/shared",
+    "verify": "npm run lint && npm run build:shared && npm run typecheck && npm test && npm run test:migrations:static && npm run test:db:static && npm run build"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.1",
+    "globals": "^17.7.0",
+    "postgres": "3.4.9",
+    "prettier": "^3.6.2",
+    "supabase": "2.110.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.62.0"
+  }
+}

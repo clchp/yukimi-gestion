@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: yukimi-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build:shared && npm run build -w @yukimi/api
+    startCommand: npm run start -w @yukimi/api
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

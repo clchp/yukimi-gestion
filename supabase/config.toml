@@ -1,0 +1,9 @@
+project_id = "yukimi-gestion"
+
+# PostgreSQL 15 se usa para las pruebas locales reproducibles. Antes de enlazar
+# un proyecto remoto, confirmar con SHOW server_version que la versión coincide.
+[db]
+major_version = 15
+
+[db.seed]
+enabled = false
