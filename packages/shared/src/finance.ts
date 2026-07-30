@@ -145,6 +145,35 @@ export const createObligationSchema = z.object({
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   alertDaysBefore: z.number().int().min(0).max(90).default(3),
   recurrenceRule: z.string().trim().max(300).nullable().optional(),
+  cardBankName: z.string().trim().max(120).nullable().optional(),
+  cardAlias: z.string().trim().max(120).nullable().optional(),
+  cardLastFour: z.string().regex(/^\d{4}$/).nullable().optional(),
+  statementClosingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  installmentCount: z.number().int().positive().max(240).nullable().optional(),
+  installmentNumber: z.number().int().positive().max(240).nullable().optional(),
+  defaultPaymentAccountId: z.string().uuid().nullable().optional(),
+}).superRefine((value, context) => {
+  if (value.obligationType !== 'CREDIT_CARD') return;
+  const required: Array<[keyof typeof value, unknown, string]> = [
+    ['cardBankName', value.cardBankName, 'Registra el banco de la tarjeta.'],
+    ['cardAlias', value.cardAlias, 'Registra un alias para la tarjeta.'],
+    ['cardLastFour', value.cardLastFour, 'Registra los últimos cuatro dígitos.'],
+    ['statementClosingDate', value.statementClosingDate, 'Registra la fecha de cierre.'],
+  ];
+  required.forEach(([path, fieldValue, message]) => {
+    if (!fieldValue) context.addIssue({ code: 'custom', path: [path], message });
+  });
+  if (
+    value.installmentCount != null
+    && value.installmentNumber != null
+    && value.installmentNumber > value.installmentCount
+  ) {
+    context.addIssue({
+      code: 'custom',
+      path: ['installmentNumber'],
+      message: 'La cuota actual no puede superar el total de cuotas.',
+    });
+  }
 });
 export type CreateObligationInput = z.infer<typeof createObligationSchema>;
 

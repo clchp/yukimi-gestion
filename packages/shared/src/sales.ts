@@ -80,9 +80,16 @@ export type SaleItemDetail = z.infer<typeof saleItemDetailSchema>;
 
 export const saleReleaseRequestSchema = z.object({
   id: z.string().uuid(),
+  saleItemId: z.string().uuid().nullable().default(null),
   stateCode: z.string(),
   reason: z.string(),
+  suggestedPenaltyAmount: z.number().nonnegative().nullable().default(null),
   penaltyAmount: z.number().nonnegative(),
+  penaltyOverridden: z.boolean().default(false),
+  depositBasisAmount: z.number().nonnegative().default(0),
+  retainedAmount: z.number().nonnegative().default(0),
+  refundableAmount: z.number().nonnegative().default(0),
+  penaltyRuleSnapshot: z.record(z.string(), z.unknown()).default({}),
   requestedAt: z.string(),
   requestedById: z.string().uuid().nullable(),
   requestedByName: z.string().nullable(),
@@ -126,6 +133,9 @@ export const saleDetailSchema = z.object({
   totalAmount: z.number().nonnegative(),
   paidTotal: z.number().nonnegative(),
   balanceAmount: z.number(),
+  negotiatedMinimumDepositAmount: z.number().nonnegative().nullable(),
+  negotiatedMinimumDepositReason: z.string().nullable(),
+  negotiatedTermsSnapshot: z.record(z.string(), z.unknown()).default({}),
   notes: z.string().nullable(),
   cancellationReason: z.string().nullable(),
   createdByName: z.string().nullable(),
@@ -136,6 +146,34 @@ export const saleDetailSchema = z.object({
   history: z.array(saleHistoryItemSchema),
 });
 export type SaleDetail = z.infer<typeof saleDetailSchema>;
+
+export const saleReleaseQuoteSchema = z.object({
+  saleId: z.string().uuid(),
+  saleItemId: z.string().uuid(),
+  productName: z.string(),
+  variantName: z.string(),
+  categoryCode: z.string(),
+  categoryName: z.string(),
+  currencyCode: z.string().length(3),
+  withinGracePeriod: z.boolean(),
+  graceHours: z.number().nonnegative(),
+  elapsedHours: z.number().nonnegative(),
+  categoryPenaltyAmount: z.number().nonnegative(),
+  suggestedReleasePenaltyAmount: z.number().nonnegative(),
+  activeLatePenaltyAmount: z.number().nonnegative(),
+  effectivePenaltyAmount: z.number().nonnegative(),
+  depositBasisAmount: z.number().nonnegative(),
+  retainedAmount: z.number().nonnegative(),
+  refundableAmount: z.number().nonnegative(),
+  uncoveredPenaltyAmount: z.number().nonnegative(),
+  rule: z.object({
+    scope: z.literal('SALE_LINE'),
+    selectionMode: z.literal('MAX_SINGLE'),
+    deductFromDeposit: z.literal(true),
+    depositAllocationMode: z.string(),
+  }),
+});
+export type SaleReleaseQuote = z.infer<typeof saleReleaseQuoteSchema>;
 
 export const createSaleItemSchema = z.object({
   variantId: z.string().uuid(),
@@ -167,6 +205,8 @@ export const createSaleSchema = z.object({
   currencyCode: z.literal('PEN').default('PEN'),
   deliveryMode: z.enum(['PENDING', 'ACCUMULATED']).default('PENDING'),
   dueAt: z.string().datetime().nullable().optional(),
+  negotiatedMinimumDepositAmount: z.number().nonnegative().nullable().optional(),
+  negotiatedMinimumDepositReason: z.string().trim().max(500).nullable().optional(),
   notes: z.string().trim().max(2000).nullable().optional(),
   items: z.array(createSaleItemSchema).min(1).max(100),
 }).superRefine((value, context) => {
@@ -178,6 +218,16 @@ export const createSaleSchema = z.object({
     }
     seen.add(key);
   });
+  if (
+    value.negotiatedMinimumDepositAmount != null
+    && (!value.negotiatedMinimumDepositReason || value.negotiatedMinimumDepositReason.length < 3)
+  ) {
+    context.addIssue({
+      code: 'custom',
+      path: ['negotiatedMinimumDepositReason'],
+      message: 'Explica el acuerdo del adelanto mínimo.',
+    });
+  }
 });
 export type CreateSaleInput = z.infer<typeof createSaleSchema>;
 
@@ -190,7 +240,7 @@ export type CreateSaleResult = z.infer<typeof createSaleResultSchema>;
 
 export const requestSaleReleaseSchema = z.object({
   reason: z.string().trim().min(5).max(1000),
-  penaltyAmount: z.number().nonnegative().default(0),
+  penaltyAmount: z.number().nonnegative(),
 });
 export type RequestSaleReleaseInput = z.infer<typeof requestSaleReleaseSchema>;
 

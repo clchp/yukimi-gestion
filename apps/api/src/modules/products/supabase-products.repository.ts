@@ -79,6 +79,7 @@ interface InventoryViewRow {
   preorder_expected_quantity: number;
   minimum_stock: number;
   sale_price: number | string;
+  current_unit_cost_pen: number | string | null;
   currency_code: string;
   is_active: boolean;
 }
@@ -381,6 +382,7 @@ export class SupabaseProductRepository implements ProductRepository {
       preorderExpectedQuantity: row.preorder_expected_quantity,
       minimumStock: row.minimum_stock,
       salePrice: numeric(row.sale_price),
+      currentUnitCostPen: row.current_unit_cost_pen == null ? null : numeric(row.current_unit_cost_pen),
       currencyCode: row.currency_code,
       isActive: row.is_active,
     }));

@@ -6,6 +6,7 @@ import type {
   SaleDetail,
   SaleFilter,
   SaleListResponse,
+  SaleReleaseQuote,
   SaleSupportData,
 } from '@yukimi/shared';
 
@@ -21,6 +22,7 @@ export interface SalesRepository {
   getSupportData(): Promise<SaleSupportData>;
   getById(saleId: string): Promise<SaleDetail>;
   create(input: CreateSaleInput, idempotencyKey: string): Promise<CreateSaleResult>;
-  requestRelease(saleId: string, input: RequestSaleReleaseInput): Promise<{ id: string; stateCode: string; version: number }>;
+  getReleaseQuote(saleItemId: string): Promise<SaleReleaseQuote>;
+  requestRelease(saleItemId: string, input: RequestSaleReleaseInput): Promise<{ id: string; stateCode: string; version: number }>;
   reviewRelease(requestId: string, input: ReviewSaleReleaseInput): Promise<{ id: string; stateCode: string; version: number }>;
 }

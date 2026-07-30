@@ -90,7 +90,7 @@ export class SupabaseFinanceRepository implements FinanceRepository {
   }
 
   public async createObligation(input: CreateObligationInput, idempotencyKey: string): Promise<FinanceMutationResult> {
-    const { data, error } = await this.client.rpc('create_obligation_v1', { p_input: input, p_idempotency_key: idempotencyKey });
+    const { data, error } = await this.client.rpc('create_obligation_v2', { p_input: input, p_idempotency_key: idempotencyKey });
     if (error) throw mapSupabaseError(error, 'No se pudo registrar la obligación.');
     return financeMutationResultSchema.parse(data);
   }

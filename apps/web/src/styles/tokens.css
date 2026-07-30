@@ -38,6 +38,7 @@
 html { min-width: 320px; background: #f5f3f6; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #f5f3f6; }
 button, input, select, textarea { font: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .55; }
 a { color: inherit; }

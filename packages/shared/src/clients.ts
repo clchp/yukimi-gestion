@@ -202,8 +202,6 @@ export const setClientVipSchema = z.object({
   clientVersion: z.number().int().positive(),
   reason: z.string().trim().min(3).max(500),
   canReserveWithoutDeposit: z.boolean().default(false),
-  separationLimitAmount: z.number().nonnegative().nullable().optional(),
-  separationLimitCurrency: z.string().length(3).nullable().optional(),
   paymentTermDays: z.number().int().positive().max(365).nullable().optional(),
   validUntil: z.string().datetime().nullable().optional(),
 });

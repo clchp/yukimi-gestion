@@ -82,6 +82,15 @@ export function FinancePage() {
   const [destinationAccountId, setDestinationAccountId] = useState('');
   const [obligationType, setObligationType] = useState('CREDIT_CARD');
   const [dueDate, setDueDate] = useState(today());
+  const [obligationCurrency, setObligationCurrency] = useState('PEN');
+  const [obligationAlertDays, setObligationAlertDays] = useState('15');
+  const [cardBankName, setCardBankName] = useState('');
+  const [cardAlias, setCardAlias] = useState('');
+  const [cardLastFour, setCardLastFour] = useState('');
+  const [statementClosingDate, setStatementClosingDate] = useState(today());
+  const [cardInstallmentCount, setCardInstallmentCount] = useState('1');
+  const [cardInstallmentNumber, setCardInstallmentNumber] = useState('1');
+  const [cardPaymentAccountId, setCardPaymentAccountId] = useState('');
   const [lenderName, setLenderName] = useState('');
   const [interestRate, setInterestRate] = useState('0');
   const [installmentCount, setInstallmentCount] = useState('1');
@@ -173,10 +182,17 @@ export function FinancePage() {
       title: description,
       description: notes.trim() || null,
       amount: Number(amount),
-      currencyCode: 'PEN',
+      currencyCode: obligationCurrency,
       dueDate,
-      alertDaysBefore: 3,
+      alertDaysBefore: obligationType === 'CREDIT_CARD' ? 15 : Number(obligationAlertDays),
       recurrenceRule: null,
+      cardBankName: obligationType === 'CREDIT_CARD' ? cardBankName.trim() : null,
+      cardAlias: obligationType === 'CREDIT_CARD' ? cardAlias.trim() : null,
+      cardLastFour: obligationType === 'CREDIT_CARD' ? cardLastFour : null,
+      statementClosingDate: obligationType === 'CREDIT_CARD' ? statementClosingDate : null,
+      installmentCount: obligationType === 'CREDIT_CARD' ? Number(cardInstallmentCount) : null,
+      installmentNumber: obligationType === 'CREDIT_CARD' ? Number(cardInstallmentNumber) : null,
+      defaultPaymentAccountId: obligationType === 'CREDIT_CARD' ? cardPaymentAccountId || null : null,
     }, formKey),
     onSuccess: async () => { await refresh(); setNotice('Obligación registrada.'); closeModal(); },
     onError: (value) => setError(value instanceof Error ? value.message : 'No se pudo registrar la obligación.'),
@@ -267,6 +283,24 @@ export function FinancePage() {
     setAmount(''); setDescription(''); setReference(''); setNotes(''); setOccurredAt(dateTimeLocal()); setModal('movement');
   }
 
+  function prepareObligation() {
+    setObligationType('CREDIT_CARD');
+    setDescription('');
+    setNotes('');
+    setAmount('');
+    setDueDate(today());
+    setObligationCurrency('PEN');
+    setObligationAlertDays('15');
+    setCardBankName('');
+    setCardAlias('');
+    setCardLastFour('');
+    setStatementClosingDate(today());
+    setCardInstallmentCount('1');
+    setCardInstallmentNumber('1');
+    setCardPaymentAccountId('');
+    setModal('obligation');
+  }
+
   return (
     <main className="page">
       <PageHeader
@@ -289,7 +323,7 @@ export function FinancePage() {
       <section className="finance-quick-actions">
         <button onClick={() => prepareMovement('INCOME')}><ArrowDownLeft size={18} /><span><strong>Registrar ingreso</strong><small>Ingreso no asociado a una venta</small></span></button>
         <button onClick={() => prepareMovement('EXPENSE')}><ArrowUpRight size={18} /><span><strong>Registrar gasto</strong><small>Compra, servicio u otro egreso</small></span></button>
-        <button onClick={() => { setDescription(''); setAmount(''); setDueDate(today()); setModal('obligation'); }}><CalendarClock size={18} /><span><strong>Nueva obligación</strong><small>Tarjeta, SUNAT, aduana o servicio</small></span></button>
+        <button onClick={prepareObligation}><CalendarClock size={18} /><span><strong>Nueva obligación</strong><small>Tarjeta, SUNAT, aduana o servicio</small></span></button>
         <button onClick={() => { setLenderName(''); setAmount(''); setAccountId(accounts[0]?.id ?? ''); setModal('loan'); }}><Landmark size={18} /><span><strong>Registrar préstamo</strong><small>Ingreso y cronograma de cuotas</small></span></button>
         <button onClick={() => { setAccountId(cashAccounts[0]?.id ?? ''); setCountedAmount(String(cashAccounts[0]?.currentBalance ?? 0)); setClosureDate(today()); setModal('cash'); }}><Banknote size={18} /><span><strong>Cerrar caja</strong><small>Compara esperado contra contado</small></span></button>
         <button onClick={() => navigate('/bancos/conciliacion')}><ReceiptText size={18} /><span><strong>Conciliación bancaria</strong><small>Importa Excel y confirma coincidencias</small></span></button>
@@ -300,7 +334,7 @@ export function FinancePage() {
           <div className="chart-summary"><div><span>Ingresos del mes</span><strong>{money(dashboard.data?.monthIncome ?? 0)}</strong></div><div><span>Gastos del mes</span><strong>{money(dashboard.data?.monthExpense ?? 0)}</strong></div><div><span>Resultado del mes</span><strong>{money((dashboard.data?.monthIncome ?? 0) - (dashboard.data?.monthExpense ?? 0))}</strong></div></div>
           <div className="dual-bar-chart">{dashboard.data?.monthlySummary.map((item) => <div className="dual-column" key={item.month}><div><span className="income-bar" style={{ height: `${Math.max(3, item.income / maxChart * 100)}%` }} /><span className="expense-bar" style={{ height: `${Math.max(3, item.expense / maxChart * 100)}%` }} /></div><small>{item.label}</small></div>)}</div>
         </Panel>
-        <Panel title="Obligaciones próximas" subtitle="Pagos que no deben pasar desapercibidos" action={<button className="text-button" onClick={() => { setDescription(''); setAmount(''); setDueDate(today()); setModal('obligation'); }}>Agregar</button>}>
+        <Panel title="Obligaciones próximas" subtitle="Pagos que no deben pasar desapercibidos" action={<button className="text-button" onClick={prepareObligation}>Agregar</button>}>
           <div className="obligation-list">
             {dashboard.data?.obligations.length === 0 ? <div className="empty-state">No hay obligaciones pendientes.</div> : null}
             {dashboard.data?.obligations.map((item) => <article key={item.id}><span className={`priority-icon ${item.daysRemaining < 0 ? 'danger' : item.daysRemaining <= 5 ? 'warning' : 'info'}`}><CreditCard size={18} /></span><div><strong>{item.title}</strong><small>Vence {date(`${item.dueDate}T12:00:00`)}</small></div><b>{money(item.amount ?? 0, item.currencyCode ?? 'PEN')}</b><button className="button button-secondary button-compact" onClick={() => { setSelectedObligation(item); setAccountId(accounts[0]?.id ?? ''); setAmount(String(item.amount ?? 0)); setOccurredAt(dateTimeLocal()); setModal('pay-obligation'); }}>Pagar</button></article>)}
@@ -315,7 +349,7 @@ export function FinancePage() {
         </div>
       </Panel>
 
-      <Panel className="table-panel" title="Movimientos financieros" subtitle="Los pagos de ventas aparecen automáticamente cuando se confirman.">
+      <Panel className="table-panel mobile-scroll-panel" title="Movimientos financieros" subtitle="Los pagos de ventas aparecen automáticamente cuando se confirman.">
         <Toolbar placeholder="Buscar movimiento, cuenta o categoría…" value={search} onChange={(value) => { setSearch(value); setPage(1); }} showFilterButton={false} />
         <div className="filter-chips">{['ALL','INCOME','EXPENSE','TRANSFER','LOAN_RECEIVED','LOAN_PAYMENT','REVERSAL'].map((code) => <button key={code} className={`filter-chip ${type === code ? 'active' : ''}`} onClick={() => { setType(code); setPage(1); }}>{({ ALL:'Todos', INCOME:'Ingresos', EXPENSE:'Gastos', TRANSFER:'Transferencias', LOAN_RECEIVED:'Préstamos', LOAN_PAYMENT:'Cuotas', REVERSAL:'Reversiones' } as Record<string,string>)[code]}</button>)}</div>
         <div className="responsive-table-wrap"><table className="data-table"><thead><tr><th>Fecha</th><th>Movimiento</th><th>Categoría</th><th>Cuenta</th><th>Importe</th><th>Estado</th><th>Registrado por</th><th /></tr></thead><tbody>
@@ -331,7 +365,7 @@ export function FinancePage() {
         {modal === 'reverse' ? <><div className="alert alert-warning"><AlertTriangle size={17} /> Se creará un movimiento compensatorio; el original no se eliminará.</div><label className="field"><span>Motivo *</span><textarea rows={4} value={reason} onChange={(event) => setReason(event.target.value)} /></label></> : null}
         {modal === 'movement' ? <div className="form-grid form-grid-2"><label className="field"><span>Tipo</span><select value={movementType} onChange={(event) => { const value = event.target.value as 'INCOME' | 'EXPENSE'; setMovementType(value); const list = (support.data?.categories ?? []).filter((item) => item.nature === value || item.nature === 'BOTH'); setCategoryId(list[0]?.id ?? ''); }}><option value="INCOME">Ingreso</option><option value="EXPENSE">Gasto</option></select></label><AccountField accounts={accounts} value={accountId} onChange={setAccountId} /><div className="field-with-action"><CategoryField categories={categories} value={categoryId} onChange={setCategoryId} /><button type="button" className="text-button" disabled={categoryMutation.isPending} onClick={() => categoryMutation.mutate()}>+ Nueva categoría</button></div><MoneyField value={amount} onChange={setAmount} /><DateTimeField value={occurredAt} onChange={setOccurredAt} /><label className="field field-span-2"><span>Descripción *</span><input value={description} onChange={(event) => setDescription(event.target.value)} /></label><label className="field"><span>N.º de operación o referencia</span><input value={reference} onChange={(event) => setReference(event.target.value)} /></label><label className="field"><span>Comprobante (opcional)</span><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => setProofFile(event.target.files?.[0] ?? null)} /></label><label className="field field-span-2"><span>Notas</span><textarea rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} /></label></div> : null}
         {modal === 'transfer' ? <div className="form-grid form-grid-2"><AccountField label="Cuenta de origen" accounts={accounts} value={sourceAccountId} onChange={setSourceAccountId} /><AccountField label="Cuenta de destino" accounts={accounts} value={destinationAccountId} onChange={setDestinationAccountId} /><MoneyField value={amount} onChange={setAmount} /><DateTimeField value={occurredAt} onChange={setOccurredAt} /><label className="field field-span-2"><span>Descripción</span><input value={description} onChange={(event) => setDescription(event.target.value)} /></label><label className="field"><span>Referencia</span><input value={reference} onChange={(event) => setReference(event.target.value)} /></label></div> : null}
-        {modal === 'obligation' ? <div className="form-grid form-grid-2"><label className="field"><span>Tipo</span><select value={obligationType} onChange={(event) => setObligationType(event.target.value)}>{support.data?.obligationTypes.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label><label className="field"><span>Vencimiento</span><input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label><label className="field field-span-2"><span>Título *</span><input value={description} onChange={(event) => setDescription(event.target.value)} /></label><MoneyField value={amount} onChange={setAmount} /><label className="field field-span-2"><span>Descripción</span><textarea rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} /></label></div> : null}
+        {modal === 'obligation' ? <div className="form-grid form-grid-2"><label className="field"><span>Tipo</span><select value={obligationType} onChange={(event) => { const value = event.target.value; setObligationType(value); setObligationAlertDays(value === 'CREDIT_CARD' ? '15' : '3'); }}>{support.data?.obligationTypes.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label><label className="field"><span>Vencimiento</span><input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label><label className="field field-span-2"><span>Título *</span><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder={obligationType === 'CREDIT_CARD' ? 'Estado de cuenta o compra de mercadería' : 'Nombre de la obligación'} /></label><MoneyField value={amount} onChange={setAmount} /><label className="field"><span>Moneda</span><select value={obligationCurrency} onChange={(event) => setObligationCurrency(event.target.value)}>{support.data?.currencies.map((currency) => <option key={currency.code} value={currency.code}>{currency.code} · {currency.name}</option>)}</select></label>{obligationType === 'CREDIT_CARD' ? <><div className="alert alert-info field-span-2">La alerta se programará automáticamente 15 días antes del vencimiento.</div><label className="field"><span>Banco *</span><input value={cardBankName} onChange={(event) => setCardBankName(event.target.value)} /></label><label className="field"><span>Alias de la tarjeta *</span><input value={cardAlias} onChange={(event) => setCardAlias(event.target.value)} placeholder="Tarjeta importaciones" /></label><label className="field"><span>Últimos 4 dígitos *</span><input inputMode="numeric" pattern="[0-9]{4}" maxLength={4} value={cardLastFour} onChange={(event) => setCardLastFour(event.target.value.replace(/\D/g, '').slice(0, 4))} /></label><label className="field"><span>Fecha de cierre *</span><input type="date" value={statementClosingDate} onChange={(event) => setStatementClosingDate(event.target.value)} /></label><label className="field"><span>Cuota actual *</span><input type="number" min="1" max={cardInstallmentCount || undefined} value={cardInstallmentNumber} onChange={(event) => setCardInstallmentNumber(event.target.value)} /></label><label className="field"><span>Total de cuotas *</span><input type="number" min="1" max="240" value={cardInstallmentCount} onChange={(event) => setCardInstallmentCount(event.target.value)} /></label><AccountField label="Cuenta prevista para pagar (opcional)" accounts={accounts} value={cardPaymentAccountId} onChange={setCardPaymentAccountId} /></> : <label className="field"><span>Alertar con anticipación (días)</span><input type="number" min="0" max="90" value={obligationAlertDays} onChange={(event) => setObligationAlertDays(event.target.value)} /></label>}<label className="field field-span-2"><span>Descripción</span><textarea rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} /></label></div> : null}
         {modal === 'pay-obligation' ? <div className="form-grid form-grid-2"><AccountField accounts={accounts} value={accountId} onChange={setAccountId} /><MoneyField value={amount} onChange={setAmount} /><DateTimeField value={occurredAt} onChange={setOccurredAt} /><label className="field"><span>Referencia</span><input value={reference} onChange={(event) => setReference(event.target.value)} /></label></div> : null}
         {modal === 'loan' ? <div className="form-grid form-grid-2"><label className="field field-span-2"><span>Prestamista *</span><input value={lenderName} onChange={(event) => setLenderName(event.target.value)} /></label><AccountField label="Cuenta que recibe" accounts={accounts} value={accountId} onChange={setAccountId} /><MoneyField value={amount} onChange={setAmount} /><label className="field"><span>Interés total (%)</span><input type="number" min="0" step="0.01" value={interestRate} onChange={(event) => setInterestRate(event.target.value)} /></label><label className="field"><span>Número de cuotas</span><input type="number" min="1" max="120" value={installmentCount} onChange={(event) => setInstallmentCount(event.target.value)} /></label><DateTimeField label="Fecha recibida" value={occurredAt} onChange={setOccurredAt} /><label className="field"><span>Primera cuota</span><input type="date" value={firstDueDate} onChange={(event) => setFirstDueDate(event.target.value)} /></label><label className="field"><span>Comprobante (opcional)</span><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => setProofFile(event.target.files?.[0] ?? null)} /></label><label className="field field-span-2"><span>Notas</span><textarea rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} /></label></div> : null}
         {modal === 'pay-loan' ? <div className="form-grid form-grid-2"><AccountField accounts={accounts} value={accountId} onChange={setAccountId} /><MoneyField value={amount} onChange={setAmount} /><DateTimeField value={occurredAt} onChange={setOccurredAt} /><label className="field"><span>Referencia</span><input value={reference} onChange={(event) => setReference(event.target.value)} /></label></div> : null}

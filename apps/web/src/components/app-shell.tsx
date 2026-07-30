@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { NotificationItem } from '@yukimi/shared';
+import type { GlobalSearchItem, NotificationItem } from '@yukimi/shared';
 import {
   BarChart3,
   Bell,
@@ -24,10 +24,11 @@ import {
   WalletCards,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../features/auth/auth-context';
 import { getNotifications, setNotificationStatus } from '../features/insights/insights-api';
+import { globalSearch } from '../features/search/search-api';
 
 const navigation = [
   { to: '/', label: 'Inicio', icon: LayoutDashboard, end: true },
@@ -61,6 +62,14 @@ const pageNames: Record<string, string> = {
   '/configuracion': 'Configuración',
 };
 
+const searchTypeLabels: Record<GlobalSearchItem['entityType'], string> = {
+  CLIENT: 'Cliente',
+  SALE: 'Venta',
+  IMPORT: 'Importación',
+  DELIVERY: 'Entrega',
+  PRODUCT: 'Producto',
+};
+
 export function AppShell() {
   const auth = useAuth();
   const location = useLocation();
@@ -68,6 +77,10 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim());
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const title = useMemo(() => {
@@ -84,6 +97,12 @@ export function AppShell() {
     queryKey: ['notifications'],
     queryFn: () => getNotifications({ limit: 40 }),
     refetchInterval: 60_000,
+  });
+  const searchResults = useQuery({
+    queryKey: ['global-search', deferredSearchQuery],
+    queryFn: () => globalSearch(deferredSearchQuery),
+    enabled: deferredSearchQuery.length >= 2,
+    staleTime: 30_000,
   });
   const notificationMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'READ' | 'RESOLVED' | 'DISMISSED' }) => setNotificationStatus(id, status),
@@ -108,10 +127,29 @@ export function AppShell() {
     sessionStorage.setItem('yukimi-shown-notifications', JSON.stringify([...shown]));
   }, [navigate, notifications.data]);
 
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+        searchInputRef.current?.focus();
+      }
+      if (event.key === 'Escape') setSearchOpen(false);
+    };
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
+
   function openNotification(item: NotificationItem) {
     if (item.status === 'NEW') notificationMutation.mutate({ id: item.id, status: 'READ' });
     setNotificationsOpen(false);
     if (item.actionUrl) navigate(item.actionUrl);
+  }
+
+  function openSearchResult(item: GlobalSearchItem) {
+    setSearchOpen(false);
+    setSearchQuery('');
+    navigate(item.route);
   }
 
   async function enableBrowserNotifications() {
@@ -195,11 +233,22 @@ export function AppShell() {
             </div>
           </div>
 
-          <label className="global-search desktop-search">
-            <Search size={17} aria-hidden="true" />
-            <input placeholder="Buscar cliente, producto, venta o caja…" />
-            <kbd>⌘ K</kbd>
-          </label>
+          <div className="global-search-wrap desktop-search">
+            <form className="global-search" role="search" onSubmit={(event) => { event.preventDefault(); const first = searchResults.data?.items[0]; if (first) openSearchResult(first); }}>
+              <Search size={17} aria-hidden="true" />
+              <input ref={searchInputRef} value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); setSearchOpen(true); }} onFocus={() => setSearchOpen(true)} onBlur={() => window.setTimeout(() => setSearchOpen(false), 120)} placeholder="Buscar cliente, producto, venta o caja…" aria-label="Búsqueda global" aria-expanded={searchOpen} aria-controls="global-search-results" />
+              <kbd>⌘ K</kbd>
+            </form>
+            {searchOpen ? (
+              <div className="global-search-results" id="global-search-results">
+                {deferredSearchQuery.length < 2 ? <div className="global-search-empty">Escribe al menos 2 caracteres para buscar en todo Yukimi.</div> : null}
+                {searchResults.isLoading ? <div className="global-search-empty">Buscando en datos reales…</div> : null}
+                {searchResults.isError ? <div className="global-search-empty text-danger">No se pudo completar la búsqueda.</div> : null}
+                {!searchResults.isLoading && deferredSearchQuery.length >= 2 && searchResults.data?.items.length === 0 ? <div className="global-search-empty">No se encontraron coincidencias.</div> : null}
+                {searchResults.data?.items.map((item) => <button type="button" key={`${item.entityType}:${item.id}`} onMouseDown={(event) => event.preventDefault()} onClick={() => openSearchResult(item)}><span>{searchTypeLabels[item.entityType]}</span><div><strong>{item.label}</strong><small>{item.secondary}</small></div></button>)}
+              </div>
+            ) : null}
+          </div>
 
           <div className="topbar-actions">
             <button className="button button-primary button-compact topbar-create" onClick={() => navigate('/ventas/nueva')}>

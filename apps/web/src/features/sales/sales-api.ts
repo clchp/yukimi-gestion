@@ -6,6 +6,7 @@ import type {
   SaleDetail,
   SaleFilter,
   SaleListResponse,
+  SaleReleaseQuote,
   SaleSupportData,
 } from '@yukimi/shared';
 import { apiRequest } from '../../app/api-client';
@@ -40,8 +41,12 @@ export function createSale(input: CreateSaleInput, idempotencyKey: string): Prom
   });
 }
 
-export function requestSaleRelease(saleId: string, input: RequestSaleReleaseInput) {
-  return apiRequest<{ id: string; stateCode: string; version: number }>(`/sales/${saleId}/release-requests`, {
+export function getSaleReleaseQuote(saleItemId: string): Promise<SaleReleaseQuote> {
+  return apiRequest<SaleReleaseQuote>(`/sales/items/${saleItemId}/release-quote`);
+}
+
+export function requestSaleRelease(saleItemId: string, input: RequestSaleReleaseInput) {
+  return apiRequest<{ id: string; stateCode: string; version: number }>(`/sales/items/${saleItemId}/release-requests`, {
     method: 'POST',
     body: JSON.stringify(input),
   });

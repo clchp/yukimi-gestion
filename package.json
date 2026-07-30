@@ -14,6 +14,7 @@
     "test": "npm run test -w @yukimi/api",
     "test:migrations:static": "node scripts/validate-migrations.mjs",
     "test:db:static": "node scripts/validate-db-tests.mjs",
+    "test:ui:static": "node scripts/validate-ui.mjs",
     "db:start": "supabase start",
     "db:stop": "supabase stop --no-backup",
     "db:reset": "supabase db reset --local --no-seed",
@@ -27,7 +28,7 @@
     "dev:api": "npm run dev -w @yukimi/api",
     "dev:web": "npm run dev -w @yukimi/web",
     "build:shared": "npm run build -w @yukimi/shared",
-    "verify": "npm run lint && npm run build:shared && npm run typecheck && npm test && npm run test:migrations:static && npm run test:db:static && npm run build"
+    "verify": "npm run lint && npm run build:shared && npm run typecheck && npm test && npm run test:migrations:static && npm run test:db:static && npm run test:ui:static && npm run build"
   },
   "engines": {
     "node": ">=22.0.0"

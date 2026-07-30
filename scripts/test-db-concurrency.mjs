@@ -50,7 +50,7 @@ try {
         '',
         now(),
         '{}'::jsonb,
-        ${JSON.stringify({ display_name: 'Concurrency Admin' })}::jsonb,
+        ${transaction.json({ display_name: 'Concurrency Admin' })},
         now(),
         now()
       )
@@ -66,12 +66,11 @@ try {
     `;
   });
 
-  const input = JSON.stringify({ fullName: marker });
   const createClient = () =>
     asAdmin(async (transaction) => {
       const [row] = await transaction`
         select public.create_client_v1(
-          ${input}::jsonb,
+          ${transaction.json({ fullName: marker })},
           ${idempotencyKey}
         ) as result
       `;
@@ -101,7 +100,7 @@ try {
         select public.update_client_v1(
           ${clientId},
           ${version},
-          ${JSON.stringify({ fullName })}::jsonb
+          ${transaction.json({ fullName })}
         ) as result
       `;
       return row.result;

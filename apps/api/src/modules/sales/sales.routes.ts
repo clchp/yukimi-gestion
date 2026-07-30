@@ -49,6 +49,21 @@ export function createSalesRouter(
     try { response.json({ data: await serviceFor(request).getSupportData() }); } catch (error) { next(error); }
   });
 
+  router.get('/items/:saleItemId/release-quote', async (request, response, next) => {
+    try {
+      const saleItemId = z.string().uuid().parse(request.params.saleItemId);
+      response.json({ data: await serviceFor(request).getReleaseQuote(saleItemId) });
+    } catch (error) { next(error); }
+  });
+
+  router.post('/items/:saleItemId/release-requests', async (request, response, next) => {
+    try {
+      const saleItemId = z.string().uuid().parse(request.params.saleItemId);
+      const input = requestSaleReleaseSchema.parse(request.body);
+      response.status(201).json({ data: await serviceFor(request).requestRelease(saleItemId, input) });
+    } catch (error) { next(error); }
+  });
+
   router.get('/', async (request, response, next) => {
     try {
       const query = listQuerySchema.parse(request.query);
@@ -68,14 +83,6 @@ export function createSalesRouter(
     try {
       const saleId = z.string().uuid().parse(request.params.saleId);
       response.json({ data: await serviceFor(request).getById(saleId) });
-    } catch (error) { next(error); }
-  });
-
-  router.post('/:saleId/release-requests', async (request, response, next) => {
-    try {
-      const saleId = z.string().uuid().parse(request.params.saleId);
-      const input = requestSaleReleaseSchema.parse(request.body);
-      response.status(201).json({ data: await serviceFor(request).requestRelease(saleId, input) });
     } catch (error) { next(error); }
   });
 

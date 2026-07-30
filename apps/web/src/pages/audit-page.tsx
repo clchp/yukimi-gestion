@@ -85,7 +85,7 @@ export function AuditPage() {
         {(audit.data?.summary.actors ?? []).slice(0, 2).map((actor) => <div key={actor.actorName}><span>{actor.actorName}</span><strong>{actor.count}</strong></div>)}
       </section>
 
-      <Panel className="table-panel">
+      <Panel className="table-panel mobile-scroll-panel">
         <Toolbar placeholder="Buscar administradora, tabla, registro o motivo…" value={search} onChange={(value) => { setSearch(value); setPage(1); }} showFilterButton={false} />
         <div className="audit-filter-grid">
           <label className="field"><span>Módulo</span><select value={module} onChange={(event) => { setModule(event.target.value); setPage(1); }}><option value="">Todos</option><option value="SALES">Ventas y pagos</option><option value="CLIENTS">Clientes</option><option value="INVENTORY">Productos e inventario</option><option value="DELIVERIES">Entregas</option><option value="IMPORTS">Importaciones</option><option value="FINANCE">Finanzas</option><option value="SYSTEM">Sistema y reportes</option></select></label>

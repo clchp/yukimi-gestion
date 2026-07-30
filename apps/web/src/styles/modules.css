@@ -156,12 +156,33 @@
 .sale-product-results small { margin-top: 3px; font-size: .58rem; }
 .sale-line-editor { grid-template-columns: minmax(190px,1fr) 76px 105px 135px minmax(150px,1fr) auto; }
 .sale-line-editor select { width: 100%; height: 38px; border: 1px solid var(--border); border-radius: 9px; padding: 0 7px; background: white; }
+.below-cost-warning { grid-column: 1 / -1; border: 1px solid #e8c99e; border-radius: 9px; padding: 9px 11px; color: var(--warning); background: var(--warning-soft); font-size: .63rem; line-height: 1.45; }
 .detail-note { margin: 14px 0 0; border-radius: 9px; padding: 10px; background: var(--surface-muted); font-size: .68rem; }
 .release-request-list { display: grid; gap: 10px; }
 .release-request-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
 .release-request-card > div:first-child { display: grid; gap: 6px; }
 .release-request-card strong { font-size: .73rem; }
 .release-request-card small, .release-request-card span, .release-request-card p { margin: 0; font-size: .61rem; }
+.release-request-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.release-amounts { display: flex; gap: 7px 14px; flex-wrap: wrap; border-radius: 9px; padding: 9px; background: var(--surface-muted); }
+.release-amounts span { color: var(--muted); }
+.release-amounts strong { color: var(--text); }
+.sale-item-mobile-list { display: none; }
+.sale-item-mobile-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; border: 1px solid var(--border); border-radius: 13px; padding: 14px; background: white; }
+.sale-item-mobile-card > div:first-child strong, .sale-item-mobile-card > div:first-child small { display: block; }
+.sale-item-mobile-card > div:first-child small { margin-top: 4px; color: var(--muted); font-size: .62rem; }
+.sale-item-mobile-card dl { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.sale-item-mobile-card dl div { border-radius: 9px; padding: 9px; background: var(--surface-muted); }
+.sale-item-mobile-card dt { color: var(--muted); font-size: .58rem; }
+.sale-item-mobile-card dd { margin: 4px 0 0; font-size: .7rem; font-weight: 760; }
+.sale-item-mobile-card > .button { grid-column: 1 / -1; width: 100%; }
+.release-rule-callout, .release-refund-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-bottom: 12px; }
+.release-rule-callout > div, .release-refund-summary > div { border: 1px solid var(--border); border-radius: 10px; padding: 11px; background: var(--surface-muted); }
+.release-rule-callout span, .release-rule-callout strong, .release-refund-summary span, .release-refund-summary strong { display: block; }
+.release-rule-callout span, .release-refund-summary span { color: var(--muted); font-size: .6rem; }
+.release-rule-callout strong, .release-refund-summary strong { margin-top: 4px; font-size: .75rem; }
+.release-refund-summary > div:nth-child(2) { border-color: #e6c6c6; background: var(--danger-soft); }
+.release-refund-summary > div:nth-child(3) { border-color: #c6dfcf; background: var(--success-soft); }
 .inline-actions { display: flex; gap: 7px; }
 .compact-alert { margin: 0; padding: 9px 11px; }
 .stock-control-note { display: flex; align-items: flex-start; gap: 10px; border-radius: 10px; padding: 11px; background: var(--success-soft); }
@@ -315,6 +336,33 @@
   display: grid;
   gap: 11px;
 }
+.cost-allocation-note {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d8d4e6;
+  border-radius: 11px;
+  padding: 11px;
+  color: var(--info);
+  background: var(--info-soft);
+}
+.cost-allocation-note strong { font-size: .7rem; }
+.cost-allocation-note small { color: var(--text-soft); font-size: .61rem; line-height: 1.45; }
+.receive-item-list { display: grid; gap: 10px; }
+.receive-item-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) 100px 110px 140px;
+  align-items: end;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface-muted);
+}
+.receive-item-row > div:first-child strong, .receive-item-row > div:first-child small { display: block; }
+.receive-item-row > div:first-child small { margin-top: 4px; color: var(--muted); font-size: .61rem; }
+.calculated-cost { display: grid; gap: 3px; align-self: center; }
+.calculated-cost span, .calculated-cost small { color: var(--muted); font-size: .58rem; }
+.calculated-cost strong { font-size: .78rem; }
 .incident-list {
   display: grid;
   gap: 10px;

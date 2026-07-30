@@ -216,6 +216,7 @@ export const inventoryRowSchema = z.object({
   preorderExpectedQuantity: z.number().int().nonnegative(),
   minimumStock: z.number().int().nonnegative(),
   salePrice: z.number(),
+  currentUnitCostPen: z.number().nonnegative().nullable(),
   currencyCode: z.string().length(3),
   isActive: z.boolean(),
 });

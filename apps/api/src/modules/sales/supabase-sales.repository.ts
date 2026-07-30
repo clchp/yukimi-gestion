@@ -3,6 +3,7 @@ import {
   createSaleResultSchema,
   saleDetailSchema,
   saleListResponseSchema,
+  saleReleaseQuoteSchema,
   saleSupportDataSchema,
   type CreateSaleInput,
   type CreateSaleResult,
@@ -10,6 +11,7 @@ import {
   type ReviewSaleReleaseInput,
   type SaleDetail,
   type SaleListResponse,
+  type SaleReleaseQuote,
   type SaleSupportData,
 } from '@yukimi/shared';
 import { mapSupabaseError } from '../../shared/supabase/map-error.js';
@@ -40,13 +42,13 @@ export class SupabaseSalesRepository implements SalesRepository {
   }
 
   public async getById(saleId: string): Promise<SaleDetail> {
-    const { data, error } = await this.client.rpc('get_sale_detail_v1', { p_sale_id: saleId });
+    const { data, error } = await this.client.rpc('get_sale_detail_v2', { p_sale_id: saleId });
     if (error) throw mapSupabaseError(error, 'No se pudo cargar la venta.');
     return saleDetailSchema.parse(data);
   }
 
   public async create(input: CreateSaleInput, idempotencyKey: string): Promise<CreateSaleResult> {
-    const { data, error } = await this.client.rpc('create_sale_v1', {
+    const { data, error } = await this.client.rpc('create_sale_v2', {
       p_input: input,
       p_idempotency_key: idempotencyKey,
     });
@@ -54,12 +56,20 @@ export class SupabaseSalesRepository implements SalesRepository {
     return createSaleResultSchema.parse(data);
   }
 
+  public async getReleaseQuote(saleItemId: string): Promise<SaleReleaseQuote> {
+    const { data, error } = await this.client.rpc('get_sale_release_quote_v2', {
+      p_sale_item_id: saleItemId,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudo calcular la penalidad sugerida.');
+    return saleReleaseQuoteSchema.parse(data);
+  }
+
   public async requestRelease(
-    saleId: string,
+    saleItemId: string,
     input: RequestSaleReleaseInput,
   ): Promise<{ id: string; stateCode: string; version: number }> {
-    const { data, error } = await this.client.rpc('request_sale_release_v1', {
-      p_sale_id: saleId,
+    const { data, error } = await this.client.rpc('request_sale_release_v2', {
+      p_sale_item_id: saleItemId,
       p_reason: input.reason,
       p_penalty_amount: input.penaltyAmount,
     });
@@ -72,7 +82,7 @@ export class SupabaseSalesRepository implements SalesRepository {
     requestId: string,
     input: ReviewSaleReleaseInput,
   ): Promise<{ id: string; stateCode: string; version: number }> {
-    const { data, error } = await this.client.rpc('review_sale_release_v1', {
+    const { data, error } = await this.client.rpc('review_sale_release_v2', {
       p_request_id: requestId,
       p_decision: input.decision,
       p_review_notes: input.reviewNotes,

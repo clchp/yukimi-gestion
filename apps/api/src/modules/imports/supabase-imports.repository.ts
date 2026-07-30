@@ -96,7 +96,7 @@ export class SupabaseImportsRepository implements ImportsRepository {
   }
 
   public async addCost(importId: string, input: CreateImportCostInput): Promise<ImportGenericResult> {
-    const { data, error } = await this.client.rpc('add_import_cost_v1', { p_import_id: importId, p_input: input });
+    const { data, error } = await this.client.rpc('add_import_cost_v2', { p_import_id: importId, p_input: input });
     if (error) throw mapSupabaseError(error, 'No se pudo registrar el costo.');
     return importGenericResultSchema.parse(data);
   }
@@ -126,7 +126,7 @@ export class SupabaseImportsRepository implements ImportsRepository {
   }
 
   public async receiveBox(boxId: string, input: ReceiveImportBoxInput, idempotencyKey: string): Promise<ImportMutationResult> {
-    const { data, error } = await this.client.rpc('receive_import_box_v1', {
+    const { data, error } = await this.client.rpc('receive_import_box_v2', {
       p_box_id: boxId,
       p_input: input,
       p_idempotency_key: idempotencyKey,

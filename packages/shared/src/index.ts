@@ -15,3 +15,5 @@ export * from './imports.js';
 export * from './finance.js';
 
 export * from './insights.js';
+
+export * from './search.js';

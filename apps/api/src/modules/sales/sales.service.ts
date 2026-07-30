@@ -20,8 +20,12 @@ export class SalesService {
     return this.repository.create(input, idempotencyKey);
   }
 
-  public requestRelease(saleId: string, input: RequestSaleReleaseInput) {
-    return this.repository.requestRelease(saleId, input);
+  public getReleaseQuote(saleItemId: string) {
+    return this.repository.getReleaseQuote(saleItemId);
+  }
+
+  public requestRelease(saleItemId: string, input: RequestSaleReleaseInput) {
+    return this.repository.requestRelease(saleItemId, input);
   }
 
   public reviewRelease(requestId: string, input: ReviewSaleReleaseInput) {

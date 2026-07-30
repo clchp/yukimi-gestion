@@ -193,7 +193,7 @@ export function ReportsPage() {
         </Panel>
       </section>
 
-      <Panel title="Productos más vendidos" subtitle="Rentabilidad estimada a partir del costo de los lotes asignados" className="table-panel">
+      <Panel title="Productos más vendidos" subtitle="Rentabilidad estimada a partir del costo de los lotes asignados" className="table-panel mobile-scroll-panel">
         <div className="responsive-table-wrap"><table className="data-table"><thead><tr><th>Producto</th><th>SKU</th><th>Unidades</th><th>Ventas</th><th>Costo estimado</th><th>Ganancia estimada</th></tr></thead><tbody>
           {(data?.topProducts ?? []).map((item) => <tr key={item.variantId}><td><strong>{item.productName}</strong><small>{item.variantName}</small></td><td><code>{item.sku}</code></td><td className="numeric-cell">{item.units}</td><td className="numeric-cell">{money(item.revenue)}</td><td className="numeric-cell">{money(item.cost)}</td><td className="numeric-cell"><strong className={item.profit >= 0 ? 'text-success' : 'text-danger'}>{money(item.profit)}</strong></td></tr>)}
           {data?.topProducts.length === 0 ? <tr><td colSpan={6}><div className="empty-state">No hay productos vendidos en el periodo.</div></td></tr> : null}

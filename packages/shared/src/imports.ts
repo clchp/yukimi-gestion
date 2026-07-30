@@ -206,7 +206,6 @@ export const receiveImportBoxSchema = z.object({
   items: z.array(z.object({
     importBoxItemId: z.string().uuid(),
     receivedQuantity: z.number().int().nonnegative().max(99999),
-    finalUnitCostPen: z.number().nonnegative().max(99999999),
     notes: z.string().trim().max(1000).nullable().optional(),
   })).min(1).max(200),
 });

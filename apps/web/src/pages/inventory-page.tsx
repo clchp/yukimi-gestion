@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeftRight, Boxes, PackageMinus, PackagePlus, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import type { InventoryRow } from '@yukimi/shared';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
@@ -33,8 +34,9 @@ function groupConsolidated(items: InventoryRow[]): ConsolidatedRow[] {
 }
 
 export function InventoryPage() {
+  const [searchParams] = useSearchParams();
   const [warehouseId, setWarehouseId] = useState<string>('ALL');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search')?.trim() ?? '');
   const catalogs = useQuery({ queryKey: ['catalogs'], queryFn: getCatalogs });
   const inventory = useQuery({
     queryKey: ['inventory', warehouseId, search],
