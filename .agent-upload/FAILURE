@@ -1,8 +1,8 @@
-run_id=30576577409
-run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30576577409
-apply=failure
-install=skipped
-verify=skipped
+run_id=30576756503
+run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30576756503
+apply=success
+install=success
+verify=failure
 db_start=skipped
 db_test=skipped
 
@@ -11,5 +11,83 @@ db_test=skipped
 .agent-upload/chunk-01a expected=3c846d891a27fa941b4ed636dab75a656ab5643d actual=3c846d891a27fa941b4ed636dab75a656ab5643d
 .agent-upload/chunk-01b expected=cd63ab44d03d0405c40222f9ff4aa3bad1b0a71d actual=cd63ab44d03d0405c40222f9ff4aa3bad1b0a71d
 .agent-upload/chunk-02a expected=835ab673ced16a5509f69061c1157e6caab8ca1d actual=835ab673ced16a5509f69061c1157e6caab8ca1d
-.agent-upload/chunk-02b expected=c03741c54dea65d78b9cc6e51c4dc302f46a7b67 actual=db10992d33b07aca8013829cc78741321092d141
-::error::El segmento .agent-upload/chunk-02b no coincide con el original.
+.agent-upload/chunk-02b0 expected=ed39e4847816e17d76bcdf9f3901d6cc14b7f5b9 actual=ed39e4847816e17d76bcdf9f3901d6cc14b7f5b9
+.agent-upload/chunk-02b1 expected=770143535be5f7b28b83b47ac6d495676e85abfa actual=770143535be5f7b28b83b47ac6d495676e85abfa
+.agent-upload/chunk-03a expected=c9ffc48839f6136c82488605d1d5360d1376e248 actual=c9ffc48839f6136c82488605d1d5360d1376e248
+.agent-upload/chunk-03b expected=10df13a22697ed40ce84c4dfceca2122add68dc9 actual=10df13a22697ed40ce84c4dfceca2122add68dc9
+.agent-upload/chunk-04a expected=3f568132a5a5efe50ac11bb1688639a260bc255c actual=3f568132a5a5efe50ac11bb1688639a260bc255c
+.agent-upload/chunk-04b expected=b2afbc48ac15544ff7e5e560b5437fb0aa5a5b65 actual=b2afbc48ac15544ff7e5e560b5437fb0aa5a5b65
+.agent-upload/chunk-05a expected=5b782d95c63a2df6e0f9a21f0e172ddcaf66cd14 actual=5b782d95c63a2df6e0f9a21f0e172ddcaf66cd14
+.agent-upload/chunk-05b expected=63cfb4cc6d58ec3190034504b0724b79a32e44f8 actual=63cfb4cc6d58ec3190034504b0724b79a32e44f8
+.agent-upload/chunk-06a expected=6d7b08a3fc826d2d022321cf9f1fbe10e7d03eef actual=6d7b08a3fc826d2d022321cf9f1fbe10e7d03eef
+.agent-upload/chunk-06b expected=f48df2af5e2f2873a58e2a4c6869efff4dc86269 actual=f48df2af5e2f2873a58e2a4c6869efff4dc86269
+.agent-upload/chunk-07a expected=ba1822de71e514763182e742d1966c660127e427 actual=ba1822de71e514763182e742d1966c660127e427
+.agent-upload/chunk-07b expected=a9ff00b1b3d1a3f59ecfc2fdd18f80f1e467875a actual=a9ff00b1b3d1a3f59ecfc2fdd18f80f1e467875a
+.agent-upload/chunk-08a expected=93be4b52292df536f9689e1186086b56d9c42193 actual=93be4b52292df536f9689e1186086b56d9c42193
+.agent-upload/chunk-08b expected=76b2aba08cfd79322b7ac002fd35214bd3914d66 actual=76b2aba08cfd79322b7ac002fd35214bd3914d66
+.agent-upload/chunk-09 expected=8c0b5596b0e594e153b52255983623bb4e36dc82 actual=8c0b5596b0e594e153b52255983623bb4e36dc82
+.agent-upload/chunk-10a expected=9b83dd31d9cf2c084ec225d8c2a9167fe9bd4d83 actual=9b83dd31d9cf2c084ec225d8c2a9167fe9bd4d83
+.agent-upload/chunk-10b expected=c41bcab6fdfd0921f6b675c8cd01230dce0c475c actual=c41bcab6fdfd0921f6b675c8cd01230dce0c475c
+.agent-upload/chunk-11 expected=bc3c63ac7a955772ae0e6fe3731bbbe7127a5a62 actual=bc3c63ac7a955772ae0e6fe3731bbbe7127a5a62
+.agent-upload/chunk-12 expected=fce6c1535aa11009dfea62f968c66d3a5e668f9e actual=fce6c1535aa11009dfea62f968c66d3a5e668f9e
+.agent-upload/chunk-13 expected=5ed759824509c6d34c50c21a63c4a389bfdb618d actual=5ed759824509c6d34c50c21a63c4a389bfdb618d
+.agent-upload/chunk-14 expected=fa1531681815e9822df942a2b3d96848ac0574b4 actual=fa1531681815e9822df942a2b3d96848ac0574b4
+.agent-upload/chunk-15 expected=af23741ffa8886ce2734c3a65719180e335001a0 actual=af23741ffa8886ce2734c3a65719180e335001a0
+/tmp/yukimi-delta.tar.xz: OK
+
+===== /tmp/install.log =====
+
+added 260 packages, and audited 264 packages in 6s
+
+80 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:
+npm warn allow-scripts   esbuild@0.28.1 (postinstall: node install.js)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+
+===== /tmp/verify.log =====
+
+> yukimi-gestion@1.0.0 verify
+> npm run lint && npm run format:check && npm run build:shared && npm run typecheck && npm test && npm run test:migrations:static && npm run test:db:static && npm run test:ui:static && npm run test:compliance:static && npm run build
+
+
+> yukimi-gestion@1.0.0 lint
+> eslint .
+
+
+/home/runner/work/yukimi-gestion/yukimi-gestion/apps/api/src/modules/admin/supabase-admin.repository.ts
+  44:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  76:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  85:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/runner/work/yukimi-gestion/yukimi-gestion/apps/web/public/sw.js
+   3:1    error  'self' is not defined    no-undef
+   4:19   error  'caches' is not defined  no-undef
+   4:86   error  'self' is not defined    no-undef
+   6:1    error  'self' is not defined    no-undef
+   7:19   error  'caches' is not defined  no-undef
+   7:109  error  'caches' is not defined  no-undef
+   7:142  error  'self' is not defined    no-undef
+   9:1    error  'self' is not defined    no-undef
+  10:79   error  'self' is not defined    no-undef
+  13:5    error  'caches' is not defined  no-undef
+  15:18   error  'caches' is not defined  no-undef
+  15:73   error  'caches' is not defined  no-undef
+  17:1    error  'self' is not defined    no-undef
+  20:19   error  'self' is not defined    no-undef
+  28:1    error  'self' is not defined    no-undef
+  30:69   error  'self' is not defined    no-undef
+  31:19   error  'self' is not defined    no-undef
+  34:12   error  'self' is not defined    no-undef
+
+/home/runner/work/yukimi-gestion/yukimi-gestion/apps/web/src/features/products/compress-image.ts
+  21:7  error  The value assigned to 'blob' is not used in subsequent statements  no-useless-assignment
+
+✖ 25 problems (25 errors, 0 warnings)
+
