@@ -1,5 +1,5 @@
-run_id=30577553373
-run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30577553373
+run_id=30577852221
+run_url=https://github.com/clchp/yukimi-gestion/actions/runs/30577852221
 apply=success
 install=success
 format=success
@@ -51,118 +51,118 @@ npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to revi
 
 ===== /tmp/format.log =====
 [90mapps/web/src/components/ui/toolbar.tsx[39m 5ms (unchanged)
-[90mapps/web/src/data/mock-data.ts[39m 30ms (unchanged)
-[90mapps/web/src/features/admin/admin-api.ts[39m 13ms (unchanged)
-[90mapps/web/src/features/auth/auth-context.tsx[39m 11ms (unchanged)
+[90mapps/web/src/data/mock-data.ts[39m 22ms (unchanged)
+[90mapps/web/src/features/admin/admin-api.ts[39m 10ms (unchanged)
+[90mapps/web/src/features/auth/auth-context.tsx[39m 15ms (unchanged)
 [90mapps/web/src/features/auth/protected-route.tsx[39m 3ms (unchanged)
-[90mapps/web/src/features/catalog/catalog-api.ts[39m 5ms (unchanged)
-[90mapps/web/src/features/clients/clients-api.ts[39m 9ms (unchanged)
-[90mapps/web/src/features/deliveries/deliveries-api.ts[39m 7ms (unchanged)
-[90mapps/web/src/features/finance/finance-api.ts[39m 17ms (unchanged)
-[90mapps/web/src/features/finance/parse-bank-file.ts[39m 57ms (unchanged)
-[90mapps/web/src/features/finance/upload-finance-file.ts[39m 7ms (unchanged)
-[90mapps/web/src/features/imports/imports-api.ts[39m 12ms (unchanged)
-[90mapps/web/src/features/insights/csv-export.ts[39m 7ms (unchanged)
-[90mapps/web/src/features/insights/file-export.ts[39m 39ms (unchanged)
-[90mapps/web/src/features/insights/insights-api.ts[39m 11ms (unchanged)
-[90mapps/web/src/features/payments/payments-api.ts[39m 15ms (unchanged)
-[90mapps/web/src/features/payments/sale-payments-section.tsx[39m 111ms (unchanged)
-[90mapps/web/src/features/payments/upload-payment-files.ts[39m 13ms (unchanged)
-[90mapps/web/src/features/products/compress-image.ts[39m 16ms (unchanged)
-[90mapps/web/src/features/products/product-image.tsx[39m 5ms (unchanged)
-[90mapps/web/src/features/products/products-api.ts[39m 8ms (unchanged)
-[90mapps/web/src/features/products/qr-code.ts[39m 61ms (unchanged)
-[90mapps/web/src/features/products/upload-product-images.ts[39m 6ms (unchanged)
-[90mapps/web/src/features/sales/sales-api.ts[39m 11ms (unchanged)
+[90mapps/web/src/features/catalog/catalog-api.ts[39m 4ms (unchanged)
+[90mapps/web/src/features/clients/clients-api.ts[39m 10ms (unchanged)
+[90mapps/web/src/features/deliveries/deliveries-api.ts[39m 8ms (unchanged)
+[90mapps/web/src/features/finance/finance-api.ts[39m 19ms (unchanged)
+[90mapps/web/src/features/finance/parse-bank-file.ts[39m 54ms (unchanged)
+[90mapps/web/src/features/finance/upload-finance-file.ts[39m 10ms (unchanged)
+[90mapps/web/src/features/imports/imports-api.ts[39m 10ms (unchanged)
+[90mapps/web/src/features/insights/csv-export.ts[39m 3ms (unchanged)
+[90mapps/web/src/features/insights/file-export.ts[39m 31ms (unchanged)
+[90mapps/web/src/features/insights/insights-api.ts[39m 10ms (unchanged)
+[90mapps/web/src/features/payments/payments-api.ts[39m 9ms (unchanged)
+[90mapps/web/src/features/payments/sale-payments-section.tsx[39m 124ms (unchanged)
+[90mapps/web/src/features/payments/upload-payment-files.ts[39m 15ms (unchanged)
+[90mapps/web/src/features/products/compress-image.ts[39m 14ms (unchanged)
+[90mapps/web/src/features/products/product-image.tsx[39m 4ms (unchanged)
+[90mapps/web/src/features/products/products-api.ts[39m 7ms (unchanged)
+[90mapps/web/src/features/products/qr-code.ts[39m 59ms (unchanged)
+[90mapps/web/src/features/products/upload-product-images.ts[39m 13ms (unchanged)
+[90mapps/web/src/features/sales/sales-api.ts[39m 16ms (unchanged)
 [90mapps/web/src/features/search/search-api.ts[39m 2ms (unchanged)
-[90mapps/web/src/main.tsx[39m 4ms (unchanged)
-[90mapps/web/src/pages/audit-page.tsx[39m 51ms (unchanged)
-[90mapps/web/src/pages/client-detail-page.tsx[39m 113ms (unchanged)
-[90mapps/web/src/pages/client-form-page.tsx[39m 24ms (unchanged)
-[90mapps/web/src/pages/clients-page.tsx[39m 47ms (unchanged)
-[90mapps/web/src/pages/dashboard-page.tsx[39m 28ms (unchanged)
-[90mapps/web/src/pages/deliveries-page.tsx[39m 24ms (unchanged)
-[90mapps/web/src/pages/delivery-detail-page.tsx[39m 40ms (unchanged)
-[90mapps/web/src/pages/edit-delivery-page.tsx[39m 39ms (unchanged)
-[90mapps/web/src/pages/finance-page.tsx[39m 117ms (unchanged)
-[90mapps/web/src/pages/import-detail-page.tsx[39m 154ms (unchanged)
-[90mapps/web/src/pages/imports-page.tsx[39m 26ms (unchanged)
-[90mapps/web/src/pages/inventory-page.tsx[39m 43ms (unchanged)
-[90mapps/web/src/pages/login-page.tsx[39m 8ms (unchanged)
+[90mapps/web/src/main.tsx[39m 6ms (unchanged)
+[90mapps/web/src/pages/audit-page.tsx[39m 57ms (unchanged)
+[90mapps/web/src/pages/client-detail-page.tsx[39m 128ms (unchanged)
+[90mapps/web/src/pages/client-form-page.tsx[39m 21ms (unchanged)
+[90mapps/web/src/pages/clients-page.tsx[39m 25ms (unchanged)
+[90mapps/web/src/pages/dashboard-page.tsx[39m 48ms (unchanged)
+[90mapps/web/src/pages/deliveries-page.tsx[39m 41ms (unchanged)
+[90mapps/web/src/pages/delivery-detail-page.tsx[39m 35ms (unchanged)
+[90mapps/web/src/pages/edit-delivery-page.tsx[39m 29ms (unchanged)
+[90mapps/web/src/pages/finance-page.tsx[39m 143ms (unchanged)
+[90mapps/web/src/pages/import-detail-page.tsx[39m 134ms (unchanged)
+[90mapps/web/src/pages/imports-page.tsx[39m 40ms (unchanged)
+[90mapps/web/src/pages/inventory-page.tsx[39m 46ms (unchanged)
+[90mapps/web/src/pages/login-page.tsx[39m 9ms (unchanged)
 [90mapps/web/src/pages/module-placeholder-page.tsx[39m 2ms (unchanged)
 [90mapps/web/src/pages/new-delivery-page.tsx[39m 32ms (unchanged)
-[90mapps/web/src/pages/new-import-page.tsx[39m 34ms (unchanged)
-[90mapps/web/src/pages/new-product-page.tsx[39m 41ms (unchanged)
-[90mapps/web/src/pages/new-sale-page.tsx[39m 55ms (unchanged)
-[90mapps/web/src/pages/products-page.tsx[39m 46ms (unchanged)
-[90mapps/web/src/pages/reconciliation-page.tsx[39m 37ms (unchanged)
-[90mapps/web/src/pages/reports-page.tsx[39m 45ms (unchanged)
-[90mapps/web/src/pages/sale-detail-page.tsx[39m 57ms (unchanged)
-[90mapps/web/src/pages/sales-page.tsx[39m 17ms (unchanged)
-[90mapps/web/src/pages/set-password-page.tsx[39m 8ms (unchanged)
-[90mapps/web/src/pages/settings-page.tsx[39m 48ms (unchanged)
-[90mapps/web/src/styles/auth.css[39m 60ms (unchanged)
-[90mapps/web/src/styles/components.css[39m 101ms (unchanged)
-[90mapps/web/src/styles/global.css[39m 5ms (unchanged)
-[90mapps/web/src/styles/modules.css[39m 206ms (unchanged)
-[90mapps/web/src/styles/responsive.css[39m 60ms (unchanged)
-[90mapps/web/src/styles/shell.css[39m 39ms (unchanged)
-[90mapps/web/src/styles/tokens.css[39m 23ms (unchanged)
+[90mapps/web/src/pages/new-import-page.tsx[39m 36ms (unchanged)
+[90mapps/web/src/pages/new-product-page.tsx[39m 40ms (unchanged)
+[90mapps/web/src/pages/new-sale-page.tsx[39m 93ms (unchanged)
+[90mapps/web/src/pages/products-page.tsx[39m 33ms (unchanged)
+[90mapps/web/src/pages/reconciliation-page.tsx[39m 41ms (unchanged)
+[90mapps/web/src/pages/reports-page.tsx[39m 29ms (unchanged)
+[90mapps/web/src/pages/sale-detail-page.tsx[39m 49ms (unchanged)
+[90mapps/web/src/pages/sales-page.tsx[39m 18ms (unchanged)
+[90mapps/web/src/pages/set-password-page.tsx[39m 6ms (unchanged)
+[90mapps/web/src/pages/settings-page.tsx[39m 80ms (unchanged)
+[90mapps/web/src/styles/auth.css[39m 63ms (unchanged)
+[90mapps/web/src/styles/components.css[39m 96ms (unchanged)
+[90mapps/web/src/styles/global.css[39m 4ms (unchanged)
+[90mapps/web/src/styles/modules.css[39m 222ms (unchanged)
+[90mapps/web/src/styles/responsive.css[39m 61ms (unchanged)
+[90mapps/web/src/styles/shell.css[39m 45ms (unchanged)
+[90mapps/web/src/styles/tokens.css[39m 19ms (unchanged)
 [90mapps/web/tsconfig.app.json[39m 1ms (unchanged)
 [90mapps/web/tsconfig.json[39m 1ms (unchanged)
 [90mapps/web/tsconfig.node.json[39m 1ms (unchanged)
 [90mapps/web/vite.config.ts[39m 2ms (unchanged)
-[90mCHANGELOG_ESTABILIZACION.md[39m 44ms (unchanged)
-[90mdocs/CUMPLIMIENTO_REQUISITOS_V1_1.md[39m 14ms (unchanged)
-[90mdocs/dashboard-preview.html[39m 45ms (unchanged)
-[90mdocs/DECISIONES_NEGOCIO_V1_1.md[39m 37ms (unchanged)
-[90mdocs/FASE_1_FUNDACION.md[39m 8ms (unchanged)
-[90mdocs/FASE_10_REPORTES_ALERTAS_PUBLICACION.md[39m 10ms (unchanged)
-[90mdocs/FASE_2_SISTEMA_VISUAL.md[39m 11ms (unchanged)
-[90mdocs/FASE_3_CATALOGO_PRODUCTOS_INVENTARIO.md[39m 12ms (unchanged)
-[90mdocs/FASE_4_CLIENTES_VIP.md[39m 19ms (unchanged)
-[90mdocs/FASE_5_VENTAS_RESERVAS_STOCK.md[39m 8ms (unchanged)
+[90mCHANGELOG_ESTABILIZACION.md[39m 47ms (unchanged)
+[90mdocs/CUMPLIMIENTO_REQUISITOS_V1_1.md[39m 12ms (unchanged)
+[90mdocs/dashboard-preview.html[39m 48ms (unchanged)
+[90mdocs/DECISIONES_NEGOCIO_V1_1.md[39m 40ms (unchanged)
+[90mdocs/FASE_1_FUNDACION.md[39m 10ms (unchanged)
+[90mdocs/FASE_10_REPORTES_ALERTAS_PUBLICACION.md[39m 15ms (unchanged)
+[90mdocs/FASE_2_SISTEMA_VISUAL.md[39m 12ms (unchanged)
+[90mdocs/FASE_3_CATALOGO_PRODUCTOS_INVENTARIO.md[39m 13ms (unchanged)
+[90mdocs/FASE_4_CLIENTES_VIP.md[39m 12ms (unchanged)
+[90mdocs/FASE_5_VENTAS_RESERVAS_STOCK.md[39m 10ms (unchanged)
 [90mdocs/FASE_6_PAGOS_BOLETAS_PENALIDADES.md[39m 5ms (unchanged)
 [90mdocs/FASE_7_1_EDICION_ENTREGAS.md[39m 4ms (unchanged)
-[90mdocs/FASE_7_ENTREGAS_AGENCIAS.md[39m 7ms (unchanged)
-[90mdocs/FASE_8_1_PROVEEDORES_MONEDAS.md[39m 2ms (unchanged)
-[90mdocs/FASE_8_IMPORTACIONES_PREVENTAS.md[39m 4ms (unchanged)
-[90mdocs/FASE_9_FINANZAS_BANCOS_CONCILIACION.md[39m 6ms (unchanged)
+[90mdocs/FASE_7_ENTREGAS_AGENCIAS.md[39m 12ms (unchanged)
+[90mdocs/FASE_8_1_PROVEEDORES_MONEDAS.md[39m 4ms (unchanged)
+[90mdocs/FASE_8_IMPORTACIONES_PREVENTAS.md[39m 6ms (unchanged)
+[90mdocs/FASE_9_FINANZAS_BANCOS_CONCILIACION.md[39m 7ms (unchanged)
 [90mdocs/GUIA_PUBLICACION.md[39m 11ms (unchanged)
-[90mdocs/MATRIZ_TRAZABILIDAD_V1_1.md[39m 49ms (unchanged)
+[90mdocs/MATRIZ_TRAZABILIDAD_V1_1.md[39m 48ms (unchanged)
 [90mdocs/NOTIFICACIONES_Y_SCHEDULER.md[39m 5ms (unchanged)
 [90mdocs/PRUEBAS_BASE_DATOS.md[39m 6ms (unchanged)
 [90mdocs/RESPALDO_Y_RESTAURACION.md[39m 3ms (unchanged)
-[90meslint.config.js[39m 5ms (unchanged)
-[90mpackage-lock.json[39m 35ms (unchanged)
+[90meslint.config.js[39m 7ms (unchanged)
+[90mpackage-lock.json[39m 42ms (unchanged)
 [90mpackage.json[39m 1ms (unchanged)
-[90mpackages/shared/package.json[39m 1ms (unchanged)
-[90mpackages/shared/src/admin.ts[39m 16ms (unchanged)
-[90mpackages/shared/src/auth.ts[39m 4ms (unchanged)
-[90mpackages/shared/src/catalog.ts[39m 43ms (unchanged)
-[90mpackages/shared/src/clients.ts[39m 26ms (unchanged)
-[90mpackages/shared/src/deliveries.ts[39m 28ms (unchanged)
-[90mpackages/shared/src/finance.ts[39m 33ms (unchanged)
+[90mpackages/shared/package.json[39m 0ms (unchanged)
+[90mpackages/shared/src/admin.ts[39m 19ms (unchanged)
+[90mpackages/shared/src/auth.ts[39m 3ms (unchanged)
+[90mpackages/shared/src/catalog.ts[39m 48ms (unchanged)
+[90mpackages/shared/src/clients.ts[39m 28ms (unchanged)
+[90mpackages/shared/src/deliveries.ts[39m 32ms (unchanged)
+[90mpackages/shared/src/finance.ts[39m 32ms (unchanged)
 [90mpackages/shared/src/http.ts[39m 2ms (unchanged)
 [90mpackages/shared/src/imports.ts[39m 63ms (unchanged)
 [90mpackages/shared/src/index.ts[39m 1ms (unchanged)
-[90mpackages/shared/src/insights.ts[39m 34ms (unchanged)
-[90mpackages/shared/src/payments.ts[39m 45ms (unchanged)
-[90mpackages/shared/src/sales.ts[39m 45ms (unchanged)
+[90mpackages/shared/src/insights.ts[39m 46ms (unchanged)
+[90mpackages/shared/src/payments.ts[39m 44ms (unchanged)
+[90mpackages/shared/src/sales.ts[39m 40ms (unchanged)
 [90mpackages/shared/src/search.ts[39m 3ms (unchanged)
 [90mpackages/shared/tsconfig.json[39m 1ms (unchanged)
-[90mREADME.md[39m 13ms (unchanged)
-[90mrender.yaml[39m 9ms (unchanged)
-[90mscripts/export-backup.mjs[39m 13ms (unchanged)
-[90mscripts/process-notifications.mjs[39m 18ms (unchanged)
-[90mscripts/restore-backup.mjs[39m 6ms (unchanged)
+[90mREADME.md[39m 16ms (unchanged)
+[90mrender.yaml[39m 6ms (unchanged)
+[90mscripts/export-backup.mjs[39m 14ms (unchanged)
+[90mscripts/process-notifications.mjs[39m 20ms (unchanged)
+[90mscripts/restore-backup.mjs[39m 7ms (unchanged)
 [90mscripts/run-db-lint.mjs[39m 3ms (unchanged)
-[90mscripts/test-db-concurrency.mjs[39m 8ms (unchanged)
-[90mscripts/validate-compliance.mjs[39m 8ms (unchanged)
+[90mscripts/test-db-concurrency.mjs[39m 11ms (unchanged)
+[90mscripts/validate-compliance.mjs[39m 6ms (unchanged)
 [90mscripts/validate-db-tests.mjs[39m 4ms (unchanged)
 [90mscripts/validate-migrations.mjs[39m 5ms (unchanged)
-[90mscripts/validate-ui.mjs[39m 4ms (unchanged)
-[90msupabase/migration-archive/README.md[39m 2ms (unchanged)
+[90mscripts/validate-ui.mjs[39m 3ms (unchanged)
+[90msupabase/migration-archive/README.md[39m 3ms (unchanged)
 [90mtsconfig.base.json[39m 1ms (unchanged)
 
 > yukimi-gestion@1.0.0 format:check
@@ -210,22 +210,54 @@ All matched files use Prettier code style!
 > @yukimi/web@1.0.0 typecheck
 > tsc -b --pretty false
 
-src/features/insights/file-export.ts(157,15): error TS2322: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BlobPart'.
-  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
-    Types of property 'buffer' are incompatible.
-      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
-        Type 'SharedArrayBuffer' is not assignable to type 'ArrayBuffer'.
-          Types of property '[Symbol.toStringTag]' are incompatible.
-            Type '"SharedArrayBuffer"' is not assignable to type '"ArrayBuffer"'.
-src/features/products/qr-code.ts(46,7): error TS2532: Object is possibly 'undefined'.
-src/features/products/qr-code.ts(47,7): error TS2532: Object is possibly 'undefined'.
-src/pages/settings-page.tsx(274,30): error TS2345: Argument of type '{ ownerName: string | null; maskedAccountNumber: string | null; reason: string; id: string; code: string; name: string; accountTypeCode: string; currencyCode: string; institutionName: string | null; linkedParentAccountId: string | null; isActive: boolean; version: number; }' is not assignable to parameter of type '{ code: string; name: string; accountTypeCode: "CREDIT_CARD" | "CASH" | "BANK" | "WALLET"; currencyCode: string; isActive: boolean; reason: string; id?: string | null | undefined; institutionName?: string | ... 1 more ... | undefined; maskedAccountNumber?: string | ... 1 more ... | undefined; ownerName?: string | .....'.
-  Types of property 'accountTypeCode' are incompatible.
-    Type 'string' is not assignable to type '"CREDIT_CARD" | "CASH" | "BANK" | "WALLET"'.
-npm error Lifecycle script `typecheck` failed with error:
-npm error code 2
-npm error path /home/runner/work/yukimi-gestion/yukimi-gestion/apps/web
-npm error workspace @yukimi/web@1.0.0
-npm error location /home/runner/work/yukimi-gestion/yukimi-gestion/apps/web
-npm error command failed
-npm error command sh -c tsc -b --pretty false
+
+> yukimi-gestion@1.0.0 test
+> npm run test -w @yukimi/api
+
+
+> @yukimi/api@1.0.0 test
+> node --import tsx --test tests/*.test.ts
+
+✔ release quote preserves the per-line maximum-single penalty rule (3.964534ms)
+✔ sale creation requires a reason for negotiated VIP deposit terms (2.486046ms)
+✔ credit-card obligations require operational card data (1.281329ms)
+✔ inventory exposes landed cost for below-cost discount warnings (1.809935ms)
+✔ global search only accepts internal application routes (1.530415ms)
+▶ GET /api/v1/health
+  ✔ responde con el estado del servicio (78.031172ms)
+  ✔ conserva el request id y aplica cabeceras de seguridad (19.461134ms)
+  ✔ permite únicamente orígenes CORS configurados (33.462835ms)
+✔ GET /api/v1/health (134.447804ms)
+▶ rutas desconocidas
+  ✔ responde con un error uniforme (9.688238ms)
+✔ rutas desconocidas (10.132908ms)
+▶ rutas protegidas
+  ✔ rechaza una solicitud sin token con un error uniforme (7.461465ms)
+✔ rutas protegidas (7.69463ms)
+✔ dashboard contract accepts an empty real-data response (3.294925ms)
+✔ notification contract preserves priority and status (1.849018ms)
+✔ report and audit contracts accept empty datasets (2.360402ms)
+ℹ tests 13
+ℹ suites 3
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1948.401929
+
+> yukimi-gestion@1.0.0 test:migrations:static
+> node scripts/validate-migrations.mjs
+
+Validación estática correcta: 35 migraciones, versiones únicas y sin duplicados exactos.
+
+> yukimi-gestion@1.0.0 test:db:static
+> node scripts/validate-db-tests.mjs
+
+Pruebas pgTAP correctas: 12 archivos con planes y rollback coherentes.
+
+> yukimi-gestion@1.0.0 test:ui:static
+> node scripts/validate-ui.mjs
+
+Validación UI fallida:
+- Los formularios modales no tienen adaptación móvil.
