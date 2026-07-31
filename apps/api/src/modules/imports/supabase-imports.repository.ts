@@ -89,6 +89,15 @@ export class SupabaseImportsRepository implements ImportsRepository {
     importId: string,
     input: UpdateImportStateInput,
   ): Promise<ImportMutationResult> {
+    if (input.nextStateCode === 'CANCELLED') {
+      const { data, error } = await this.client.rpc('cancel_import_v1', {
+        p_import_id: importId,
+        p_reason: input.reason,
+      });
+      if (error) throw mapSupabaseError(error, 'No se pudo cancelar la importación.');
+      return importMutationResultSchema.parse(data);
+    }
+
     const guard = await this.client.rpc('guard_import_transition_v1', {
       p_import_id: importId,
       p_next_state_code: input.nextStateCode,
@@ -111,6 +120,15 @@ export class SupabaseImportsRepository implements ImportsRepository {
     boxId: string,
     input: UpdateImportBoxStateInput,
   ): Promise<ImportMutationResult> {
+    if (input.nextStateCode === 'CANCELLED') {
+      const { data, error } = await this.client.rpc('cancel_import_box_v1', {
+        p_box_id: boxId,
+        p_reason: input.reason,
+      });
+      if (error) throw mapSupabaseError(error, 'No se pudo cancelar la caja.');
+      return importMutationResultSchema.parse(data);
+    }
+
     const guard = await this.client.rpc('guard_import_box_transition_v1', {
       p_box_id: boxId,
       p_next_state_code: input.nextStateCode,
