@@ -118,7 +118,7 @@ export function NewImportPage() {
       (support.data?.variants ?? []).map((variant) => ({
         value: variant.id,
         label: `${variant.productName} · ${variant.variantName}`,
-        description: `${variant.sku} · ${variant.availableQuantity} disponibles`,
+        description: variant.sku,
       })),
     [support.data?.variants],
   );
@@ -245,15 +245,14 @@ export function NewImportPage() {
     if (!values) return;
     try {
       const input: CreateImportPartnerInput = {
-        roleType: 'SUPPLIER',
-        name: values.name.trim(),
-        countryCode: values.countryCode.trim().toUpperCase(),
-        taxId: null,
-        contactName: values.contactName.trim() || null,
-        email: values.email.trim() || null,
-        phone: values.phone.trim() || null,
-        website: null,
-        notes: values.notes.trim() || null,
+        partnerTypeCode: 'SUPPLIER',
+        legalName: (values.name ?? '').trim(),
+        tradeName: (values.name ?? '').trim(),
+        countryCode: (values.countryCode ?? '').trim().toUpperCase(),
+        contactName: (values.contactName ?? '').trim() || null,
+        email: (values.email ?? '').trim() || null,
+        phone: (values.phone ?? '').trim() || null,
+        notes: (values.notes ?? '').trim() || null,
       };
       const result = await createImportPartner(input);
       setSupplierId(result.id);
@@ -339,7 +338,7 @@ export function NewImportPage() {
     }
 
     const input: CreateImportInput = {
-      supplierId,
+      supplierPartnerId: supplierId,
       transportMode,
       purchaseCurrencyCode,
       sunatExchangeRate: purchaseCurrencyCode === 'PEN' ? 1 : Number(sunatExchangeRate),
@@ -627,15 +626,10 @@ export function NewImportPage() {
                               required
                               value={item.destinationWarehouseId}
                               error={errors[`${prefix}-warehouse`]}
-                              options={(support.data?.warehouses ?? [])
-                                .filter(
-                                  (warehouse) =>
-                                    warehouse.isActive && warehouse.isVisibleInOperations,
-                                )
-                                .map((warehouse) => ({
-                                  value: warehouse.id,
-                                  label: warehouse.name,
-                                }))}
+                              options={(support.data?.warehouses ?? []).map((warehouse) => ({
+                                value: warehouse.id,
+                                label: warehouse.name,
+                              }))}
                               onChange={(value) =>
                                 updateItem(boxIndex, itemIndex, { destinationWarehouseId: value })
                               }

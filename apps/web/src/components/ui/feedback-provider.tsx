@@ -21,7 +21,7 @@ export interface ToastOptions {
   message?: string;
   tone?: FeedbackTone;
   durationMs?: number;
-  requestId?: string;
+  requestId?: string | undefined;
 }
 
 export interface ConfirmOptions {

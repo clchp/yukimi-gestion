@@ -388,9 +388,9 @@ export function ImportDetailPage() {
     }
     advanceMutation.mutate({
       nextStateCode: stateCode,
-      reason: values.reason.trim(),
+      reason: (values.reason ?? '').trim(),
       occurredAt: new Date().toISOString(),
-      masterTrackingNumber: values.tracking?.trim() || null,
+      masterTrackingNumber: (values.tracking ?? '')?.trim() || null,
     });
   }
 
@@ -446,9 +446,9 @@ export function ImportDetailPage() {
       boxId: box.id,
       input: {
         nextStateCode: stateCode,
-        reason: values.reason.trim(),
+        reason: (values.reason ?? '').trim(),
         occurredAt: new Date().toISOString(),
-        trackingNumber: values.tracking?.trim() || null,
+        trackingNumber: (values.tracking ?? '')?.trim() || null,
       },
     });
   }
@@ -594,12 +594,12 @@ export function ImportDetailPage() {
     try {
       await createInsuranceClaim(importId, {
         importIncidentId: incident.id,
-        claimNumber: values.claimNumber.trim() || null,
-        claimedAmount: Number(values.amount),
-        currencyCode: values.currency,
+        claimNumber: (values.claimNumber ?? '').trim() || null,
+        claimedAmount: Number(values.amount ?? ''),
+        currencyCode: values.currency ?? '',
         status: 'SUBMITTED',
         submittedAt: new Date().toISOString(),
-        notes: values.notes.trim() || null,
+        notes: (values.notes ?? '').trim() || null,
       });
       notify({ title: 'Reclamo registrado', tone: 'success' });
       await refresh();
@@ -633,7 +633,7 @@ export function ImportDetailPage() {
     if (!values) return;
     try {
       await updateInsuranceClaim(claimId, {
-        status: values.status as
+        status: (values.status ?? '') as
           | 'PENDING'
           | 'SUBMITTED'
           | 'APPROVED'
@@ -641,8 +641,8 @@ export function ImportDetailPage() {
           | 'REJECTED'
           | 'PAID'
           | 'CLOSED',
-        approvedAmount: values.approvedAmount ? Number(values.approvedAmount) : null,
-        resolutionNotes: values.notes.trim(),
+        approvedAmount: (values.approvedAmount ?? '') ? Number(values.approvedAmount ?? '') : null,
+        resolutionNotes: (values.notes ?? '').trim(),
       });
       notify({ title: 'Reclamo actualizado', tone: 'success' });
       await refresh();

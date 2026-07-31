@@ -13,10 +13,22 @@ function friendlyValidationMessage(
   const validity = control.validity;
   if (validity.valueMissing) return `${field} es obligatorio.`;
   if (validity.typeMismatch) return `${field} no tiene un formato válido.`;
-  if (validity.tooShort) return `${field} debe tener al menos ${control.minLength} caracteres.`;
+  if (validity.tooShort) {
+    const minLength =
+      control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement
+        ? control.minLength
+        : 0;
+    return `${field} debe tener al menos ${minLength} caracteres.`;
+  }
   if (validity.tooLong) return `${field} supera la longitud permitida.`;
-  if (validity.rangeUnderflow) return `${field} debe ser mayor o igual que ${control.min}.`;
-  if (validity.rangeOverflow) return `${field} debe ser menor o igual que ${control.max}.`;
+  if (validity.rangeUnderflow) {
+    const min = control instanceof HTMLInputElement ? control.min : '';
+    return `${field} debe ser mayor o igual que ${min}.`;
+  }
+  if (validity.rangeOverflow) {
+    const max = control instanceof HTMLInputElement ? control.max : '';
+    return `${field} debe ser menor o igual que ${max}.`;
+  }
   if (validity.stepMismatch) return `${field} no coincide con el incremento permitido.`;
   if (validity.patternMismatch) return `${field} no cumple el formato solicitado.`;
   return `${field} contiene un valor no válido.`;

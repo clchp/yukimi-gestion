@@ -13,9 +13,9 @@ import type {
 import { apiRequest } from '../../app/api-client';
 
 export interface ProductListFilters {
-  search?: string;
+  search?: string | undefined;
   categoryId?: string | undefined;
-  isActive?: boolean;
+  isActive?: boolean | undefined;
   page?: number;
   pageSize?: number;
 }

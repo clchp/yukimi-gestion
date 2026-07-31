@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 export interface SearchableOption {
   value: string;
   label: string;
-  description?: string;
+  description?: string | undefined;
   disabled?: boolean;
 }
 
@@ -19,7 +19,7 @@ interface SearchableSelectProps {
   disabled?: boolean;
   required?: boolean;
   help?: string;
-  error?: string;
+  error?: string | undefined;
   allowClear?: boolean;
   className?: string;
 }

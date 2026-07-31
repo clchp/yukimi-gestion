@@ -227,7 +227,7 @@ export function SettingsPage() {
       detail: 'Esta acción quedará registrada con tu usuario, fecha y motivo.',
       confirmLabel: 'Sí, confirmar',
     });
-    return accepted ? values.reason.trim() : null;
+    return accepted ? (values.reason ?? '').trim() : null;
   }
 
   async function editCatalog(item: CatalogItem) {
@@ -286,11 +286,12 @@ export function SettingsPage() {
     catalogMutation.mutate({
       item,
       patch: {
-        name: values.name.trim(),
-        description: values.description.trim() || null,
-        releasePenaltyAmount: kind === 'categories' ? Number(values.penalty || 0) : undefined,
+        name: (values.name ?? '').trim(),
+        description: (values.description ?? '').trim() || null,
+        releasePenaltyAmount:
+          kind === 'categories' ? Number((values.penalty ?? '') || 0) : undefined,
       },
-      reason: values.reason.trim(),
+      reason: (values.reason ?? '').trim(),
     });
   }
 
@@ -343,9 +344,9 @@ export function SettingsPage() {
     if (!accepted) return;
     actionMutation.mutate(() =>
       updateBusinessSetting(key, {
-        value: JSON.parse(values.value) as unknown,
+        value: JSON.parse(values.value ?? '') as unknown,
         version,
-        reason: values.reason.trim(),
+        reason: (values.reason ?? '').trim(),
       }),
     );
   }
@@ -384,14 +385,14 @@ export function SettingsPage() {
     if (!values) return;
     actionMutation.mutate(() =>
       upsertWarehouse({
-        code: values.code.trim().toUpperCase(),
-        name: values.name.trim(),
-        warehouseType: values.warehouseType,
-        description: values.description.trim() || null,
-        isVirtual: values.warehouseType === 'VIRTUAL',
+        code: (values.code ?? '').trim().toUpperCase(),
+        name: (values.name ?? '').trim(),
+        warehouseType: values.warehouseType ?? '',
+        description: (values.description ?? '').trim() || null,
+        isVirtual: (values.warehouseType ?? '') === 'VIRTUAL',
         isVisibleInOperations: true,
         isActive: true,
-        reason: values.reason.trim(),
+        reason: (values.reason ?? '').trim(),
       }),
     );
   }
@@ -413,7 +414,11 @@ export function SettingsPage() {
     });
     if (!values) return;
     actionMutation.mutate(() =>
-      upsertWarehouse({ ...warehouse, name: values.name.trim(), reason: values.reason.trim() }),
+      upsertWarehouse({
+        ...warehouse,
+        name: (values.name ?? '').trim(),
+        reason: (values.reason ?? '').trim(),
+      }),
     );
   }
 
@@ -446,16 +451,16 @@ export function SettingsPage() {
     if (!values) return;
     actionMutation.mutate(() =>
       upsertFinancialAccount({
-        code: values.code.trim().toUpperCase(),
-        name: values.name.trim(),
-        accountTypeCode: values.type as 'BANK' | 'WALLET' | 'CASH' | 'CREDIT_CARD',
+        code: (values.code ?? '').trim().toUpperCase(),
+        name: (values.name ?? '').trim(),
+        accountTypeCode: (values.type ?? '') as 'BANK' | 'WALLET' | 'CASH' | 'CREDIT_CARD',
         currencyCode: 'PEN',
         institutionName: null,
-        maskedAccountNumber: values.maskedAccountNumber.trim() || null,
-        ownerName: values.ownerName.trim() || null,
+        maskedAccountNumber: (values.maskedAccountNumber ?? '').trim() || null,
+        ownerName: (values.ownerName ?? '').trim() || null,
         linkedParentAccountId: null,
         isActive: true,
-        reason: values.reason.trim(),
+        reason: (values.reason ?? '').trim(),
       }),
     );
   }
@@ -478,9 +483,9 @@ export function SettingsPage() {
     actionMutation.mutate(() =>
       upsertFinancialAccount({
         ...account,
-        ownerName: values.ownerName.trim() || null,
-        maskedAccountNumber: values.maskedAccountNumber.trim() || null,
-        reason: values.reason.trim(),
+        ownerName: (values.ownerName ?? '').trim() || null,
+        maskedAccountNumber: (values.maskedAccountNumber ?? '').trim() || null,
+        reason: (values.reason ?? '').trim(),
       }),
     );
   }
@@ -503,11 +508,11 @@ export function SettingsPage() {
     if (!values) return;
     actionMutation.mutate(() =>
       updateAdminProfile(profile.id, {
-        displayName: values.displayName.trim(),
-        phone: values.phone.trim() || null,
+        displayName: (values.displayName ?? '').trim(),
+        phone: (values.phone ?? '').trim() || null,
         isActive: profile.isActive,
         version: profile.version,
-        reason: values.reason.trim(),
+        reason: (values.reason ?? '').trim(),
       }),
     );
   }
