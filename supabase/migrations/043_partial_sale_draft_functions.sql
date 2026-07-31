@@ -3,7 +3,6 @@
 
 begin;
 
--- Función actualizada: save_sale_draft_v1
 create or replace function public.save_sale_draft_v1(
   p_input jsonb,
   p_draft_id uuid default null,
@@ -17,38 +16,63 @@ as $$
 declare
   v_actor uuid := private.current_actor_id();
   v_draft public.sale_drafts%rowtype;
+  v_client_id uuid;
+  v_items jsonb;
   v_total numeric(14,2);
   v_lines integer;
 begin
   if not private.is_active_admin() then
     raise exception 'Usuario no autorizado.' using errcode = '42501';
   end if;
-  if jsonb_typeof(p_input) <> 'object' or jsonb_typeof(p_input -> 'items') <> 'array' then
+  if jsonb_typeof(p_input) <> 'object' then
     raise exception 'El borrador de venta no tiene un formato válido.';
   end if;
-  
 
-  perform 1 from public.clients
-  where id = (p_input ->> 'clientId')::uuid and is_active = true;
-  if not found then
-    raise exception 'El cliente no existe o está inactivo.' using errcode = 'P0001';
+  v_items := coalesce(p_input -> 'items', '[]'::jsonb);
+  if jsonb_typeof(v_items) <> 'array' then
+    raise exception 'Los productos del borrador no tienen un formato válido.';
   end if;
 
-  select coalesce(sum(
-    greatest(0, (item ->> 'quantity')::integer) * greatest(0, (item ->> 'finalUnitPrice')::numeric)
-  ), 0), count(*)::integer
-  into v_total, v_lines
-  from jsonb_array_elements(p_input -> 'items') item;
+  if nullif(p_input ->> 'clientId', '') is not null then
+    begin
+      v_client_id := (p_input ->> 'clientId')::uuid;
+    exception when invalid_text_representation then
+      raise exception 'El cliente del borrador no tiene un identificador válido.' using errcode = 'P0001';
+    end;
 
-  perform set_config('app.audit_reason', case when p_draft_id is null then 'Creación de borrador de venta' else 'Actualización de borrador de venta' end, true);
+    perform 1
+    from public.clients
+    where id = v_client_id and is_active = true;
+    if not found then
+      raise exception 'El cliente no existe o está inactivo.' using errcode = 'P0001';
+    end if;
+  end if;
+
+  select
+    coalesce(sum(
+      greatest(0, coalesce((item ->> 'quantity')::integer, 0))
+      * greatest(0, coalesce((item ->> 'finalUnitPrice')::numeric, 0))
+    ), 0),
+    count(*)::integer
+  into v_total, v_lines
+  from jsonb_array_elements(v_items) item;
+
+  perform set_config(
+    'app.audit_reason',
+    case
+      when p_draft_id is null then 'Creación de borrador de venta'
+      else 'Actualización de borrador de venta'
+    end,
+    true
+  );
 
   if p_draft_id is null then
     insert into public.sale_drafts(
       code, client_id, payload, total_amount, item_lines, created_by, updated_by
     ) values (
       public.next_business_code('SALE_DRAFT'),
-      (p_input ->> 'clientId')::uuid,
-      p_input,
+      v_client_id,
+      p_input || jsonb_build_object('clientId', v_client_id, 'items', v_items),
       round(v_total, 2),
       v_lines,
       v_actor,
@@ -56,8 +80,8 @@ begin
     ) returning * into v_draft;
   else
     update public.sale_drafts
-    set client_id = (p_input ->> 'clientId')::uuid,
-        payload = p_input,
+    set client_id = v_client_id,
+        payload = p_input || jsonb_build_object('clientId', v_client_id, 'items', v_items),
         total_amount = round(v_total, 2),
         item_lines = v_lines,
         updated_by = v_actor
@@ -75,7 +99,10 @@ begin
     'id', v_draft.id,
     'code', v_draft.code,
     'clientId', v_draft.client_id,
-    'clientName', (select full_name from public.clients where id = v_draft.client_id),
+    'clientName', coalesce(
+      (select full_name from public.clients where id = v_draft.client_id),
+      'Sin cliente'
+    ),
     'status', v_draft.status,
     'totalAmount', v_draft.total_amount,
     'itemLines', v_draft.item_lines,
@@ -87,7 +114,6 @@ begin
 end;
 $$;
 
--- Función actualizada: list_sale_drafts_v1
 create or replace function public.list_sale_drafts_v1()
 returns jsonb
 language plpgsql
@@ -105,7 +131,7 @@ begin
         'id', d.id,
         'code', d.code,
         'clientId', d.client_id,
-        'clientName', c.full_name,
+        'clientName', coalesce(c.full_name, 'Sin cliente'),
         'status', d.status,
         'totalAmount', d.total_amount,
         'itemLines', d.item_lines,
@@ -120,7 +146,6 @@ begin
 end;
 $$;
 
--- Función actualizada: get_sale_draft_v1
 create or replace function public.get_sale_draft_v1(p_draft_id uuid)
 returns jsonb
 language plpgsql
@@ -135,12 +160,17 @@ begin
     raise exception 'Usuario no autorizado.' using errcode = '42501';
   end if;
   select * into v_draft from public.sale_drafts where id = p_draft_id;
-  if not found then raise exception 'El borrador no existe.' using errcode = 'P0002'; end if;
+  if not found then
+    raise exception 'El borrador no existe.' using errcode = 'P0002';
+  end if;
   return jsonb_build_object(
     'id', v_draft.id,
     'code', v_draft.code,
     'clientId', v_draft.client_id,
-    'clientName', (select full_name from public.clients where id = v_draft.client_id),
+    'clientName', coalesce(
+      (select full_name from public.clients where id = v_draft.client_id),
+      'Sin cliente'
+    ),
     'status', v_draft.status,
     'totalAmount', v_draft.total_amount,
     'itemLines', v_draft.item_lines,
@@ -152,7 +182,6 @@ begin
 end;
 $$;
 
--- Función actualizada: confirm_sale_draft_v1
 create or replace function public.confirm_sale_draft_v1(
   p_draft_id uuid,
   p_expected_version bigint,
@@ -176,6 +205,13 @@ begin
   for update;
   if not found or v_draft.version <> p_expected_version then
     raise exception 'El borrador cambió o ya fue confirmado.' using errcode = '40001';
+  end if;
+  if v_draft.client_id is null then
+    raise exception 'Selecciona un cliente antes de confirmar la venta.' using errcode = 'P0001';
+  end if;
+  if jsonb_typeof(v_draft.payload -> 'items') <> 'array'
+     or jsonb_array_length(v_draft.payload -> 'items') = 0 then
+    raise exception 'Agrega al menos un producto antes de confirmar la venta.' using errcode = 'P0001';
   end if;
 
   v_result := public.create_sale_v3(v_draft.payload, p_idempotency_key);

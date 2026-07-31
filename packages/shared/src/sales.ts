@@ -280,13 +280,49 @@ export const reviewSaleReleaseSchema = z.object({
 });
 export type ReviewSaleReleaseInput = z.infer<typeof reviewSaleReleaseSchema>;
 
+export const saleDraftPayloadSchema = z
+  .object({
+    clientId: z.preprocess(
+      (value) => (value === '' || value === undefined ? null : value),
+      z.string().uuid().nullable(),
+    ),
+    salesChannelCode: z.string().trim().min(1).max(50).default('WHATSAPP'),
+    currencyCode: z.literal('PEN').default('PEN'),
+    deliveryMode: z.enum(['PENDING', 'ACCUMULATED']).default('PENDING'),
+    dueAt: z.string().datetime().nullable().optional(),
+    dueDateReason: z.string().trim().max(500).nullable().optional(),
+    saleTypeCode: z.enum(['REGULAR', 'CUSTOM_ORDER']).default('REGULAR'),
+    negotiatedMinimumDepositAmount: z.number().nonnegative().nullable().optional(),
+    negotiatedMinimumDepositReason: z.string().trim().max(500).nullable().optional(),
+    notes: z.string().trim().max(2000).nullable().optional(),
+    items: z.array(createSaleItemSchema).max(100).default([]),
+  })
+  .superRefine((value, context) => {
+    if (value.dueAt && (!value.dueDateReason || value.dueDateReason.trim().length < 5)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['dueDateReason'],
+        message: 'Explica por qué se usa un vencimiento personalizado.',
+      });
+    }
+    if (
+      value.negotiatedMinimumDepositAmount != null &&
+      (!value.negotiatedMinimumDepositReason ||
+        value.negotiatedMinimumDepositReason.trim().length < 3)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['negotiatedMinimumDepositReason'],
+        message: 'Explica el acuerdo del adelanto mínimo.',
+      });
+    }
+  });
+export type SaleDraftPayload = z.infer<typeof saleDraftPayloadSchema>;
+
 export const saleDraftSummarySchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
-  clientId: z.preprocess(
-    (value) => (value === '' ? null : value),
-    z.string().uuid().nullable().optional(),
-  ),
+  clientId: z.string().uuid().nullable(),
   clientName: z.string(),
   status: z.enum(['DRAFT', 'CONFIRMED', 'CANCELLED']),
   totalAmount: z.number().nonnegative(),
@@ -297,7 +333,7 @@ export const saleDraftSummarySchema = z.object({
 export type SaleDraftSummary = z.infer<typeof saleDraftSummarySchema>;
 
 export const saleDraftDetailSchema = saleDraftSummarySchema.extend({
-  payload: createSaleSchema,
+  payload: saleDraftPayloadSchema,
   confirmedSaleId: z.string().uuid().nullable(),
 });
 export type SaleDraftDetail = z.infer<typeof saleDraftDetailSchema>;
@@ -309,7 +345,7 @@ export type SaleDraftList = z.infer<typeof saleDraftListSchema>;
 
 export const saveSaleDraftSchema = z.object({
   draftId: z.string().uuid().nullable().optional(),
-  input: createSaleSchema,
+  input: saleDraftPayloadSchema,
   version: z.number().int().positive().nullable().optional(),
 });
 export type SaveSaleDraftInput = z.infer<typeof saveSaleDraftSchema>;
