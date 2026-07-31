@@ -1,0 +1,34 @@
+name: Apply sales validation fixes
+
+on:
+  push:
+    branches: [fix/ventas-validation-final]
+    paths:
+      - scripts/apply-sales-validation-fixes.py
+      - .github/workflows/apply-sales-validation-fixes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[sales-validation-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/ventas-validation-final
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: python3 scripts/apply-sales-validation-fixes.py
+      - run: npm ci
+      - run: npx prettier --write apps/web/src packages/shared/src apps/api/src supabase/migrations/044_sales_validation_fixes.sql supabase/tests/database/013_sales_validation_fixes.test.sql
+      - name: Commit generated fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src packages/shared/src apps/api/src supabase/migrations/044_sales_validation_fixes.sql supabase/tests/database/013_sales_validation_fixes.test.sql
+          git commit -m "Apply sales validation fixes [sales-validation-applied]"
+          git push origin HEAD:fix/ventas-validation-final
