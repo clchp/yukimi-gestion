@@ -1,26 +1,38 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateImportCostInput,
-  ImportDetail,
+  CreateImportIncidentInput,
   ImportBoxStateCode,
+  ImportDetail,
   ImportStateCode,
-  UpdateInsuranceClaimInput,
+  ReceiveImportBoxInput,
+  UpdateImportBoxStateInput,
+  UpdateImportStateInput,
 } from '@yukimi/shared';
 import {
   AlertTriangle,
   ArrowLeft,
-  Boxes,
+  Box,
+  Check,
   CircleDollarSign,
+  ClipboardCheck,
   Link2,
   PackageCheck,
-  Ship,
+  Plus,
+  ShieldAlert,
   Truck,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import {
+  BusyLabel,
+  useFeedback,
+} from '../components/ui/feedback-provider';
+import { ContextNote } from '../components/ui/info-tip';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
+import { SearchableSelect } from '../components/ui/searchable-select';
 import { StatusBadge } from '../components/ui/status-badge';
 import {
   addImportCost,
@@ -29,1577 +41,703 @@ import {
   allocatePreorder,
   createImportIncident,
   createInsuranceClaim,
-  createPreorderSale,
   getImport,
   getImportSupportData,
   receiveImportBox,
+  repairZeroReceivedImportBox,
   updateInsuranceClaim,
 } from '../features/imports/imports-api';
+
+const shipmentFlow: ImportStateCode[] = [
+  'QUOTATION',
+  'PURCHASE_CONFIRMED',
+  'FOREIGN_WAREHOUSE',
+  'DISPATCH_CONFIRMED',
+  'SHIPPED',
+  'IN_TRANSIT',
+  'RECEIVED_PERU',
+  'STOCKED',
+];
+
+const boxFlow: ImportBoxStateCode[] = [
+  'REGISTERED',
+  'FOREIGN_WAREHOUSE',
+  'DISPATCH_CONFIRMED',
+  'SHIPPED',
+  'IN_TRANSIT',
+  'RECEIVED_PERU',
+  'STOCKED',
+];
 
 const stateLabels: Record<string, string> = {
   QUOTATION: 'Cotización',
   PURCHASE_CONFIRMED: 'Compra confirmada',
-  FOREIGN_WAREHOUSE: 'Almacén extranjero',
+  REGISTERED: 'Registrada',
+  FOREIGN_WAREHOUSE: 'En almacén internacional',
   DISPATCH_CONFIRMED: 'Despacho confirmado',
-  SHIPPED: 'Embarcada',
+  SHIPPED: 'Enviada',
   IN_TRANSIT: 'En tránsito',
   RECEIVED_PERU: 'Recibida en Perú',
   STOCKED: 'Ingresada a stock',
   CANCELLED: 'Cancelada',
-  REGISTERED: 'Registrada',
 };
-const transitionLabels: Record<string, string> = {
-  PURCHASE_CONFIRMED: 'Confirmar compra',
-  FOREIGN_WAREHOUSE: 'Confirmar llegada a almacén extranjero',
-  DISPATCH_CONFIRMED: 'Confirmar despacho',
-  SHIPPED: 'Marcar embarcada',
-  IN_TRANSIT: 'Marcar en tránsito',
-  RECEIVED_PERU: 'Confirmar llegada a Perú',
-  STOCKED: 'Ingresar a stock',
-  CANCELLED: 'Cancelar',
+
+const stateHelp: Record<string, string> = {
+  QUOTATION: 'La compra todavía está siendo evaluada.',
+  PURCHASE_CONFIRMED: 'La compra fue confirmada con el proveedor.',
+  REGISTERED: 'La caja fue registrada dentro de la importación.',
+  FOREIGN_WAREHOUSE: 'La mercadería llegó al almacén internacional.',
+  DISPATCH_CONFIRMED: 'El operador confirmó el despacho.',
+  SHIPPED: 'La mercadería salió del origen.',
+  IN_TRANSIT: 'La mercadería está viajando hacia Perú.',
+  RECEIVED_PERU: 'La caja llegó físicamente y ya puede confirmarse su recepción.',
+  STOCKED: 'Las cantidades recibidas fueron confirmadas y registradas en inventario.',
+  CANCELLED: 'El flujo fue cancelado sin ingreso de unidades a inventario.',
 };
-const modeLabels: Record<string, string> = { AIR: 'Avión', SEA: 'Barco', OTHER: 'Otro' };
-const costLabels: Record<string, string> = {
-  CARD: 'Tarjeta',
+
+const costLabels: Record<CreateImportCostInput['costType'], string> = {
+  CARD: 'Comisión de tarjeta',
   COMMISSION: 'Comisión',
   FREIGHT: 'Flete',
-  CUSTOMS: 'Aduanas',
+  CUSTOMS: 'Aduana',
   INSURANCE: 'Seguro',
   LOCAL_DELIVERY: 'Entrega local',
-  OTHER: 'Otro',
+  OTHER: 'Otro costo',
 };
-const incidentLabels: Record<string, string> = {
+
+const incidentLabels: Record<CreateImportIncidentInput['incidentType'], string> = {
   MISSING: 'Faltante',
-  DAMAGED: 'Dañado',
+  DAMAGED: 'Producto dañado',
   DELAY: 'Retraso',
-  WRONG_ITEM: 'Producto equivocado',
-  OTHER: 'Otro',
+  WRONG_ITEM: 'Producto incorrecto',
+  OTHER: 'Otra incidencia',
 };
-const insuranceStatuses: UpdateInsuranceClaimInput['status'][] = [
-  'PENDING',
-  'SUBMITTED',
-  'APPROVED',
-  'PARTIALLY_APPROVED',
-  'REJECTED',
-  'PAID',
-  'CLOSED',
-];
-const money = (value: number) =>
-  new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
-const date = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(
-        new Date(`${value}T12:00:00`),
-      )
-    : 'Sin fecha';
-const dateTime = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(
-        new Date(value),
-      )
-    : 'Sin registrar';
-function toneFor(state: string): 'success' | 'warning' | 'danger' | 'info' | 'primary' {
-  if (state === 'STOCKED') return 'success';
-  if (state === 'CANCELLED') return 'danger';
-  if (state === 'SHIPPED' || state === 'IN_TRANSIT' || state === 'RECEIVED_PERU') return 'info';
-  if (state === 'PURCHASE_CONFIRMED' || state === 'FOREIGN_WAREHOUSE') return 'primary';
-  return 'warning';
+
+const claimLabels: Record<string, string> = {
+  PENDING: 'Pendiente',
+  SUBMITTED: 'Presentado',
+  APPROVED: 'Aprobado',
+  PARTIALLY_APPROVED: 'Aprobado parcialmente',
+  REJECTED: 'Rechazado',
+  PAID: 'Pagado',
+  CLOSED: 'Cerrado',
+};
+
+function money(value: number, currency = 'PEN') {
+  return new Intl.NumberFormat('es-PE', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+  }).format(value);
 }
 
-type ImportIncidentType = 'MISSING' | 'DAMAGED' | 'DELAY' | 'WRONG_ITEM' | 'OTHER';
-type TransitionDraft =
-  | { scope: 'IMPORT'; nextStateCode: ImportStateCode; trackingNumber: string }
-  | { scope: 'BOX'; boxId: string; nextStateCode: ImportBoxStateCode; trackingNumber: string };
-type InsuranceDraft = { mode: 'CREATE'; incidentId: string } | { mode: 'UPDATE'; claimId: string };
+function dateLabel(value: string | null) {
+  if (!value) return 'Pendiente';
+  return new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(
+    new Date(value.length === 10 ? `${value}T12:00:00` : value),
+  );
+}
+
+function dateTimeLabel(value: string) {
+  return new Intl.DateTimeFormat('es-PE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function isZeroReceiptBox(box: ImportDetail['boxes'][number]) {
+  return (
+    box.stateCode === 'STOCKED' &&
+    box.items.reduce((sum, item) => sum + item.expectedQuantity, 0) > 0 &&
+    box.items.reduce((sum, item) => sum + item.receivedQuantity, 0) === 0 &&
+    box.items.every((item) => item.inventoryLotId == null)
+  );
+}
+
+function stateTone(state: string) {
+  if (state === 'STOCKED') return 'success' as const;
+  if (state === 'CANCELLED') return 'danger' as const;
+  if (state === 'RECEIVED_PERU') return 'info' as const;
+  return 'warning' as const;
+}
+
+interface ReceiveDialogState {
+  box: ImportDetail['boxes'][number];
+  repair: boolean;
+  quantities: Record<string, string>;
+  notes: Record<string, string>;
+  reason: string;
+  errors: Record<string, string>;
+}
 
 export function ImportDetailPage() {
+  const { importId = '' } = useParams();
   const navigate = useNavigate();
-  const { importId } = useParams();
   const queryClient = useQueryClient();
+  const { confirm, notify, notifyError, prompt } = useFeedback();
+  const [receiveDialog, setReceiveDialog] = useState<ReceiveDialogState | null>(null);
+  const [costType, setCostType] = useState<CreateImportCostInput['costType']>('FREIGHT');
+  const [costBoxId, setCostBoxId] = useState('');
+  const [costAmount, setCostAmount] = useState('');
+  const [costCurrency, setCostCurrency] = useState('PEN');
+  const [costExchangeRate, setCostExchangeRate] = useState('1');
+  const [costDescription, setCostDescription] = useState('');
+  const [costErrors, setCostErrors] = useState<Record<string, string>>({});
+  const [incidentBoxId, setIncidentBoxId] = useState('');
+  const [incidentItemId, setIncidentItemId] = useState('');
+  const [incidentType, setIncidentType] = useState<CreateImportIncidentInput['incidentType']>('MISSING');
+  const [incidentQuantity, setIncidentQuantity] = useState('');
+  const [incidentDescription, setIncidentDescription] = useState('');
+  const [incidentErrors, setIncidentErrors] = useState<Record<string, string>>({});
+  const [candidateSaleItemId, setCandidateSaleItemId] = useState('');
+  const [allocationItemId, setAllocationItemId] = useState('');
+  const [allocationQuantity, setAllocationQuantity] = useState('1');
+
   const detail = useQuery({
     queryKey: ['import', importId],
-    queryFn: () => getImport(importId as string),
+    queryFn: () => getImport(importId),
     enabled: Boolean(importId),
   });
-  const support = useQuery({ queryKey: ['import-support'], queryFn: getImportSupportData });
+  const support = useQuery({
+    queryKey: ['import-support'],
+    queryFn: getImportSupportData,
+  });
 
-  const [costType, setCostType] = useState<CreateImportCostInput['costType']>('FREIGHT');
-  const [costAmount, setCostAmount] = useState(0);
-  const [costCurrency, setCostCurrency] = useState('PEN');
-  const [costExchangeRate, setCostExchangeRate] = useState(1);
-  const [costBoxId, setCostBoxId] = useState('');
-  const [costDescription, setCostDescription] = useState('');
-  const [costIncluded, setCostIncluded] = useState(true);
-  const [costAllocation, setCostAllocation] =
-    useState<CreateImportCostInput['allocationMethod']>('BY_PURCHASE_VALUE');
-  const [receiveBoxId, setReceiveBoxId] = useState<string | null>(null);
-  const [receiveQuantities, setReceiveQuantities] = useState<Record<string, number>>({});
-  const [receiveReason, setReceiveReason] = useState('');
-  const [preorderItemId, setPreorderItemId] = useState('');
-  const [preorderSaleItemId, setPreorderSaleItemId] = useState('');
-  const [preorderQuantity, setPreorderQuantity] = useState(1);
-  const [newPreorderItemId, setNewPreorderItemId] = useState('');
-  const [newPreorderClientId, setNewPreorderClientId] = useState('');
-  const [newPreorderChannel, setNewPreorderChannel] = useState('WHATSAPP');
-  const [newPreorderQuantity, setNewPreorderQuantity] = useState(1);
-  const [newPreorderOriginalPrice, setNewPreorderOriginalPrice] = useState(0);
-  const [newPreorderFinalPrice, setNewPreorderFinalPrice] = useState(0);
-  const [newPreorderDiscountType, setNewPreorderDiscountType] = useState('MANUAL');
-  const [newPreorderDiscountReason, setNewPreorderDiscountReason] = useState('');
-  const [newPreorderDeliveryMode, setNewPreorderDeliveryMode] = useState<'PENDING' | 'ACCUMULATED'>(
-    'ACCUMULATED',
-  );
-  const [newPreorderNotes, setNewPreorderNotes] = useState('');
-  const [transitionDraft, setTransitionDraft] = useState<TransitionDraft | null>(null);
-  const [transitionReason, setTransitionReason] = useState('');
-  const [incidentTarget, setIncidentTarget] = useState<{
-    boxId: string | null;
-    itemId: string | null;
-  } | null>(null);
-  const [incidentType, setIncidentType] = useState<ImportIncidentType>('DELAY');
-  const [incidentDescription, setIncidentDescription] = useState('');
-  const [incidentQuantity, setIncidentQuantity] = useState('1');
-  const [insuranceDraft, setInsuranceDraft] = useState<InsuranceDraft | null>(null);
-  const [claimNumber, setClaimNumber] = useState('');
-  const [claimAmount, setClaimAmount] = useState('0');
-  const [claimCurrency, setClaimCurrency] = useState('PEN');
-  const [claimNotes, setClaimNotes] = useState('');
-  const [claimStatus, setClaimStatus] = useState<UpdateInsuranceClaimInput['status']>('APPROVED');
-  const [approvedAmount, setApprovedAmount] = useState('');
-
-  const invalidate = async () => {
+  const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['import', importId] }),
       queryClient.invalidateQueries({ queryKey: ['imports'] }),
-      queryClient.invalidateQueries({ queryKey: ['import-support'] }),
       queryClient.invalidateQueries({ queryKey: ['inventory'] }),
-      queryClient.invalidateQueries({ queryKey: ['sales'] }),
+      queryClient.invalidateQueries({ queryKey: ['products'] }),
+      queryClient.invalidateQueries({ queryKey: ['import-support'] }),
     ]);
   };
 
-  const shipmentTransition = useMutation({
-    mutationFn: async ({
-      nextStateCode,
-      reason,
-      trackingNumber,
-    }: {
-      nextStateCode: ImportStateCode;
-      reason: string;
-      trackingNumber: string;
-    }) => {
-      return advanceImport(importId as string, {
-        nextStateCode,
-        reason: reason.trim(),
-        occurredAt: new Date().toISOString(),
-        masterTrackingNumber: trackingNumber.trim() || null,
+  const advanceMutation = useMutation({
+    mutationFn: (input: UpdateImportStateInput) => advanceImport(importId, input),
+    onSuccess: async (result) => {
+      notify({
+        title: result.stateCode === 'CANCELLED' ? 'Importación cancelada' : 'Estado actualizado',
+        message:
+          result.stateCode === 'CANCELLED'
+            ? 'También se cancelaron sus cajas elegibles. No se modificó el inventario.'
+            : `La importación ahora está en “${stateLabels[result.stateCode] ?? result.stateCode}”.`,
+        tone: result.stateCode === 'CANCELLED' ? 'warning' : 'success',
       });
+      await refresh();
     },
-    onSuccess: async () => {
-      await invalidate();
-      setTransitionDraft(null);
-      setTransitionReason('');
-    },
+    onError: (error) => notifyError(error, 'No se pudo actualizar la importación.'),
   });
 
-  const boxTransition = useMutation({
-    mutationFn: async ({
+  const boxAdvanceMutation = useMutation({
+    mutationFn: ({ boxId, input }: { boxId: string; input: UpdateImportBoxStateInput }) =>
+      advanceImportBox(boxId, input),
+    onSuccess: async (result) => {
+      notify({
+        title: result.stateCode === 'CANCELLED' ? 'Caja cancelada' : 'Estado de caja actualizado',
+        message:
+          result.stateCode === 'CANCELLED'
+            ? 'No se registraron cambios en inventario.'
+            : `La caja ahora está en “${stateLabels[result.stateCode] ?? result.stateCode}”.`,
+        tone: result.stateCode === 'CANCELLED' ? 'warning' : 'success',
+      });
+      await refresh();
+    },
+    onError: (error) => notifyError(error, 'No se pudo actualizar la caja.'),
+  });
+
+  const receiveMutation = useMutation({
+    mutationFn: ({
       boxId,
-      nextStateCode,
-      reason,
-      trackingNumber,
+      input,
+      repair,
     }: {
       boxId: string;
-      nextStateCode: ImportBoxStateCode;
-      reason: string;
-      trackingNumber: string;
-    }) => {
-      return advanceImportBox(boxId, {
-        nextStateCode,
-        reason: reason.trim(),
-        occurredAt: new Date().toISOString(),
-        trackingNumber: trackingNumber.trim() || null,
+      input: ReceiveImportBoxInput;
+      repair: boolean;
+    }) =>
+      repair
+        ? repairZeroReceivedImportBox(boxId, input, crypto.randomUUID())
+        : receiveImportBox(boxId, input, crypto.randomUUID()),
+    onSuccess: async (_, variables) => {
+      setReceiveDialog(null);
+      notify({
+        title: variables.repair ? 'Recepción corregida' : 'Caja recibida e ingresada a stock',
+        message: 'Las cantidades confirmadas se reflejaron en inventario una sola vez.',
+        tone: 'success',
       });
+      await refresh();
     },
-    onSuccess: async () => {
-      await invalidate();
-      setTransitionDraft(null);
-      setTransitionReason('');
-    },
+    onError: (error) => notifyError(error, 'No se pudo recibir e ingresar la caja a stock.'),
   });
 
-  const receive = useMutation({
-    mutationFn: async (boxId: string) => {
-      const box = detail.data?.boxes.find((item) => item.id === boxId);
-      if (!box) throw new Error('No se encontró la caja.');
-      const items = box.items.map((item) => ({
-        importBoxItemId: item.id,
-        receivedQuantity: Number(receiveQuantities[item.id] ?? item.expectedQuantity),
-        notes: null,
-      }));
-      return receiveImportBox(
-        box.id,
-        {
-          reason: receiveReason.trim(),
-          occurredAt: new Date().toISOString(),
-          items,
-        },
-        crypto.randomUUID(),
-      );
-    },
+  const costMutation = useMutation({
+    mutationFn: (input: CreateImportCostInput) => addImportCost(importId, input),
     onSuccess: async () => {
-      setReceiveBoxId(null);
-      setReceiveQuantities({});
-      setReceiveReason('');
-      await invalidate();
+      setCostAmount('');
+      setCostDescription('');
+      setCostErrors({});
+      notify({ title: 'Costo registrado', message: 'El costo importado fue recalculado automáticamente.', tone: 'success' });
+      await refresh();
     },
+    onError: (error) => notifyError(error, 'No se pudo registrar el costo.'),
   });
 
-  const addCost = useMutation({
+  const incidentMutation = useMutation({
+    mutationFn: (input: CreateImportIncidentInput) => createImportIncident(importId, input),
+    onSuccess: async () => {
+      setIncidentDescription('');
+      setIncidentQuantity('');
+      setIncidentErrors({});
+      notify({ title: 'Incidencia registrada', message: 'La incidencia quedó abierta para seguimiento.', tone: 'success' });
+      await refresh();
+    },
+    onError: (error) => notifyError(error, 'No se pudo registrar la incidencia.'),
+  });
+
+  const allocationMutation = useMutation({
     mutationFn: () =>
-      addImportCost(importId as string, {
-        importBoxId: costBoxId || null,
-        costType,
-        description: costDescription.trim() || null,
-        amount: Number(costAmount),
-        currencyCode: costCurrency,
-        exchangeRateToPen: Number(costExchangeRate),
-        allocationMethod: costAllocation,
-        isIncludedInUnitCost: costIncluded,
-        occurredAt: new Date().toISOString(),
+      allocatePreorder({
+        saleItemId: candidateSaleItemId,
+        importBoxItemId: allocationItemId,
+        quantity: Number(allocationQuantity),
       }),
     onSuccess: async () => {
-      setCostAmount(0);
-      setCostDescription('');
-      await invalidate();
+      notify({ title: 'Preventa vinculada', message: 'La cantidad quedó reservada contra la línea de importación.', tone: 'success' });
+      await refresh();
     },
+    onError: (error) => notifyError(error, 'No se pudo vincular la preventa.'),
   });
 
-  const incident = useMutation({
-    mutationFn: async () => {
-      if (!incidentTarget) throw new Error('No se seleccionó el origen de la incidencia.');
-      return createImportIncident(importId as string, {
-        importBoxId: incidentTarget.boxId,
-        importBoxItemId: incidentTarget.itemId,
-        incidentType,
-        affectedQuantity:
-          incidentTarget.itemId && incidentQuantity ? Number(incidentQuantity) : null,
-        description: incidentDescription.trim(),
+  const importData = detail.data;
+  const allItems = useMemo(
+    () => importData?.boxes.flatMap((box) => box.items.map((item) => ({ ...item, boxId: box.id, boxCode: box.code }))) ?? [],
+    [importData?.boxes],
+  );
+  const filteredCandidates = useMemo(() => {
+    if (!allocationItemId) return support.data?.preorderCandidates ?? [];
+    const selected = allItems.find((item) => item.id === allocationItemId);
+    return (support.data?.preorderCandidates ?? []).filter(
+      (candidate) => !selected || candidate.variantId === selected.variantId,
+    );
+  }, [allocationItemId, allItems, support.data?.preorderCandidates]);
+
+  async function changeShipmentState(stateCode: ImportStateCode, label: string) {
+    const values = await prompt({
+      title: stateCode === 'CANCELLED' ? 'Cancelar importación completa' : `Avanzar a ${label}`,
+      message:
+        stateCode === 'CANCELLED'
+          ? 'La cancelación incluye las cajas elegibles y no puede realizarse si existen unidades recibidas, lotes o preventas asignadas.'
+          : 'Indica el motivo o la evidencia del cambio de estado.',
+      fields: [
+        {
+          name: 'reason',
+          label: 'Motivo o evidencia',
+          type: 'textarea',
+          required: true,
+          minLength: 5,
+          placeholder: 'Ej. Confirmación del operador recibida por correo…',
+        },
+        ...(stateCode === 'DISPATCH_CONFIRMED' || stateCode === 'SHIPPED'
+          ? [{ name: 'tracking', label: 'Tracking maestro', initialValue: importData?.masterTrackingNumber ?? '' }]
+          : []),
+      ],
+      confirmLabel: 'Revisar acción',
+      tone: stateCode === 'CANCELLED' ? 'danger' : 'default',
+    });
+    if (!values) return;
+    const accepted = await confirm({
+      title: stateCode === 'CANCELLED' ? 'Confirmar cancelación' : 'Confirmar cambio de estado',
+      message:
+        stateCode === 'CANCELLED'
+          ? '¿Confirmas cancelar la importación y todas sus cajas elegibles?'
+          : `¿Confirmas avanzar la importación a “${label}”?`,
+      detail:
+        stateCode === 'CANCELLED'
+          ? 'La operación se realizará en una sola transacción. Si una caja no puede cancelarse, no se cambiará nada.'
+          : 'El cambio quedará registrado con tu usuario, fecha y motivo.',
+      confirmLabel: stateCode === 'CANCELLED' ? 'Sí, cancelar importación' : 'Sí, avanzar',
+      tone: stateCode === 'CANCELLED' ? 'danger' : 'default',
+    });
+    if (!accepted) {
+      notify({ title: 'Acción cancelada', message: 'No se modificó la importación.', tone: 'info' });
+      return;
+    }
+    advanceMutation.mutate({
+      nextStateCode: stateCode,
+      reason: values.reason.trim(),
+      occurredAt: new Date().toISOString(),
+      masterTrackingNumber: values.tracking?.trim() || null,
+    });
+  }
+
+  async function changeBoxState(
+    box: ImportDetail['boxes'][number],
+    stateCode: ImportBoxStateCode,
+    label: string,
+  ) {
+    const values = await prompt({
+      title: stateCode === 'CANCELLED' ? `Cancelar ${box.code}` : `Actualizar ${box.code}`,
+      message:
+        stateCode === 'CANCELLED'
+          ? 'No se podrá cancelar si existen unidades recibidas, lotes o preventas asignadas.'
+          : `La caja avanzará a “${label}”.`,
+      fields: [
+        {
+          name: 'reason',
+          label: 'Motivo o evidencia',
+          type: 'textarea',
+          required: true,
+          minLength: 5,
+        },
+        ...(stateCode === 'DISPATCH_CONFIRMED' || stateCode === 'SHIPPED'
+          ? [{ name: 'tracking', label: 'Tracking de caja', initialValue: box.trackingNumber ?? '' }]
+          : []),
+      ],
+      confirmLabel: 'Revisar acción',
+      tone: stateCode === 'CANCELLED' ? 'danger' : 'default',
+    });
+    if (!values) return;
+    const accepted = await confirm({
+      title: stateCode === 'CANCELLED' ? 'Confirmar cancelación de caja' : 'Confirmar estado de caja',
+      message:
+        stateCode === 'CANCELLED'
+          ? `¿Confirmas cancelar ${box.code}?`
+          : `¿Confirmas avanzar ${box.code} a “${label}”?`,
+      detail: 'El cambio quedará auditado y no se ejecutará parcialmente.',
+      confirmLabel: stateCode === 'CANCELLED' ? 'Sí, cancelar caja' : 'Sí, avanzar',
+      tone: stateCode === 'CANCELLED' ? 'danger' : 'default',
+    });
+    if (!accepted) {
+      notify({ title: 'Acción cancelada', message: `No se modificó ${box.code}.`, tone: 'info' });
+      return;
+    }
+    boxAdvanceMutation.mutate({
+      boxId: box.id,
+      input: {
+        nextStateCode: stateCode,
+        reason: values.reason.trim(),
         occurredAt: new Date().toISOString(),
-      });
-    },
-    onSuccess: async () => {
-      await invalidate();
-      setIncidentTarget(null);
-      setIncidentType('DELAY');
-      setIncidentDescription('');
-      setIncidentQuantity('1');
-    },
-  });
+        trackingNumber: values.tracking?.trim() || null,
+      },
+    });
+  }
 
-  const insuranceClaim = useMutation({
-    mutationFn: async () => {
-      if (!insuranceDraft || insuranceDraft.mode !== 'CREATE')
-        throw new Error('No se seleccionó una incidencia.');
-      return createInsuranceClaim(importId as string, {
-        importIncidentId: insuranceDraft.incidentId,
-        claimNumber: claimNumber.trim() || null,
-        claimedAmount: Number(claimAmount),
-        currencyCode: claimCurrency,
+  function openReceive(box: ImportDetail['boxes'][number], repair = false) {
+    setReceiveDialog({
+      box,
+      repair,
+      quantities: Object.fromEntries(
+        box.items.map((item) => [item.id, String(item.expectedQuantity)]),
+      ),
+      notes: Object.fromEntries(box.items.map((item) => [item.id, ''])),
+      reason: repair
+        ? 'Corrección de caja ingresada a stock sin cantidades recibidas'
+        : `Recepción física completa de ${box.code}`,
+      errors: {},
+    });
+  }
+
+  async function submitReceive(event: FormEvent) {
+    event.preventDefault();
+    if (!receiveDialog) return;
+    const errors: Record<string, string> = {};
+    let total = 0;
+    for (const item of receiveDialog.box.items) {
+      const value = Number(receiveDialog.quantities[item.id]);
+      if (!Number.isInteger(value) || value < 0 || value > item.expectedQuantity) {
+        errors[item.id] = `Ingresa un entero entre 0 y ${item.expectedQuantity}.`;
+      } else {
+        total += value;
+      }
+    }
+    if (total <= 0) errors.total = 'No puedes finalizar una caja con cero unidades recibidas.';
+    if (receiveDialog.reason.trim().length < 5) errors.reason = 'El motivo debe tener al menos 5 caracteres.';
+    if (Object.keys(errors).length > 0) {
+      setReceiveDialog({ ...receiveDialog, errors });
+      return;
+    }
+    const accepted = await confirm({
+      title: receiveDialog.repair ? 'Confirmar corrección histórica' : 'Confirmar recepción e ingreso a stock',
+      message: `Se registrarán ${total} unidades recibidas de ${receiveDialog.box.items.reduce((sum, item) => sum + item.expectedQuantity, 0)} esperadas.`,
+      detail:
+        total < receiveDialog.box.items.reduce((sum, item) => sum + item.expectedQuantity, 0)
+          ? 'El sistema abrirá incidencias por los faltantes y solo ingresará las cantidades confirmadas.'
+          : 'La recepción, los lotes y el movimiento de inventario se crearán en una sola transacción.',
+      confirmLabel: receiveDialog.repair ? 'Corregir e ingresar stock' : 'Recibir e ingresar stock',
+      tone: receiveDialog.repair ? 'danger' : 'default',
+    });
+    if (!accepted) return;
+    receiveMutation.mutate({
+      boxId: receiveDialog.box.id,
+      repair: receiveDialog.repair,
+      input: {
+        reason: receiveDialog.reason.trim(),
+        occurredAt: new Date().toISOString(),
+        items: receiveDialog.box.items.map((item) => ({
+          importBoxItemId: item.id,
+          receivedQuantity: Number(receiveDialog.quantities[item.id]),
+          notes: receiveDialog.notes[item.id]?.trim() || null,
+        })),
+      },
+    });
+  }
+
+  function submitCost(event: FormEvent) {
+    event.preventDefault();
+    const errors: Record<string, string> = {};
+    const amount = Number(costAmount);
+    const exchangeRate = costCurrency === 'PEN' ? 1 : Number(costExchangeRate);
+    if (!Number.isFinite(amount) || amount <= 0) errors.amount = 'El importe debe ser mayor que cero.';
+    if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) errors.exchangeRate = 'Ingresa un tipo de cambio válido.';
+    setCostErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    costMutation.mutate({
+      importBoxId: costBoxId || null,
+      costType,
+      description: costDescription.trim() || null,
+      amount,
+      currencyCode: costCurrency,
+      exchangeRateToPen: exchangeRate,
+      allocationMethod: 'BY_QUANTITY',
+      isIncludedInUnitCost: true,
+      occurredAt: new Date().toISOString(),
+    });
+  }
+
+  function submitIncident(event: FormEvent) {
+    event.preventDefault();
+    const errors: Record<string, string> = {};
+    if (incidentDescription.trim().length < 3) errors.description = 'Describe qué ocurrió con al menos 3 caracteres.';
+    if (incidentQuantity) {
+      const value = Number(incidentQuantity);
+      if (!Number.isInteger(value) || value <= 0) errors.quantity = 'La cantidad afectada debe ser un entero mayor que cero.';
+    }
+    setIncidentErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    incidentMutation.mutate({
+      importBoxId: incidentBoxId || null,
+      importBoxItemId: incidentItemId || null,
+      incidentType,
+      affectedQuantity: incidentQuantity ? Number(incidentQuantity) : null,
+      description: incidentDescription.trim(),
+      occurredAt: new Date().toISOString(),
+    });
+  }
+
+  async function addClaim(incident: ImportDetail['incidents'][number]) {
+    const values = await prompt({
+      title: 'Registrar reclamo al seguro',
+      message: `Incidencia: ${incident.description}`,
+      fields: [
+        { name: 'claimNumber', label: 'Número de reclamo' },
+        { name: 'amount', label: 'Monto reclamado', type: 'number', required: true, min: 0.01, step: 0.01 },
+        { name: 'currency', label: 'Moneda', type: 'select', initialValue: 'PEN', options: (support.data?.currencies ?? []).map((currency) => ({ value: currency.code, label: `${currency.code} · ${currency.name}` })) },
+        { name: 'notes', label: 'Notas', type: 'textarea' },
+      ],
+      confirmLabel: 'Registrar reclamo',
+    });
+    if (!values) return;
+    try {
+      await createInsuranceClaim(importId, {
+        importIncidentId: incident.id,
+        claimNumber: values.claimNumber.trim() || null,
+        claimedAmount: Number(values.amount),
+        currencyCode: values.currency,
         status: 'SUBMITTED',
         submittedAt: new Date().toISOString(),
-        notes: claimNotes.trim() || null,
+        notes: values.notes.trim() || null,
       });
-    },
-    onSuccess: async () => {
-      await invalidate();
-      setInsuranceDraft(null);
-      setClaimNumber('');
-      setClaimAmount('0');
-      setClaimNotes('');
-    },
-  });
+      notify({ title: 'Reclamo registrado', tone: 'success' });
+      await refresh();
+    } catch (error) {
+      notifyError(error, 'No se pudo registrar el reclamo al seguro.');
+    }
+  }
 
-  const insuranceUpdate = useMutation({
-    mutationFn: async () => {
-      if (!insuranceDraft || insuranceDraft.mode !== 'UPDATE')
-        throw new Error('No se seleccionó un reclamo.');
-      return updateInsuranceClaim(insuranceDraft.claimId, {
-        status: claimStatus,
-        approvedAmount: approvedAmount ? Number(approvedAmount) : null,
-        resolutionNotes: claimNotes.trim(),
-      });
-    },
-    onSuccess: async () => {
-      await invalidate();
-      setInsuranceDraft(null);
-      setApprovedAmount('');
-      setClaimNotes('');
-    },
-  });
-
-  const createPreorder = useMutation({
-    mutationFn: () => {
-      if (!newPreorderItemId || !newPreorderClientId || !newPreorderChannel)
-        throw new Error('Selecciona producto, cliente y canal.');
-      return createPreorderSale(
+  async function resolveClaim(claimId: string, currentStatus: string) {
+    const values = await prompt({
+      title: 'Actualizar reclamo al seguro',
+      fields: [
         {
-          clientId: newPreorderClientId,
-          salesChannelCode: newPreorderChannel,
-          importBoxItemId: newPreorderItemId,
-          quantity: Number(newPreorderQuantity),
-          originalUnitPrice: Number(newPreorderOriginalPrice),
-          finalUnitPrice: Number(newPreorderFinalPrice),
-          discountTypeCode:
-            newPreorderFinalPrice < newPreorderOriginalPrice ? newPreorderDiscountType : null,
-          discountReason:
-            newPreorderFinalPrice < newPreorderOriginalPrice ? newPreorderDiscountReason : null,
-          deliveryMode: newPreorderDeliveryMode,
-          dueAt: null,
-          notes: newPreorderNotes.trim() || null,
+          name: 'status',
+          label: 'Nuevo estado',
+          type: 'select',
+          initialValue: currentStatus,
+          options: Object.entries(claimLabels).map(([value, label]) => ({ value, label })),
         },
-        crypto.randomUUID(),
-      );
-    },
-    onSuccess: async (result) => {
-      await invalidate();
-      navigate(`/ventas/${result.id}`);
-    },
-  });
-
-  const preorder = useMutation({
-    mutationFn: () => {
-      if (!preorderItemId || !preorderSaleItemId)
-        throw new Error('Selecciona el producto importado y la preventa.');
-      return allocatePreorder({
-        saleItemId: preorderSaleItemId,
-        importBoxItemId: preorderItemId,
-        quantity: Number(preorderQuantity),
+        { name: 'approvedAmount', label: 'Monto aprobado', type: 'number', min: 0, step: 0.01 },
+        { name: 'notes', label: 'Resolución o explicación', type: 'textarea', required: true, minLength: 3 },
+      ],
+      confirmLabel: 'Actualizar reclamo',
+    });
+    if (!values) return;
+    try {
+      await updateInsuranceClaim(claimId, {
+        status: values.status as 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'PARTIALLY_APPROVED' | 'REJECTED' | 'PAID' | 'CLOSED',
+        approvedAmount: values.approvedAmount ? Number(values.approvedAmount) : null,
+        resolutionNotes: values.notes.trim(),
       });
-    },
-    onSuccess: async () => {
-      setPreorderQuantity(1);
-      await invalidate();
-    },
-  });
+      notify({ title: 'Reclamo actualizado', tone: 'success' });
+      await refresh();
+    } catch (error) {
+      notifyError(error, 'No se pudo actualizar el reclamo.');
+    }
+  }
 
-  const selectedImportItem = useMemo(
-    () =>
-      detail.data?.boxes.flatMap((box) => box.items).find((item) => item.id === preorderItemId) ??
-      null,
-    [detail.data, preorderItemId],
-  );
-  const candidates = useMemo(
-    () =>
-      (support.data?.preorderCandidates ?? []).filter(
-        (candidate) => !selectedImportItem || candidate.variantId === selectedImportItem.variantId,
-      ),
-    [selectedImportItem, support.data],
-  );
-  const receivingBox: ImportDetail['boxes'][number] | null = useMemo(
-    () => detail.data?.boxes.find((box) => box.id === receiveBoxId) ?? null,
-    [detail.data, receiveBoxId],
-  );
+  if (detail.isLoading) return <main className="page"><div className="empty-state">Cargando importación…</div></main>;
+  if (detail.isError || !importData) {
+    return <main className="page"><button className="link-button" type="button" onClick={() => navigate('/importaciones')}><ArrowLeft size={16} /> Volver a importaciones</button><div className="alert alert-error">No se pudo cargar la importación.</div></main>;
+  }
 
-  const openReceive = (box: ImportDetail['boxes'][number]) => {
-    setReceiveBoxId(box.id);
-    setReceiveReason(`Ingreso a stock de ${box.code}`);
-    setReceiveQuantities(
-      Object.fromEntries(box.items.map((item) => [item.id, item.expectedQuantity])),
-    );
-  };
-
-  if (detail.isLoading)
-    return (
-      <main className="page">
-        <div className="empty-state">Cargando importación…</div>
-      </main>
-    );
-  if (detail.isError || !detail.data)
-    return (
-      <main className="page">
-        <button className="back-link" onClick={() => navigate('/importaciones')}>
-          <ArrowLeft size={17} /> Volver
-        </button>
-        <div className="alert alert-error">
-          {detail.error instanceof Error
-            ? detail.error.message
-            : 'No se pudo cargar la importación.'}
-        </div>
-      </main>
-    );
-
-  const data = detail.data;
-  const error =
-    shipmentTransition.error ??
-    boxTransition.error ??
-    receive.error ??
-    addCost.error ??
-    incident.error ??
-    insuranceClaim.error ??
-    insuranceUpdate.error ??
-    createPreorder.error ??
-    preorder.error;
+  const shipmentTransitions = importData.allowedTransitions.filter((transition) => transition.stateCode !== 'STOCKED');
+  const nextShipment = shipmentTransitions.find((transition) => transition.stateCode !== 'CANCELLED');
+  const canCancelShipment = shipmentTransitions.some((transition) => transition.stateCode === 'CANCELLED');
+  const currentShipmentIndex = shipmentFlow.indexOf(importData.stateCode);
 
   return (
     <main className="page import-detail-page">
-      <button className="back-link" onClick={() => navigate('/importaciones')}>
-        <ArrowLeft size={17} /> Volver a importaciones
-      </button>
+      <button className="link-button" type="button" onClick={() => navigate('/importaciones')}><ArrowLeft size={16} /> Volver a importaciones</button>
       <PageHeader
         eyebrow="Seguimiento internacional"
-        title={`Importación ${data.code}`}
-        description={`${data.supplierName ?? 'Sin proveedor'} · ${modeLabels[data.transportMode]} · Creada ${dateTime(data.createdAt)}`}
+        title={`Importación ${importData.code}`}
+        description={`${importData.supplierName ?? 'Proveedor sin asignar'} · ${importData.transportMode === 'AIR' ? 'Aéreo' : importData.transportMode === 'SEA' ? 'Marítimo' : 'Otro'} · Creada ${dateLabel(importData.createdAt)}`}
+        actions={<StatusBadge tone={stateTone(importData.stateCode)}>{stateLabels[importData.stateCode]}</StatusBadge>}
       />
-      <div className="sale-status-line">
-        <StatusBadge tone={toneFor(data.stateCode)}>
-          {stateLabels[data.stateCode] ?? data.stateCode}
-        </StatusBadge>
-        <StatusBadge tone="info">{data.boxes.length} caja(s)</StatusBadge>
-      </div>
-      {error ? (
-        <div className="alert alert-error">
-          {error instanceof Error ? error.message : 'No se pudo completar la operación.'}
-        </div>
-      ) : null}
 
       <section className="summary-strip">
-        <div>
-          <span>Unidades esperadas</span>
-          <strong>{data.totals.expectedUnits}</strong>
-        </div>
-        <div>
-          <span>Unidades recibidas</span>
-          <strong>{data.totals.receivedUnits}</strong>
-        </div>
-        <div>
-          <span>Compra estimada</span>
-          <strong>{money(data.totals.purchaseValuePen)}</strong>
-        </div>
-        <div>
-          <span>Costos adicionales</span>
-          <strong>{money(data.totals.extraCostsPen)}</strong>
-        </div>
+        <div><span>Unidades esperadas</span><strong>{importData.totals.expectedUnits}</strong></div>
+        <div><span>Unidades recibidas</span><strong>{importData.totals.receivedUnits}</strong></div>
+        <div><span>Compra estimada</span><strong>{money(importData.totals.purchaseValuePen)}</strong></div>
+        <div><span>Costos adicionales</span><strong>{money(importData.totals.extraCostsPen)}</strong></div>
       </section>
 
-      <section className="import-detail-grid">
-        <div className="import-detail-main">
+      {importData.boxes.some(isZeroReceiptBox) ? (
+        <div className="alert alert-error import-integrity-alert" role="alert">
+          <AlertTriangle size={20} />
+          <div><strong>Recepción incompleta detectada</strong><span>Existe una caja marcada como ingresada a stock con cero unidades recibidas. Usa “Corregir recepción” en esa caja; no crees movimientos manuales de inventario.</span></div>
+        </div>
+      ) : null}
+
+      <section className="import-overview-grid">
+        <Panel title="Flujo de la importación" subtitle="El ingreso a stock se completa automáticamente cuando todas las cajas fueron recibidas correctamente.">
+          <div className="flow-timeline">
+            {shipmentFlow.map((state, index) => (
+              <div className={`flow-step ${importData.stateCode === 'CANCELLED' ? '' : index < currentShipmentIndex ? 'complete' : index === currentShipmentIndex ? 'current' : ''}`} key={state}>
+                <span className="flow-step-marker">{index < currentShipmentIndex ? <Check size={13} /> : index + 1}</span>
+                <div><strong>{stateLabels[state]}</strong><small>{stateHelp[state]}</small></div>
+              </div>
+            ))}
+          </div>
+          {importData.stateCode === 'CANCELLED' ? <ContextNote tone="danger">La importación está cancelada. No se ingresarán unidades a inventario.</ContextNote> : null}
+        </Panel>
+
+        <div className="import-actions-column">
+          <Panel title="Siguiente acción" subtitle="Avanza solo cuando cuentes con una evidencia real.">
+            {nextShipment ? <button className="button button-primary button-full" type="button" disabled={advanceMutation.isPending} onClick={() => void changeShipmentState(nextShipment.stateCode, nextShipment.name)}><Truck size={17} /> Avanzar a {nextShipment.name}</button> : importData.stateCode === 'STOCKED' ? <div className="empty-state"><PackageCheck size={32} /><strong>Flujo finalizado</strong><p>Todas las cajas fueron recibidas e ingresadas correctamente.</p></div> : <div className="empty-state">No hay un siguiente estado disponible.</div>}
+            {canCancelShipment ? <button className="button button-danger button-full" type="button" onClick={() => void changeShipmentState('CANCELLED', 'Cancelada')}><X size={17} /> Cancelar importación</button> : null}
+          </Panel>
           <Panel title="Datos generales">
-            <div className="detail-summary-grid">
-              <div>
-                <span>Proveedor</span>
-                <strong>{data.supplierName ?? 'Sin proveedor'}</strong>
-                <small>
-                  {data.purchaseCurrencyCode} · TC {data.sunatExchangeRate}
-                </small>
-              </div>
-              <div>
-                <span>Compra</span>
-                <strong>{date(data.purchaseDate)}</strong>
-                <small>Llegada: {date(data.estimatedArrivalDate)}</small>
-              </div>
-              <div>
-                <span>Tracking maestro</span>
-                <strong>{data.masterTrackingNumber ?? 'Pendiente'}</strong>
-                <small>{modeLabels[data.transportMode]}</small>
-              </div>
-              <div>
-                <span>Preventas asignadas</span>
-                <strong>{data.totals.allocatedPreorders}</strong>
-                <small>Unidades vinculadas</small>
-              </div>
-            </div>
-            {data.notes ? (
-              <p className="detail-note">
-                <strong>Notas:</strong> {data.notes}
-              </p>
-            ) : null}
-          </Panel>
-
-          <Panel
-            title="Cajas"
-            subtitle="Cada caja mantiene su propio tracking, productos y estado."
-          >
-            <div className="import-box-detail-list">
-              {data.boxes.map((box) => (
-                <article className="import-box-detail" key={box.id}>
-                  <header>
-                    <div>
-                      <span className="box-icon">
-                        <Boxes size={18} />
-                      </span>
-                      <div>
-                        <strong>{box.code}</strong>
-                        <small>
-                          {box.trackingNumber ?? 'Sin tracking'} ·{' '}
-                          {box.internationalOperatorName ?? 'Sin operador internacional'}
-                        </small>
-                      </div>
-                    </div>
-                    <StatusBadge tone={toneFor(box.stateCode)}>
-                      {stateLabels[box.stateCode] ?? box.stateCode}
-                    </StatusBadge>
-                  </header>
-                  <div className="responsive-table-wrap">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Producto</th>
-                          <th>Destino</th>
-                          <th>Esperado</th>
-                          <th>Recibido</th>
-                          <th>Preventa</th>
-                          <th>Costo</th>
-                          <th />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {box.items.map((item) => (
-                          <tr key={item.id}>
-                            <td>
-                              <strong>{item.productName}</strong>
-                              <small>
-                                {item.variantName} · {item.sku}
-                              </small>
-                            </td>
-                            <td>{item.destinationWarehouseName ?? 'Sin almacén'}</td>
-                            <td className="numeric-cell">{item.expectedQuantity}</td>
-                            <td className="numeric-cell">{item.receivedQuantity}</td>
-                            <td className="numeric-cell">{item.preorderAllocatedQuantity}</td>
-                            <td className="numeric-cell">
-                              {item.finalUnitCostPen == null
-                                ? `${item.originalCurrencyCode} ${item.originalUnitCost}`
-                                : money(item.finalUnitCostPen)}
-                            </td>
-                            <td>
-                              <button
-                                className="icon-button"
-                                title="Registrar incidencia"
-                                onClick={() => {
-                                  setIncidentTarget({ boxId: box.id, itemId: item.id });
-                                  setIncidentType('DAMAGED');
-                                  setIncidentDescription('');
-                                  setIncidentQuantity('1');
-                                }}
-                              >
-                                <AlertTriangle size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="import-box-actions">
-                    {box.allowedTransitions.map((transition) => (
-                      <button
-                        key={transition.stateCode}
-                        className={
-                          transition.stateCode === 'CANCELLED'
-                            ? 'button button-danger'
-                            : 'button button-secondary'
-                        }
-                        disabled={boxTransition.isPending}
-                        onClick={() => {
-                          setTransitionDraft({
-                            scope: 'BOX',
-                            boxId: box.id,
-                            nextStateCode: transition.stateCode,
-                            trackingNumber: box.trackingNumber ?? '',
-                          });
-                          setTransitionReason(
-                            transitionLabels[transition.stateCode] ?? transition.name,
-                          );
-                        }}
-                      >
-                        <Truck size={16} />{' '}
-                        {transitionLabels[transition.stateCode] ?? transition.name}
-                      </button>
-                    ))}
-                    {box.canReceive ? (
-                      <button
-                        className="button button-primary"
-                        disabled={receive.isPending || data.stateCode !== 'RECEIVED_PERU'}
-                        onClick={() => openReceive(box)}
-                      >
-                        <PackageCheck size={16} /> Ingresar caja a stock
-                      </button>
-                    ) : null}
-                  </div>
-                  {box.canReceive && data.stateCode !== 'RECEIVED_PERU' ? (
-                    <div className="alert alert-warning">
-                      Primero confirma que la importación general fue recibida en Perú.
-                    </div>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="Historial">
-            <div className="timeline-list">
-              {data.history.map((item) => (
-                <article key={item.id}>
-                  <span className="timeline-dot" />
-                  <div>
-                    <strong>
-                      {item.entityCode} · {stateLabels[item.newStateCode] ?? item.newStateCode}
-                    </strong>
-                    <small>
-                      {dateTime(item.changedAt)} · {item.changedByName ?? 'Sistema'}
-                    </small>
-                    {item.reason ? <p>{item.reason}</p> : null}
-                  </div>
-                </article>
-              ))}
-            </div>
+            <dl className="detail-list compact-detail-list">
+              <div><dt>Moneda y tipo de cambio</dt><dd>{importData.purchaseCurrencyCode} · {importData.purchaseCurrencyCode === 'PEN' ? '1.000000' : importData.sunatExchangeRate}</dd></div>
+              <div><dt>Compra</dt><dd>{dateLabel(importData.purchaseDate)}</dd></div>
+              <div><dt>Llegada estimada</dt><dd>{dateLabel(importData.estimatedArrivalDate)}</dd></div>
+              <div><dt>Tracking maestro</dt><dd>{importData.masterTrackingNumber ?? 'Pendiente'}</dd></div>
+              <div><dt>Preventas asignadas</dt><dd>{importData.totals.allocatedPreorders}</dd></div>
+            </dl>
           </Panel>
         </div>
-
-        <aside className="import-detail-sidebar">
-          <Panel title="Siguiente estado" subtitle="Avanza la importación general en orden.">
-            <div className="delivery-transition-list">
-              {data.allowedTransitions.length === 0 ? (
-                <div className="empty-state">
-                  <Ship size={28} />
-                  <strong>Flujo finalizado</strong>
-                </div>
-              ) : (
-                data.allowedTransitions.map((item) => (
-                  <button
-                    key={item.stateCode}
-                    className={
-                      item.stateCode === 'CANCELLED'
-                        ? 'button button-danger button-full'
-                        : 'button button-primary button-full'
-                    }
-                    disabled={
-                      shipmentTransition.isPending ||
-                      (item.stateCode === 'STOCKED' &&
-                        data.boxes.some((box) => !['STOCKED', 'CANCELLED'].includes(box.stateCode)))
-                    }
-                    onClick={() => {
-                      setTransitionDraft({
-                        scope: 'IMPORT',
-                        nextStateCode: item.stateCode,
-                        trackingNumber: data.masterTrackingNumber ?? '',
-                      });
-                      setTransitionReason(transitionLabels[item.stateCode] ?? item.name);
-                    }}
-                  >
-                    <Ship size={16} /> {transitionLabels[item.stateCode] ?? item.name}
-                  </button>
-                ))
-              )}
-            </div>
-          </Panel>
-
-          <Panel
-            title="Registrar costo"
-            subtitle="El sistema recalcula automáticamente el costo unitario."
-          >
-            <div className="compact-form-stack">
-              <label className="field">
-                <span>Tipo</span>
-                <select
-                  value={costType}
-                  onChange={(event) => {
-                    const nextType = event.target.value as CreateImportCostInput['costType'];
-                    setCostType(nextType);
-                    if (['CARD', 'COMMISSION', 'CUSTOMS'].includes(nextType)) {
-                      setCostAllocation('BY_PURCHASE_VALUE');
-                      setCostIncluded(true);
-                    } else if (['FREIGHT', 'INSURANCE'].includes(nextType)) {
-                      setCostAllocation('BY_WEIGHT');
-                      setCostIncluded(true);
-                    }
-                  }}
-                >
-                  {Object.entries(costLabels).map(([code, label]) => (
-                    <option key={code} value={code}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Caja opcional</span>
-                <select value={costBoxId} onChange={(event) => setCostBoxId(event.target.value)}>
-                  <option value="">Toda la importación</option>
-                  {data.boxes.map((box) => (
-                    <option key={box.id} value={box.id}>
-                      {box.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="form-grid compact-grid">
-                <label className="field">
-                  <span>Importe</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={costAmount}
-                    onChange={(event) => setCostAmount(Number(event.target.value))}
-                  />
-                </label>
-                <label className="field">
-                  <span>Moneda</span>
-                  <select
-                    value={costCurrency}
-                    onChange={(event) => setCostCurrency(event.target.value)}
-                  >
-                    {support.data?.currencies.map((currency) => (
-                      <option key={currency.code} value={currency.code}>
-                        {currency.code}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <label className="field">
-                <span>TC a PEN</span>
-                <input
-                  type="number"
-                  min="0.000001"
-                  step="0.000001"
-                  value={costExchangeRate}
-                  onChange={(event) => setCostExchangeRate(Number(event.target.value))}
-                />
-              </label>
-              {['LOCAL_DELIVERY', 'OTHER'].includes(costType) ? (
-                <>
-                  <label className="field">
-                    <span>Distribución</span>
-                    <select
-                      value={costAllocation}
-                      onChange={(event) =>
-                        setCostAllocation(
-                          event.target.value as CreateImportCostInput['allocationMethod'],
-                        )
-                      }
-                    >
-                      <option value="BY_PURCHASE_VALUE">Por valor de compra</option>
-                      <option value="BY_QUANTITY">Por cantidad</option>
-                      <option value="BY_WEIGHT">Por peso</option>
-                      <option value="NOT_ALLOCATED">No distribuir</option>
-                    </select>
-                  </label>
-                  <label className="field checkbox-field">
-                    <input
-                      type="checkbox"
-                      checked={costIncluded}
-                      onChange={(event) => setCostIncluded(event.target.checked)}
-                    />
-                    <span>Incluir en el costo unitario</span>
-                  </label>
-                </>
-              ) : (
-                <div className="cost-allocation-note">
-                  <strong>Distribución automática</strong>
-                  <small>
-                    {['FREIGHT', 'INSURANCE'].includes(costType)
-                      ? 'Por peso; si falta el peso, por cantidad.'
-                      : 'Por valor de compra.'}{' '}
-                    Los céntimos residuales van a la línea de mayor valor.
-                  </small>
-                </div>
-              )}
-              <label className="field">
-                <span>Descripción</span>
-                <input
-                  value={costDescription}
-                  onChange={(event) => setCostDescription(event.target.value)}
-                />
-              </label>
-              <button
-                className="button button-secondary button-full"
-                disabled={addCost.isPending || costAmount < 0 || costExchangeRate <= 0}
-                onClick={() => addCost.mutate()}
-              >
-                <CircleDollarSign size={16} /> Guardar y recalcular
-              </button>
-            </div>
-          </Panel>
-
-          <Panel
-            title="Crear preventa"
-            subtitle="Genera una venta PREORDER y la vincula a una unidad esperada de esta importación."
-          >
-            <div className="compact-form-stack">
-              <label className="field">
-                <span>Producto esperado</span>
-                <select
-                  value={newPreorderItemId}
-                  onChange={(event) => {
-                    const id = event.target.value;
-                    setNewPreorderItemId(id);
-                    const importItem = data.boxes
-                      .flatMap((box) => box.items)
-                      .find((item) => item.id === id);
-                    const variant = support.data?.variants.find(
-                      (item) => item.id === importItem?.variantId,
-                    );
-                    const price = variant?.salePrice ?? 0;
-                    setNewPreorderOriginalPrice(price);
-                    setNewPreorderFinalPrice(price);
-                  }}
-                >
-                  <option value="">Seleccionar</option>
-                  {data.boxes.flatMap((box) =>
-                    box.items
-                      .filter((item) => item.inventoryLotId == null)
-                      .map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {box.code} · {item.productName} · {item.variantName} · libres{' '}
-                          {Math.max(item.expectedQuantity - item.preorderAllocatedQuantity, 0)}
-                        </option>
-                      )),
-                  )}
-                </select>
-              </label>
-              <label className="field">
-                <span>Cliente</span>
-                <select
-                  value={newPreorderClientId}
-                  onChange={(event) => setNewPreorderClientId(event.target.value)}
-                >
-                  <option value="">Seleccionar cliente</option>
-                  {support.data?.activeClients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.fullName}
-                      {client.isVip ? ' · VIP' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Canal</span>
-                <select
-                  value={newPreorderChannel}
-                  onChange={(event) => setNewPreorderChannel(event.target.value)}
-                >
-                  {support.data?.salesChannels.map((channel) => (
-                    <option key={channel.code} value={channel.code}>
-                      {channel.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="form-grid compact-grid">
-                <label className="field">
-                  <span>Cantidad</span>
-                  <input
-                    type="number"
-                    min="1"
-                    value={newPreorderQuantity}
-                    onChange={(event) => setNewPreorderQuantity(Number(event.target.value))}
-                  />
-                </label>
-                <label className="field">
-                  <span>Precio original</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newPreorderOriginalPrice}
-                    onChange={(event) => setNewPreorderOriginalPrice(Number(event.target.value))}
-                  />
-                </label>
-                <label className="field">
-                  <span>Precio final</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newPreorderFinalPrice}
-                    onChange={(event) => setNewPreorderFinalPrice(Number(event.target.value))}
-                  />
-                </label>
-              </div>
-              {newPreorderFinalPrice < newPreorderOriginalPrice ? (
-                <>
-                  <label className="field">
-                    <span>Tipo de descuento</span>
-                    <select
-                      value={newPreorderDiscountType}
-                      onChange={(event) => setNewPreorderDiscountType(event.target.value)}
-                    >
-                      {support.data?.discountTypes.map((type) => (
-                        <option key={type.code} value={type.code}>
-                          {type.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Motivo</span>
-                    <input
-                      value={newPreorderDiscountReason}
-                      onChange={(event) => setNewPreorderDiscountReason(event.target.value)}
-                    />
-                  </label>
-                </>
-              ) : null}
-              <label className="field">
-                <span>Entrega</span>
-                <select
-                  value={newPreorderDeliveryMode}
-                  onChange={(event) =>
-                    setNewPreorderDeliveryMode(event.target.value as 'PENDING' | 'ACCUMULATED')
-                  }
-                >
-                  <option value="ACCUMULATED">Acumula almacén</option>
-                  <option value="PENDING">Entrega pendiente</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Notas</span>
-                <textarea
-                  rows={3}
-                  value={newPreorderNotes}
-                  onChange={(event) => setNewPreorderNotes(event.target.value)}
-                />
-              </label>
-              <button
-                className="button button-primary button-full"
-                disabled={
-                  createPreorder.isPending ||
-                  !newPreorderItemId ||
-                  !newPreorderClientId ||
-                  newPreorderQuantity <= 0 ||
-                  newPreorderFinalPrice > newPreorderOriginalPrice
-                }
-                onClick={() => createPreorder.mutate()}
-              >
-                <PackageCheck size={16} /> Crear y vincular preventa
-              </button>
-            </div>
-          </Panel>
-
-          <Panel
-            title="Vincular preventa"
-            subtitle="Asigna mercadería esperada a una línea de venta marcada como PREORDER."
-          >
-            <div className="compact-form-stack">
-              <label className="field">
-                <span>Producto importado</span>
-                <select
-                  value={preorderItemId}
-                  onChange={(event) => {
-                    setPreorderItemId(event.target.value);
-                    setPreorderSaleItemId('');
-                  }}
-                >
-                  <option value="">Seleccionar</option>
-                  {data.boxes.flatMap((box) =>
-                    box.items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {box.code} · {item.productName} · {item.variantName}
-                      </option>
-                    )),
-                  )}
-                </select>
-              </label>
-              <label className="field">
-                <span>Venta / cliente</span>
-                <select
-                  value={preorderSaleItemId}
-                  onChange={(event) => setPreorderSaleItemId(event.target.value)}
-                >
-                  <option value="">Seleccionar preventa</option>
-                  {candidates.map((candidate) => (
-                    <option key={candidate.saleItemId} value={candidate.saleItemId}>
-                      {candidate.saleCode} · {candidate.clientName} · quedan{' '}
-                      {candidate.remainingQuantity}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Cantidad</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={preorderQuantity}
-                  onChange={(event) => setPreorderQuantity(Number(event.target.value))}
-                />
-              </label>
-              <button
-                className="button button-secondary button-full"
-                disabled={preorder.isPending || !preorderItemId || !preorderSaleItemId}
-                onClick={() => preorder.mutate()}
-              >
-                <Link2 size={16} /> Vincular preventa
-              </button>
-              {support.data?.preorderCandidates.length === 0 ? (
-                <small>
-                  No hay líneas PREORDER pendientes. Se habilitarán desde el flujo de preventas.
-                </small>
-              ) : null}
-            </div>
-          </Panel>
-
-          <Panel title="Costos registrados">
-            <div className="summary-list">
-              {data.costs.length === 0 ? (
-                <div className="empty-state">Sin costos adicionales</div>
-              ) : (
-                data.costs.slice(0, 8).map((cost) => (
-                  <div key={cost.id}>
-                    <span>
-                      {costLabels[cost.costType] ?? cost.costType}
-                      {cost.boxCode ? ` · ${cost.boxCode}` : ''}
-                    </span>
-                    <strong>{money(cost.amountPen)}</strong>
-                  </div>
-                ))
-              )}
-            </div>
-          </Panel>
-          <Panel title="Incidencias y seguro">
-            <div className="incident-list">
-              {data.incidents.length === 0 ? (
-                <div className="empty-state">Sin incidencias</div>
-              ) : (
-                data.incidents.map((item) => (
-                  <article key={item.id}>
-                    <StatusBadge
-                      tone={
-                        item.status === 'OPEN'
-                          ? 'danger'
-                          : item.status === 'COVERED'
-                            ? 'success'
-                            : 'warning'
-                      }
-                    >
-                      {incidentLabels[item.incidentType] ?? item.incidentType}
-                    </StatusBadge>
-                    <div className="incident-content">
-                      <strong>{item.boxCode ?? data.code}</strong>
-                      <small>{item.description}</small>
-                      {item.insuranceClaims.map((claim) => (
-                        <div className="insurance-claim-row" key={claim.id}>
-                          <span>
-                            Seguro {claim.claimNumber ?? 'sin número'} · {claim.status}
-                          </span>
-                          <strong>
-                            {claim.claimedAmount == null
-                              ? 'Sin importe'
-                              : `${claim.currencyCode ?? ''} ${claim.claimedAmount.toFixed(2)}`}
-                          </strong>
-                          {!['REJECTED', 'CLOSED'].includes(claim.status) ? (
-                            <button
-                              className="button button-secondary button-compact"
-                              disabled={insuranceUpdate.isPending}
-                              onClick={() => {
-                                setInsuranceDraft({ mode: 'UPDATE', claimId: claim.id });
-                                setClaimStatus(claim.status as UpdateInsuranceClaimInput['status']);
-                                setApprovedAmount(
-                                  claim.approvedAmount == null ? '' : String(claim.approvedAmount),
-                                );
-                                setClaimNotes('');
-                              }}
-                            >
-                              Actualizar
-                            </button>
-                          ) : null}
-                        </div>
-                      ))}
-                      {['MISSING', 'DAMAGED'].includes(item.incidentType) &&
-                      item.insuranceClaims.length === 0 ? (
-                        <button
-                          className="button button-secondary button-compact"
-                          disabled={insuranceClaim.isPending}
-                          onClick={() => {
-                            setInsuranceDraft({ mode: 'CREATE', incidentId: item.id });
-                            setClaimNumber('');
-                            setClaimAmount('0');
-                            setClaimCurrency('PEN');
-                            setClaimNotes('');
-                          }}
-                        >
-                          Registrar reclamo al seguro
-                        </button>
-                      ) : null}
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-            <button
-              className="button button-secondary button-full"
-              onClick={() => {
-                setIncidentTarget({ boxId: null, itemId: null });
-                setIncidentType('DELAY');
-                setIncidentDescription('');
-                setIncidentQuantity('1');
-              }}
-            >
-              <AlertTriangle size={16} /> Registrar incidencia general
-            </button>
-          </Panel>
-        </aside>
       </section>
 
-      {transitionDraft ? (
-        <div
-          className="modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setTransitionDraft(null);
-          }}
-        >
-          <form
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="import-transition-title"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (transitionDraft.scope === 'IMPORT') {
-                shipmentTransition.mutate({
-                  nextStateCode: transitionDraft.nextStateCode,
-                  reason: transitionReason,
-                  trackingNumber: transitionDraft.trackingNumber,
-                });
-              } else {
-                boxTransition.mutate({
-                  boxId: transitionDraft.boxId,
-                  nextStateCode: transitionDraft.nextStateCode,
-                  reason: transitionReason,
-                  trackingNumber: transitionDraft.trackingNumber,
-                });
-              }
-            }}
-          >
-            <div className="modal-header">
-              <div>
-                <small>
-                  {transitionDraft.scope === 'IMPORT'
-                    ? 'Importación general'
-                    : 'Caja de importación'}
-                </small>
-                <h2 id="import-transition-title">
-                  {transitionLabels[transitionDraft.nextStateCode] ??
-                    stateLabels[transitionDraft.nextStateCode]}
-                </h2>
-                <p>El cambio quedará registrado en el historial.</p>
-              </div>
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Cerrar"
-                onClick={() => setTransitionDraft(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {['SHIPPED', 'IN_TRANSIT'].includes(transitionDraft.nextStateCode) ? (
-              <label className="field">
-                <span>Tracking {transitionDraft.scope === 'IMPORT' ? 'maestro' : 'de caja'}</span>
-                <input
-                  value={transitionDraft.trackingNumber}
-                  onChange={(event) =>
-                    setTransitionDraft((current) =>
-                      current ? { ...current, trackingNumber: event.target.value } : current,
-                    )
-                  }
-                  placeholder="Opcional"
-                />
-              </label>
-            ) : null}
-            <label className="field">
-              <span>
-                {transitionDraft.nextStateCode === 'CANCELLED'
-                  ? 'Motivo de cancelación'
-                  : 'Detalle o referencia'}{' '}
-                *
-              </span>
-              <textarea
-                rows={4}
-                minLength={3}
-                maxLength={1000}
-                value={transitionReason}
-                onChange={(event) => setTransitionReason(event.target.value)}
-                required
-              />
-            </label>
-            <div className="modal-actions">
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={() => setTransitionDraft(null)}
-              >
-                Volver
-              </button>
-              <button
-                className={
-                  transitionDraft.nextStateCode === 'CANCELLED'
-                    ? 'button button-danger'
-                    : 'button button-primary'
-                }
-                type="submit"
-                disabled={shipmentTransition.isPending || boxTransition.isPending}
-              >
-                {shipmentTransition.isPending || boxTransition.isPending
-                  ? 'Guardando…'
-                  : 'Confirmar cambio'}
-              </button>
-            </div>
-          </form>
+      <Panel title="Cajas" subtitle="Cada caja confirma sus cantidades antes de generar lotes y movimientos de inventario.">
+        <div className="import-box-list">
+          {importData.boxes.map((box) => {
+            const expected = box.items.reduce((sum, item) => sum + item.expectedQuantity, 0);
+            const received = box.items.reduce((sum, item) => sum + item.receivedQuantity, 0);
+            const currentBoxIndex = boxFlow.indexOf(box.stateCode);
+            const boxTransitions = box.allowedTransitions.filter((transition) => transition.stateCode !== 'STOCKED');
+            const nextBox = boxTransitions.find((transition) => transition.stateCode !== 'CANCELLED');
+            const canCancelBox = boxTransitions.some((transition) => transition.stateCode === 'CANCELLED');
+            const repair = isZeroReceiptBox(box);
+            return (
+              <article className={`import-box-card ${repair ? 'import-box-card-error' : ''}`} key={box.id}>
+                <header><div><span className="import-box-icon"><Box size={19} /></span><div><h3>{box.code}</h3><p>{box.trackingNumber ? `Tracking ${box.trackingNumber}` : 'Sin tracking'} · {box.internationalOperatorName ?? 'Sin operador internacional'}</p></div></div><StatusBadge tone={repair ? 'danger' : stateTone(box.stateCode)}>{repair ? 'Recepción inconsistente' : stateLabels[box.stateCode]}</StatusBadge></header>
+                <div className="box-progress-summary"><span>Esperadas <strong>{expected}</strong></span><span>Recibidas <strong>{received}</strong></span><span>Faltantes <strong>{Math.max(0, expected - received)}</strong></span><span>Destino <strong>{[...new Set(box.items.map((item) => item.destinationWarehouseName ?? 'Pendiente'))].join(', ')}</strong></span></div>
+                <div className="responsive-table-wrap"><table className="data-table compact-table"><thead><tr><th>Producto</th><th>Destino</th><th>Esperado</th><th>Recibido</th><th>Preventa</th><th>Costo</th></tr></thead><tbody>{box.items.map((item) => <tr key={item.id}><td><strong>{item.productName}</strong><small>{item.variantName} · {item.sku}</small></td><td>{item.destinationWarehouseName ?? 'Pendiente'}</td><td>{item.expectedQuantity}</td><td>{item.receivedQuantity}</td><td>{item.preorderAllocatedQuantity}</td><td>{money(item.finalUnitCostPen ?? item.originalUnitCost * item.exchangeRateToPen)}</td></tr>)}</tbody></table></div>
+                <div className="box-state-mini-flow">{boxFlow.map((state, index) => <span className={index < currentBoxIndex ? 'complete' : index === currentBoxIndex ? 'current' : ''} key={state} title={stateLabels[state]} />)}</div>
+                {repair ? <ContextNote tone="danger" title="Debe corregirse antes de continuar">La caja figura finalizada, pero no se registraron cantidades ni lotes. Confirma ahora lo que realmente llegó.</ContextNote> : null}
+                <footer className="import-box-actions">
+                  {repair ? <button className="button button-danger" type="button" onClick={() => openReceive(box, true)}><AlertTriangle size={17} /> Corregir recepción</button> : box.canReceive || box.stateCode === 'RECEIVED_PERU' ? <button className="button button-primary" type="button" onClick={() => openReceive(box)}><ClipboardCheck size={17} /> Recibir e ingresar caja a stock</button> : null}
+                  {nextBox ? <button className="button button-secondary" type="button" onClick={() => void changeBoxState(box, nextBox.stateCode, nextBox.name)}><Truck size={16} /> Avanzar a {nextBox.name}</button> : null}
+                  {canCancelBox ? <button className="button button-danger" type="button" onClick={() => void changeBoxState(box, 'CANCELLED', 'Cancelada')}><X size={16} /> Cancelar caja</button> : null}
+                </footer>
+              </article>
+            );
+          })}
         </div>
-      ) : null}
+      </Panel>
 
-      {incidentTarget ? (
-        <div
-          className="modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIncidentTarget(null);
-          }}
-        >
-          <form
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="import-incident-title"
-            onSubmit={(event) => {
-              event.preventDefault();
-              incident.mutate();
-            }}
-          >
-            <div className="modal-header">
-              <div>
-                <small>Trazabilidad logística</small>
-                <h2 id="import-incident-title">Registrar incidencia</h2>
-                <p>
-                  {incidentTarget.itemId
-                    ? 'La incidencia quedará vinculada al producto seleccionado.'
-                    : 'Incidencia general de la importación.'}
-                </p>
-              </div>
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Cerrar"
-                onClick={() => setIncidentTarget(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="form-grid form-grid-2">
-              <label className="field">
-                <span>Tipo *</span>
-                <select
-                  value={incidentType}
-                  onChange={(event) => setIncidentType(event.target.value as ImportIncidentType)}
-                >
-                  {Object.entries(incidentLabels).map(([code, label]) => (
-                    <option value={code} key={code}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {incidentTarget.itemId ? (
-                <label className="field">
-                  <span>Cantidad afectada</span>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={incidentQuantity}
-                    onChange={(event) => setIncidentQuantity(event.target.value)}
-                  />
-                </label>
-              ) : null}
-            </div>
-            <label className="field">
-              <span>Descripción *</span>
-              <textarea
-                rows={4}
-                minLength={3}
-                maxLength={1000}
-                value={incidentDescription}
-                onChange={(event) => setIncidentDescription(event.target.value)}
-                required
-              />
-            </label>
-            <div className="modal-actions">
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={() => setIncidentTarget(null)}
-              >
-                Volver
-              </button>
-              <button className="button button-primary" type="submit" disabled={incident.isPending}>
-                {incident.isPending ? 'Registrando…' : 'Guardar incidencia'}
-              </button>
-            </div>
+      <section className="import-management-grid">
+        <Panel title="Registrar costo" subtitle="El tipo de cambio es 1 cuando la moneda es soles; el costo unitario se recalcula automáticamente.">
+          {Object.keys(costErrors).length > 0 ? <div className="form-error-summary">Corrige los campos marcados en rojo.</div> : null}
+          <form className="form-grid form-grid-2" onSubmit={submitCost} noValidate>
+            <SearchableSelect label="Tipo" required value={costType} options={Object.entries(costLabels).map(([value, label]) => ({ value, label }))} onChange={(value) => setCostType(value as CreateImportCostInput['costType'])} />
+            <SearchableSelect label="Caja opcional" value={costBoxId} allowClear options={importData.boxes.map((box) => ({ value: box.id, label: box.code }))} onChange={setCostBoxId} />
+            <label className={`field ${costErrors.amount ? 'field-invalid' : ''}`}><span>Importe *</span><input type="number" min="0.01" step="0.01" value={costAmount} onChange={(event) => { setCostAmount(event.target.value.replace(/^0+(?=\d)/, '')); setCostErrors((current) => ({ ...current, amount: '' })); }} />{costErrors.amount ? <small className="field-error">{costErrors.amount}</small> : null}</label>
+            <SearchableSelect label="Moneda" required value={costCurrency} options={(support.data?.currencies ?? []).map((currency) => ({ value: currency.code, label: `${currency.code} · ${currency.name}` }))} onChange={(value) => { setCostCurrency(value); if (value === 'PEN') setCostExchangeRate('1'); }} />
+            <label className={`field ${costErrors.exchangeRate ? 'field-invalid' : ''}`}><span>Tipo de cambio a soles *</span><input type="number" min="0.000001" step="0.000001" value={costCurrency === 'PEN' ? '1' : costExchangeRate} disabled={costCurrency === 'PEN'} onChange={(event) => { setCostExchangeRate(event.target.value); setCostErrors((current) => ({ ...current, exchangeRate: '' })); }} />{costCurrency === 'PEN' ? <small>En soles siempre equivale a 1.</small> : null}{costErrors.exchangeRate ? <small className="field-error">{costErrors.exchangeRate}</small> : null}</label>
+            <label className="field"><span>Descripción</span><input value={costDescription} onChange={(event) => setCostDescription(event.target.value)} /></label>
+            <div className="field-span-2"><button className="button button-primary button-full" type="submit" disabled={costMutation.isPending}>{costMutation.isPending ? <BusyLabel label="Registrando…" /> : <><CircleDollarSign size={17} /> Registrar costo</>}</button></div>
           </form>
-        </div>
-      ) : null}
+        </Panel>
 
-      {insuranceDraft ? (
-        <div
-          className="modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setInsuranceDraft(null);
-          }}
-        >
-          <form
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="insurance-claim-title"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (insuranceDraft.mode === 'CREATE') insuranceClaim.mutate();
-              else insuranceUpdate.mutate();
-            }}
-          >
-            <div className="modal-header">
-              <div>
-                <small>Seguro de importación</small>
-                <h2 id="insurance-claim-title">
-                  {insuranceDraft.mode === 'CREATE' ? 'Registrar reclamo' : 'Actualizar reclamo'}
-                </h2>
-                <p>Conserva la referencia, los importes y el detalle de cada decisión.</p>
-              </div>
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Cerrar"
-                onClick={() => setInsuranceDraft(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {insuranceDraft.mode === 'CREATE' ? (
-              <div className="form-grid form-grid-2">
-                <label className="field">
-                  <span>Número o referencia</span>
-                  <input
-                    value={claimNumber}
-                    onChange={(event) => setClaimNumber(event.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>Importe reclamado *</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={claimAmount}
-                    onChange={(event) => setClaimAmount(event.target.value)}
-                    required
-                  />
-                </label>
-                <label className="field">
-                  <span>Moneda *</span>
-                  <select
-                    value={claimCurrency}
-                    onChange={(event) => setClaimCurrency(event.target.value)}
-                  >
-                    {support.data?.currencies.map((currency) => (
-                      <option value={currency.code} key={currency.code}>
-                        {currency.code}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            ) : (
-              <div className="form-grid form-grid-2">
-                <label className="field">
-                  <span>Estado *</span>
-                  <select
-                    value={claimStatus}
-                    onChange={(event) =>
-                      setClaimStatus(event.target.value as UpdateInsuranceClaimInput['status'])
-                    }
-                  >
-                    {insuranceStatuses.map((status) => (
-                      <option value={status} key={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {['APPROVED', 'PARTIALLY_APPROVED', 'PAID', 'CLOSED'].includes(claimStatus) ? (
-                  <label className="field">
-                    <span>Importe aprobado</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={approvedAmount}
-                      onChange={(event) => setApprovedAmount(event.target.value)}
-                    />
-                  </label>
-                ) : null}
-              </div>
-            )}
-            <label className="field">
-              <span>
-                {insuranceDraft.mode === 'CREATE'
-                  ? 'Detalle del reclamo'
-                  : 'Detalle de la actualización'}{' '}
-                {insuranceDraft.mode === 'UPDATE' ? '*' : ''}
-              </span>
-              <textarea
-                rows={4}
-                minLength={insuranceDraft.mode === 'UPDATE' ? 3 : undefined}
-                maxLength={1000}
-                value={claimNotes}
-                onChange={(event) => setClaimNotes(event.target.value)}
-                required={insuranceDraft.mode === 'UPDATE'}
-              />
-            </label>
-            <div className="modal-actions">
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={() => setInsuranceDraft(null)}
-              >
-                Volver
-              </button>
-              <button
-                className="button button-primary"
-                type="submit"
-                disabled={insuranceClaim.isPending || insuranceUpdate.isPending}
-              >
-                {insuranceClaim.isPending || insuranceUpdate.isPending ? 'Guardando…' : 'Confirmar'}
-              </button>
-            </div>
+        <Panel title="Registrar incidencia" subtitle="Explica qué ocurrió para que la usuaria sepa cómo resolverlo.">
+          {Object.keys(incidentErrors).length > 0 ? <div className="form-error-summary">Corrige los campos marcados en rojo.</div> : null}
+          <form className="form-grid form-grid-2" onSubmit={submitIncident} noValidate>
+            <SearchableSelect label="Tipo" required value={incidentType} options={Object.entries(incidentLabels).map(([value, label]) => ({ value, label }))} onChange={(value) => setIncidentType(value as CreateImportIncidentInput['incidentType'])} />
+            <SearchableSelect label="Caja opcional" value={incidentBoxId} allowClear options={importData.boxes.map((box) => ({ value: box.id, label: box.code }))} onChange={(value) => { setIncidentBoxId(value); setIncidentItemId(''); }} />
+            <div className="field-span-2"><SearchableSelect label="Producto afectado opcional" value={incidentItemId} allowClear disabled={!incidentBoxId} placeholder={incidentBoxId ? 'Seleccionar producto' : 'Selecciona una caja primero'} options={allItems.filter((item) => item.boxId === incidentBoxId).map((item) => ({ value: item.id, label: `${item.productName} · ${item.variantName}`, description: item.sku }))} onChange={setIncidentItemId} /></div>
+            <label className={`field ${incidentErrors.quantity ? 'field-invalid' : ''}`}><span>Cantidad afectada</span><input type="number" min="1" step="1" value={incidentQuantity} onChange={(event) => { setIncidentQuantity(event.target.value.replace(/^0+(?=\d)/, '')); setIncidentErrors((current) => ({ ...current, quantity: '' })); }} />{incidentErrors.quantity ? <small className="field-error">{incidentErrors.quantity}</small> : null}</label>
+            <label className={`field field-span-2 ${incidentErrors.description ? 'field-invalid' : ''}`}><span>Descripción *</span><textarea rows={4} value={incidentDescription} onChange={(event) => { setIncidentDescription(event.target.value); setIncidentErrors((current) => ({ ...current, description: '' })); }} placeholder="Describe el problema, la evidencia y el siguiente paso recomendado…" />{incidentErrors.description ? <small className="field-error">{incidentErrors.description}</small> : null}</label>
+            <div className="field-span-2"><button className="button button-primary button-full" type="submit" disabled={incidentMutation.isPending}>{incidentMutation.isPending ? <BusyLabel label="Registrando…" /> : <><ShieldAlert size={17} /> Registrar incidencia</>}</button></div>
           </form>
-        </div>
-      ) : null}
+        </Panel>
+      </section>
 
-      {receivingBox ? (
-        <div
-          className="modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setReceiveBoxId(null);
-          }}
-        >
-          <form
-            className="modal-card modal-card-wide"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="receive-box-title"
-            onSubmit={(event) => {
-              event.preventDefault();
-              receive.mutate(receivingBox.id);
-            }}
-          >
-            <div className="modal-header">
-              <div>
-                <small>Recepción de mercadería</small>
-                <h2 id="receive-box-title">Ingresar {receivingBox.code} a stock</h2>
-                <p>Confirma cantidades; el costo unitario se calcula automáticamente.</p>
-              </div>
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Cerrar"
-                onClick={() => setReceiveBoxId(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="receive-item-list">
-              {receivingBox.items.map((item) => {
-                const finalCost =
-                  item.finalUnitCostPen ?? item.originalUnitCost * item.exchangeRateToPen;
-                return (
-                  <article className="receive-item-row" key={item.id}>
-                    <div>
-                      <strong>{item.productName}</strong>
-                      <small>
-                        {item.variantName} · {item.sku}
-                      </small>
-                    </div>
-                    <label className="field">
-                      <span>Esperado</span>
-                      <input value={item.expectedQuantity} disabled />
-                    </label>
-                    <label className="field">
-                      <span>Recibido *</span>
-                      <input
-                        type="number"
-                        min={item.preorderAllocatedQuantity}
-                        max={item.expectedQuantity}
-                        value={receiveQuantities[item.id] ?? item.expectedQuantity}
-                        onChange={(event) =>
-                          setReceiveQuantities((current) => ({
-                            ...current,
-                            [item.id]: Number(event.target.value),
-                          }))
-                        }
-                        required
-                      />
-                    </label>
-                    <div className="calculated-cost">
-                      <span>Costo calculado</span>
-                      <strong>{money(finalCost)}</strong>
-                      <small>Incluye los costos asignados</small>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-            <div className="alert alert-info">
-              Si falta mercadería, el sistema registrará automáticamente la incidencia. Los costos
-              añadidos después se guardarán como ajustes separados del lote.
-            </div>
-            <label className="field">
-              <span>Motivo o referencia *</span>
-              <textarea
-                rows={3}
-                minLength={3}
-                maxLength={1000}
-                value={receiveReason}
-                onChange={(event) => setReceiveReason(event.target.value)}
-                required
-              />
-            </label>
-            {receive.isError ? (
-              <div className="alert alert-error">
-                {receive.error instanceof Error
-                  ? receive.error.message
-                  : 'No se pudo ingresar la caja.'}
-              </div>
-            ) : null}
-            <div className="modal-actions">
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={() => setReceiveBoxId(null)}
-              >
-                Cancelar
-              </button>
-              <button
-                className="button button-primary"
-                type="submit"
-                disabled={
-                  receive.isPending ||
-                  receiveReason.trim().length < 3 ||
-                  receivingBox.items.some((item) => {
-                    const quantity = receiveQuantities[item.id] ?? item.expectedQuantity;
-                    return (
-                      quantity < item.preorderAllocatedQuantity || quantity > item.expectedQuantity
-                    );
-                  })
-                }
-              >
-                {receive.isPending ? 'Ingresando…' : 'Confirmar ingreso'}
-              </button>
-            </div>
+      <Panel title="Vincular preventa" subtitle="Relaciona una venta pendiente con una línea de la importación para separar unidades al recibirlas.">
+        <div className="form-grid form-grid-3">
+          <SearchableSelect label="Producto de la importación" value={allocationItemId} options={allItems.map((item) => ({ value: item.id, label: `${item.productName} · ${item.variantName}`, description: `${item.boxCode} · ${item.sku}` }))} onChange={(value) => { setAllocationItemId(value); setCandidateSaleItemId(''); }} />
+          <SearchableSelect label="Preventa pendiente" value={candidateSaleItemId} disabled={!allocationItemId} placeholder={allocationItemId ? 'Seleccionar preventa' : 'Selecciona un producto primero'} options={filteredCandidates.map((candidate) => ({ value: candidate.saleItemId, label: `${candidate.saleCode} · ${candidate.clientName}`, description: `${candidate.productName} · ${candidate.remainingQuantity} pendientes` }))} onChange={setCandidateSaleItemId} />
+          <label className="field"><span>Cantidad *</span><input type="number" min="1" step="1" value={allocationQuantity} onChange={(event) => setAllocationQuantity(event.target.value.replace(/^0+(?=\d)/, ''))} /></label>
+        </div>
+        <button className="button button-primary" type="button" disabled={!allocationItemId || !candidateSaleItemId || Number(allocationQuantity) <= 0 || allocationMutation.isPending} onClick={() => allocationMutation.mutate()}>{allocationMutation.isPending ? <BusyLabel label="Vinculando…" /> : <><Link2 size={17} /> Vincular preventa</>}</button>
+      </Panel>
+
+      <section className="import-lower-grid">
+        <Panel title="Costos registrados" subtitle={`${importData.costs.length} costos adicionales.`}>
+          <div className="record-list">{importData.costs.length === 0 ? <div className="empty-state">No hay costos adicionales.</div> : importData.costs.map((cost) => <article key={cost.id}><div><strong>{costLabels[cost.costType as CreateImportCostInput['costType']] ?? cost.costType}</strong><small>{cost.boxCode ?? 'Toda la importación'} · {cost.description ?? 'Sin descripción'}</small></div><b>{money(cost.amount, cost.currencyCode)}<small>{money(cost.amountPen)} en soles</small></b></article>)}</div>
+        </Panel>
+
+        <Panel title="Incidencias y seguros" subtitle="Problemas abiertos y su seguimiento.">
+          <div className="incident-list">{importData.incidents.length === 0 ? <div className="empty-state">No hay incidencias registradas.</div> : importData.incidents.map((incident) => <article className="incident-card" key={incident.id}><header><div><strong>{incidentLabels[incident.incidentType as CreateImportIncidentInput['incidentType']] ?? incident.incidentType}</strong><small>{incident.boxCode ?? 'Importación general'} · {dateTimeLabel(incident.occurredAt)}</small></div><StatusBadge tone={incident.status === 'OPEN' ? 'warning' : 'success'}>{incident.status === 'OPEN' ? 'Abierta' : 'Resuelta'}</StatusBadge></header><p>{incident.description}</p><div className="row-actions"><button className="button button-secondary button-compact" type="button" onClick={() => void addClaim(incident)}><Plus size={14} /> Reclamo al seguro</button></div>{incident.insuranceClaims.map((claim) => <div className="insurance-claim-row" key={claim.id}><span><strong>{claim.claimNumber ?? 'Reclamo sin número'}</strong><small>{claimLabels[claim.status] ?? claim.status} · {money(claim.claimedAmount ?? 0, claim.currencyCode ?? 'PEN')}</small></span><button className="link-button" type="button" onClick={() => void resolveClaim(claim.id, claim.status)}>Actualizar</button></div>)}</article>)}</div>
+        </Panel>
+      </section>
+
+      <Panel title="Historial" subtitle="Cada cambio conserva estado, fecha, responsable y motivo.">
+        <div className="history-timeline">{importData.history.length === 0 ? <div className="empty-state">Aún no hay cambios registrados.</div> : importData.history.map((event) => <article key={event.id}><span className="history-marker" /><div><strong>{event.entityCode}: {event.previousStateCode ? `${stateLabels[event.previousStateCode] ?? event.previousStateCode} → ` : ''}{stateLabels[event.newStateCode] ?? event.newStateCode}</strong><p>{event.reason ?? 'Sin motivo registrado'}</p><small>{event.changedByName ?? 'Sistema'} · {dateTimeLabel(event.changedAt)}</small></div></article>)}</div>
+      </Panel>
+
+      {receiveDialog ? (
+        <div className="app-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setReceiveDialog(null); }}>
+          <form className="app-modal-card modal-card-wide receive-box-modal" role="dialog" aria-modal="true" aria-labelledby="receive-box-title" onSubmit={(event) => void submitReceive(event)}>
+            <header className="app-modal-header"><div><span className="eyebrow">Recepción física</span><h2 id="receive-box-title">{receiveDialog.repair ? `Corregir ${receiveDialog.box.code}` : `Recibir ${receiveDialog.box.code}`}</h2><p>Confirma cada cantidad. El sistema creará lotes, incidencias por faltantes y un único movimiento de inventario.</p></div><button className="icon-button" type="button" aria-label="Cerrar" onClick={() => setReceiveDialog(null)}><X size={20} /></button></header>
+            {Object.keys(receiveDialog.errors).length > 0 ? <div className="form-error-summary" role="alert">No se pudo continuar. Corrige los campos marcados en rojo.</div> : null}
+            {receiveDialog.repair ? <ContextNote tone="danger" title="Corrección excepcional">Esta opción solo repara una caja histórica que terminó en stock con cero recibidos y sin lotes. No duplica una recepción válida.</ContextNote> : <ContextNote>La cantidad sugerida coincide con lo esperado. Cámbiala si faltaron unidades o llegaron menos productos.</ContextNote>}
+            <div className="receive-items-list">{receiveDialog.box.items.map((item) => <section className="receive-item-card" key={item.id}><div><strong>{item.productName}</strong><small>{item.variantName} · {item.sku} · Destino: {item.destinationWarehouseName ?? 'Pendiente'}</small></div><div className="receive-item-fields"><label className={`field ${receiveDialog.errors[item.id] ? 'field-invalid' : ''}`}><span>Esperado</span><input value={item.expectedQuantity} disabled /></label><label className={`field ${receiveDialog.errors[item.id] ? 'field-invalid' : ''}`}><span>Recibido *</span><input type="number" min="0" max={item.expectedQuantity} step="1" value={receiveDialog.quantities[item.id] ?? ''} onChange={(event) => setReceiveDialog({ ...receiveDialog, quantities: { ...receiveDialog.quantities, [item.id]: event.target.value.replace(/^0+(?=\d)/, '') }, errors: { ...receiveDialog.errors, [item.id]: '' } })} />{receiveDialog.errors[item.id] ? <small className="field-error">{receiveDialog.errors[item.id]}</small> : null}</label><label className="field receive-notes"><span>Nota de la línea</span><input value={receiveDialog.notes[item.id] ?? ''} onChange={(event) => setReceiveDialog({ ...receiveDialog, notes: { ...receiveDialog.notes, [item.id]: event.target.value } })} placeholder="Ej. Llegó una unidad con caja dañada…" /></label></div></section>)}</div>
+            {receiveDialog.errors.total ? <div className="alert alert-error">{receiveDialog.errors.total}</div> : null}
+            <label className={`field ${receiveDialog.errors.reason ? 'field-invalid' : ''}`}><span>Motivo de la recepción *</span><textarea rows={3} value={receiveDialog.reason} onChange={(event) => setReceiveDialog({ ...receiveDialog, reason: event.target.value, errors: { ...receiveDialog.errors, reason: '' } })} />{receiveDialog.errors.reason ? <small className="field-error">{receiveDialog.errors.reason}</small> : null}</label>
+            <div className="receive-summary"><span>Esperadas <strong>{receiveDialog.box.items.reduce((sum, item) => sum + item.expectedQuantity, 0)}</strong></span><span>Se recibirán <strong>{receiveDialog.box.items.reduce((sum, item) => sum + (Number(receiveDialog.quantities[item.id]) || 0), 0)}</strong></span><span>Diferencia <strong>{receiveDialog.box.items.reduce((sum, item) => sum + item.expectedQuantity, 0) - receiveDialog.box.items.reduce((sum, item) => sum + (Number(receiveDialog.quantities[item.id]) || 0), 0)}</strong></span></div>
+            <footer className="app-modal-actions"><button className="button button-secondary" type="button" onClick={() => { setReceiveDialog(null); notify({ title: 'Recepción cancelada', message: 'No se modificó el inventario.', tone: 'info' }); }}>Cancelar</button><button className={receiveDialog.repair ? 'button button-danger' : 'button button-primary'} type="submit" disabled={receiveMutation.isPending}>{receiveMutation.isPending ? <BusyLabel label="Procesando…" /> : receiveDialog.repair ? 'Corregir e ingresar stock' : 'Revisar y confirmar recepción'}</button></footer>
           </form>
         </div>
       ) : null}
