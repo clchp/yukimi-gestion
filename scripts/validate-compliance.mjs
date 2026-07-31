@@ -80,7 +80,11 @@ for (const name of functions)
     `Falta la función ${name}.`,
   );
 
-requirePattern(products, /downloadQrLabel/, 'La pantalla de productos no descarga etiquetas QR.');
+requirePattern(
+  products,
+  /downloadProductLabelPng|downloadQrLabel/,
+  'La pantalla de productos no descarga etiquetas QR.',
+);
 requirePattern(products, /exportProducts/, 'La pantalla de productos no exporta el catálogo.');
 requirePattern(
   sales,
