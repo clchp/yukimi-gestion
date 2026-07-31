@@ -28,6 +28,7 @@
   - `Adelanto mínimo requerido para esta reserva`.
   - `Acumula almacén`.
   - `Entrega por coordinar`.
+  - `Costo unitario`.
   - Cualquier otro término que pueda ser ambiguo para una administradora.
 - El recuadro debe poder cerrarse al retirar el cursor, tocar fuera o presionar Escape, según el dispositivo.
 - No debe tapar campos importantes ni salirse del contenedor.
@@ -122,12 +123,31 @@ Los estados de pago y de entrega deben permanecer en columnas separadas para no 
 - Alternativamente, si el negocio decide permitir reservar primero y cobrar después, esa regla debe quedar definida expresamente y el campo no debe llamarse `adelanto mínimo requerido` porque ya no estaría bloqueando la reserva.
 - Mostrar el estado en español: `Reservada`, no `RESERVED`.
 
+## Hallazgo adicional — inventario no distingue visualmente unidades acumuladas
+
+- En el listado general de productos se muestran las columnas `Disponible`, `Reservado` y `En tránsito`, pero no aparece una columna `Acumulado`.
+- La especificación exige controlar y mostrar por separado las unidades disponibles, reservadas, en preventa, en tránsito y acumuladas.
+- Cuando una venta tiene entrega `Acumula almacén`, las unidades deben dejar de figurar únicamente como `Reservado` y pasar al estado o cantidad `Acumulado`, manteniéndose fuera del stock disponible.
+- Si las cinco unidades mostradas como reservadas para `Figura de acción Bulma` corresponden realmente a ventas con `Acumula almacén`, existe una clasificación incorrecta o una vista incompleta.
+- Agregar la columna `Acumulado` al listado general o una vista equivalente claramente visible; no ocultar ese estado únicamente dentro del detalle.
+- Mantener `Reservado` para unidades separadas cuya entrega todavía está pendiente de definición o ejecución.
+
+## Aclaración de `Costo unitario` en el inventario inicial por almacén
+
+- `Costo unitario` es cuánto le costó al negocio adquirir una unidad del producto que ingresa a ese almacén; no es el precio de venta al cliente.
+- Se solicita por almacén porque el mismo producto puede haber ingresado en compras, lotes, monedas o momentos distintos, con costos diferentes.
+- Ejemplo en soles: si se agregan 3 figuras al almacén Camila y cada una costó S/ 80, registrar `Cantidad: 3`, `Costo unitario: 80`, `Moneda: PEN` y `Tipo de cambio: 1`.
+- Ejemplo en dólares: si cada unidad costó USD 20, registrar `Costo unitario: 20`, `Moneda: USD` y el tipo de cambio utilizado en la compra.
+- Ese dato sirve para valorar el inventario y calcular posteriormente la ganancia: precio de venta menos costo de la unidad.
+- Si la cantidad inicial de un almacén es cero, el costo unitario puede mantenerse en cero.
+- Añadir un icono `(i)` junto a `Costo unitario` con el texto: `Costo de adquisición de una unidad en este almacén. No es el precio de venta.`
+
 ## Clasificación
 
-- **Defectos funcionales prioritarios:** QR ausente en la etiqueta y reserva VIP confirmada sin cumplir el adelanto mínimo.
-- **Defectos visuales:** etiqueta descentrada, buscadores pegados al borde, información de cliente amontonada.
+- **Defectos funcionales prioritarios:** QR ausente en la etiqueta, reserva VIP confirmada sin cumplir el adelanto mínimo y falta de separación visible entre unidades reservadas y acumuladas.
+- **Defectos visuales:** etiqueta descentrada, buscadores pegados al borde, información de cliente amontonada y ausencia de la columna `Acumulado`.
 - **Internacionalización pendiente:** estados técnicos en inglés.
-- **Aclaraciones de negocio y UX:** ayudas mediante `(i)`, significado de Reservadas y funcionamiento del adelanto VIP.
+- **Aclaraciones de negocio y UX:** ayudas mediante `(i)`, significado de Reservadas, funcionamiento del adelanto VIP y significado del costo unitario.
 - **Cambio pendiente ya confirmado:** periodo `Total` y tooltip del gráfico.
 
 ## Estado
