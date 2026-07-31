@@ -32,7 +32,7 @@ export class SupabaseAdminRepository implements AdminRepository {
         this.client
           .from('profiles')
           .select(
-            'id,display_name,email_snapshot,phone,is_active,version,user_roles!inner(role_code,revoked_at)',
+            'id,display_name,email_snapshot,phone,is_active,version,user_roles!user_roles_user_id_fkey!inner(role_code,revoked_at)',
           )
           .eq('user_roles.role_code', 'ADMIN')
           .is('user_roles.revoked_at', null)
