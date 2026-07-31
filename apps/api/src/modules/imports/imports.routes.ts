@@ -6,8 +6,8 @@ import {
   createImportIncidentSchema,
   createInsuranceClaimSchema,
   createImportPartnerSchema,
-  createPreorderSaleSchema,
   createImportSchema,
+  createPreorderSaleSchema,
   importFilterSchema,
   receiveImportBoxSchema,
   updateImportBoxStateSchema,
@@ -219,6 +219,22 @@ export function createImportsRouter(
       const key = request.header('idempotency-key')?.trim() || randomUUID();
       response.json({
         data: await serviceFor(request).receiveBox(
+          boxId,
+          receiveImportBoxSchema.parse(request.body),
+          key,
+        ),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/boxes/:boxId/repair-zero-receipt', async (request, response, next) => {
+    try {
+      const boxId = z.string().uuid().parse(request.params.boxId);
+      const key = request.header('idempotency-key')?.trim() || randomUUID();
+      response.json({
+        data: await serviceFor(request).repairZeroReceivedBox(
           boxId,
           receiveImportBoxSchema.parse(request.body),
           key,
