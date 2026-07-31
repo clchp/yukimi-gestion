@@ -105,9 +105,26 @@ Los estados de pago y de entrega deben permanecer en columnas separadas para no 
 8. Evitar un espacio vertical excesivo y una barra de desplazamiento innecesaria cuando la etiqueta cabe en pantalla.
 9. Validar la etiqueta descargada y la impresa con un lector de QR antes de considerar el caso aprobado.
 
+## Hallazgo adicional — reserva VIP confirmada sin cumplir el adelanto
+
+- En la venta `VTA-0000012` se observa simultáneamente:
+  - Estado comercial `RESERVED`.
+  - Estado de pago `Sin pago`.
+  - Pagado `S/ 0.00`.
+  - Adelanto mínimo acordado `S/ 10.00`.
+- Esta combinación solo sería válida si el perfil VIP tuviera habilitada expresamente la reserva sin adelanto; en ese caso, el adelanto mínimo debería ser `S/ 0.00` o la interfaz debería explicar por qué se permite reservar antes de cumplirlo.
+- Si el perfil VIP no permite reservar sin adelanto, la venta no debe quedar en estado reservado mientras los pagos confirmados sean inferiores a S/ 10.00.
+- Flujo esperado cuando no existe permiso para reservar sin adelanto:
+  1. La administradora define el adelanto mínimo.
+  2. La venta queda pendiente de adelanto o en borrador, sin retirar definitivamente las unidades del stock disponible.
+  3. Se registra y confirma un pago igual o superior al adelanto mínimo.
+  4. Recién entonces la venta pasa a `Reservada` y el stock se separa para el cliente.
+- Alternativamente, si el negocio decide permitir reservar primero y cobrar después, esa regla debe quedar definida expresamente y el campo no debe llamarse `adelanto mínimo requerido` porque ya no estaría bloqueando la reserva.
+- Mostrar el estado en español: `Reservada`, no `RESERVED`.
+
 ## Clasificación
 
-- **Defecto funcional prioritario:** QR ausente en la etiqueta.
+- **Defectos funcionales prioritarios:** QR ausente en la etiqueta y reserva VIP confirmada sin cumplir el adelanto mínimo.
 - **Defectos visuales:** etiqueta descentrada, buscadores pegados al borde, información de cliente amontonada.
 - **Internacionalización pendiente:** estados técnicos en inglés.
 - **Aclaraciones de negocio y UX:** ayudas mediante `(i)`, significado de Reservadas y funcionamiento del adelanto VIP.
