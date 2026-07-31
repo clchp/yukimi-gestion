@@ -4,6 +4,7 @@ import {
   attachmentRegistrationSchema,
   createInventoryMovementSchema,
   createProductSchema,
+  updateProductSchema,
 } from '@yukimi/shared';
 import { z } from 'zod';
 import type { SupabaseAuthGateway } from '../auth/supabase-auth.gateway.js';
@@ -55,6 +56,19 @@ function accessTokenOrThrow(token: string | undefined): string {
   return token;
 }
 
+function serviceFor(
+  token: string | undefined,
+  actorId: string | undefined,
+  clientFactory: UserSupabaseClientFactory,
+) {
+  return new ProductService(
+    new SupabaseProductRepository(
+      clientFactory.create(accessTokenOrThrow(token)),
+      actorIdOrThrow(actorId),
+    ),
+  );
+}
+
 export function createProductsRouter(
   authGateway: SupabaseAuthGateway,
   clientFactory: UserSupabaseClientFactory,
@@ -65,11 +79,10 @@ export function createProductsRouter(
   router.get('/', async (request, response, next) => {
     try {
       const query = productListQuerySchema.parse(request.query);
-      const service = new ProductService(
-        new SupabaseProductRepository(
-          clientFactory.create(accessTokenOrThrow(request.currentAccessToken)),
-          actorIdOrThrow(request.currentUser?.id),
-        ),
+      const service = serviceFor(
+        request.currentAccessToken,
+        request.currentUser?.id,
+        clientFactory,
       );
       response.json({ data: await service.list(query) });
     } catch (error) {
@@ -81,11 +94,10 @@ export function createProductsRouter(
     try {
       const input = createProductSchema.parse(request.body);
       const idempotencyKey = request.header('idempotency-key')?.trim() || randomUUID();
-      const service = new ProductService(
-        new SupabaseProductRepository(
-          clientFactory.create(accessTokenOrThrow(request.currentAccessToken)),
-          actorIdOrThrow(request.currentUser?.id),
-        ),
+      const service = serviceFor(
+        request.currentAccessToken,
+        request.currentUser?.id,
+        clientFactory,
       );
       response.status(201).json({ data: await service.create(input, idempotencyKey) });
     } catch (error) {
@@ -97,11 +109,10 @@ export function createProductsRouter(
     try {
       const input = createInventoryMovementSchema.parse(request.body);
       const idempotencyKey = request.header('idempotency-key')?.trim() || randomUUID();
-      const service = new ProductService(
-        new SupabaseProductRepository(
-          clientFactory.create(accessTokenOrThrow(request.currentAccessToken)),
-          actorIdOrThrow(request.currentUser?.id),
-        ),
+      const service = serviceFor(
+        request.currentAccessToken,
+        request.currentUser?.id,
+        clientFactory,
       );
       response
         .status(201)
@@ -114,13 +125,41 @@ export function createProductsRouter(
   router.get('/inventory/summary', async (request, response, next) => {
     try {
       const query = inventoryQuerySchema.parse(request.query);
-      const service = new ProductService(
-        new SupabaseProductRepository(
-          clientFactory.create(accessTokenOrThrow(request.currentAccessToken)),
-          actorIdOrThrow(request.currentUser?.id),
-        ),
+      const service = serviceFor(
+        request.currentAccessToken,
+        request.currentUser?.id,
+        clientFactory,
       );
       response.json({ data: await service.listInventory(query) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/:productId', async (request, response, next) => {
+    try {
+      const productId = z.string().uuid().parse(request.params.productId);
+      const service = serviceFor(
+        request.currentAccessToken,
+        request.currentUser?.id,
+        clientFactory,
+      );
+      response.json({ data: await service.get(productId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch('/:productId', async (request, response, next) => {
+    try {
+      const productId = z.string().uuid().parse(request.params.productId);
+      const input = updateProductSchema.parse(request.body);
+      const service = serviceFor(
+        request.currentAccessToken,
+        request.currentUser?.id,
+        clientFactory,
+      );
+      response.json({ data: await service.update(productId, input) });
     } catch (error) {
       next(error);
     }
@@ -130,11 +169,10 @@ export function createProductsRouter(
     try {
       const productId = z.string().uuid().parse(request.params.productId);
       const input = attachmentRegistrationSchema.parse(request.body);
-      const service = new ProductService(
-        new SupabaseProductRepository(
-          clientFactory.create(accessTokenOrThrow(request.currentAccessToken)),
-          actorIdOrThrow(request.currentUser?.id),
-        ),
+      const service = serviceFor(
+        request.currentAccessToken,
+        request.currentUser?.id,
+        clientFactory,
       );
       response.status(201).json({ data: await service.registerAttachment(productId, input) });
     } catch (error) {
