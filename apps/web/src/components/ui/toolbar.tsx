@@ -1,42 +1,68 @@
-import { Filter, Search } from 'lucide-react';
-import type { ChangeEvent, PropsWithChildren } from 'react';
+import { Columns3, Search, SlidersHorizontal } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-interface ToolbarProps extends PropsWithChildren {
+interface ToolbarProps {
   placeholder?: string;
   value?: string;
   onChange?: (value: string) => void;
+  searchAriaLabel?: string;
   showFilterButton?: boolean;
+  onFilterClick?: () => void;
+  filterCount?: number;
+  showColumnButton?: boolean;
+  onColumnsClick?: () => void;
+  columnsDisabled?: boolean;
+  className?: string;
+  children?: ReactNode;
 }
 
 export function Toolbar({
   placeholder = 'Buscar…',
-  value,
+  value = '',
   onChange,
+  searchAriaLabel = 'Buscar',
   showFilterButton = true,
+  onFilterClick,
+  filterCount = 0,
+  showColumnButton = false,
+  onColumnsClick,
+  columnsDisabled = false,
+  className,
   children,
 }: ToolbarProps) {
-  function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    onChange?.(event.target.value);
-  }
-
   return (
-    <div className="toolbar">
-      <label className="search-field">
-        <Search size={18} aria-hidden="true" />
+    <div className={`table-toolbar ${className ?? ''}`.trim()}>
+      <label className="toolbar-search">
+        <Search size={18} />
         <input
-          aria-label={placeholder}
+          aria-label={searchAriaLabel}
           placeholder={placeholder}
           value={value}
-          onChange={onChange ? handleChange : undefined}
+          onChange={(event) => onChange?.(event.target.value)}
         />
       </label>
       <div className="toolbar-actions">
-        {showFilterButton ? (
-          <button className="button button-secondary button-compact" type="button">
-            <Filter size={17} /> Filtros
+        {children}
+        {showFilterButton && onFilterClick ? (
+          <button
+            className="button button-secondary button-compact"
+            type="button"
+            onClick={onFilterClick}
+          >
+            <SlidersHorizontal size={16} /> Filtros
+            {filterCount > 0 ? <span className="filter-count-badge">{filterCount}</span> : null}
           </button>
         ) : null}
-        {children}
+        {showColumnButton && onColumnsClick ? (
+          <button
+            className="button button-secondary button-compact"
+            type="button"
+            disabled={columnsDisabled}
+            onClick={onColumnsClick}
+          >
+            <Columns3 size={16} /> Columnas
+          </button>
+        ) : null}
       </div>
     </div>
   );
