@@ -54,4 +54,9 @@ export interface ImportsRepository {
     input: ReceiveImportBoxInput,
     idempotencyKey: string,
   ): Promise<ImportMutationResult>;
+  repairZeroReceivedBox(
+    boxId: string,
+    input: ReceiveImportBoxInput,
+    idempotencyKey: string,
+  ): Promise<ImportMutationResult>;
 }
