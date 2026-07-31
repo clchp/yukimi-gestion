@@ -1,6 +1,7 @@
 export * from './auth.js';
 export * from './http.js';
 export * from './catalog.js';
+export * from './product-maintenance.js';
 
 export * from './clients.js';
 
