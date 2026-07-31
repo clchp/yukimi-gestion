@@ -89,6 +89,13 @@ export class SupabaseImportsRepository implements ImportsRepository {
     importId: string,
     input: UpdateImportStateInput,
   ): Promise<ImportMutationResult> {
+    const guard = await this.client.rpc('guard_import_transition_v1', {
+      p_import_id: importId,
+      p_next_state_code: input.nextStateCode,
+    });
+    if (guard.error)
+      throw mapSupabaseError(guard.error, 'La importación no puede pasar al estado solicitado.');
+
     const { data, error } = await this.client.rpc('advance_import_v1', {
       p_import_id: importId,
       p_next_state_code: input.nextStateCode,
@@ -104,6 +111,13 @@ export class SupabaseImportsRepository implements ImportsRepository {
     boxId: string,
     input: UpdateImportBoxStateInput,
   ): Promise<ImportMutationResult> {
+    const guard = await this.client.rpc('guard_import_box_transition_v1', {
+      p_box_id: boxId,
+      p_next_state_code: input.nextStateCode,
+    });
+    if (guard.error)
+      throw mapSupabaseError(guard.error, 'La caja no puede pasar al estado solicitado.');
+
     const { data, error } = await this.client.rpc('advance_import_box_v1', {
       p_box_id: boxId,
       p_next_state_code: input.nextStateCode,
@@ -179,7 +193,25 @@ export class SupabaseImportsRepository implements ImportsRepository {
       p_input: input,
       p_idempotency_key: idempotencyKey,
     });
-    if (error) throw mapSupabaseError(error, 'No se pudo ingresar la caja a stock.');
+    if (error) throw mapSupabaseError(error, 'No se pudo recibir e ingresar la caja a stock.');
+    return importMutationResultSchema.parse(data);
+  }
+
+  public async repairZeroReceivedBox(
+    boxId: string,
+    input: ReceiveImportBoxInput,
+    idempotencyKey: string,
+  ): Promise<ImportMutationResult> {
+    const { data, error } = await this.client.rpc('repair_zero_received_import_box_v1', {
+      p_box_id: boxId,
+      p_input: input,
+      p_idempotency_key: idempotencyKey,
+    });
+    if (error)
+      throw mapSupabaseError(
+        error,
+        'No se pudo corregir la recepción histórica de la caja.',
+      );
     return importMutationResultSchema.parse(data);
   }
 }
