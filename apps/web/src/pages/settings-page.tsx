@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { CatalogItem, NotificationPreferenceInput } from '@yukimi/shared';
 import {
   Bell,
   Boxes,
@@ -11,11 +12,17 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import type { CatalogItem, NotificationPreferenceInput } from '@yukimi/shared';
+import { webEnv } from '../app/env';
+import {
+  BusyLabel,
+  friendlyError,
+  useFeedback,
+} from '../components/ui/feedback-provider';
+import { ContextNote } from '../components/ui/info-tip';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
+import { SearchableSelect } from '../components/ui/searchable-select';
 import { StatusBadge } from '../components/ui/status-badge';
-import { webEnv } from '../app/env';
 import {
   getAdminSettings,
   getCapacitySnapshot,
@@ -45,16 +52,24 @@ const settingSections: Array<{ label: string; icon: LucideIcon }> = [
 
 const catalogLabels: Record<CatalogKind, string> = {
   categories: 'Categorías',
-  franchises: 'Franquicias / animes',
+  franchises: 'Franquicias o animes',
   brands: 'Marcas',
   'product-lines': 'Líneas o colecciones',
 };
 
-function reasonOrCancel(action: string): string | null {
-  const reason = window.prompt(`Motivo para ${action} (mínimo 5 caracteres):`)?.trim() ?? '';
-  if (reason.length < 5) return null;
-  return window.confirm(`¿Confirmas ${action}? Esta acción quedará auditada.`) ? reason : null;
-}
+const warehouseTypeLabels: Record<string, string> = {
+  OPERATIONAL: 'Operativo',
+  VIRTUAL: 'Virtual',
+  INTERNATIONAL: 'Internacional',
+  TRANSIT: 'En tránsito',
+};
+
+const accountTypeLabels: Record<string, string> = {
+  BANK: 'Cuenta bancaria',
+  WALLET: 'Billetera digital',
+  CASH: 'Efectivo',
+  CREDIT_CARD: 'Tarjeta de crédito',
+};
 
 function decodeBase64Url(value: string): Uint8Array {
   const padding = '='.repeat((4 - (value.length % 4)) % 4);
@@ -63,20 +78,22 @@ function decodeBase64Url(value: string): Uint8Array {
 }
 
 function jsonPreview(value: unknown): string {
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
     return String(value);
+  }
   return JSON.stringify(value);
 }
 
 export function SettingsPage() {
   const queryClient = useQueryClient();
+  const { confirm, notify, notifyError, prompt } = useFeedback();
   const [activeSection, setActiveSection] = useState('Catálogos');
   const [kind, setKind] = useState<CatalogKind>('franchises');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [brandId, setBrandId] = useState('');
   const [penalty, setPenalty] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
 
   const catalogs = useQuery({ queryKey: ['catalogs'], queryFn: getCatalogs });
   const admin = useQuery({ queryKey: ['admin-settings'], queryFn: getAdminSettings });
@@ -85,15 +102,20 @@ export function SettingsPage() {
     queryFn: getCapacitySnapshot,
     enabled: activeSection === 'Notificaciones',
   });
+
   const items = useMemo(() => {
     if (!catalogs.data) return [];
-    return kind === 'categories'
-      ? catalogs.data.categories
-      : kind === 'franchises'
-        ? catalogs.data.franchises
-        : kind === 'brands'
-          ? catalogs.data.brands
-          : catalogs.data.productLines;
+    const source =
+      kind === 'categories'
+        ? catalogs.data.categories
+        : kind === 'franchises'
+          ? catalogs.data.franchises
+          : kind === 'brands'
+            ? catalogs.data.brands
+            : catalogs.data.productLines;
+    return [...source].sort((left, right) =>
+      left.name.localeCompare(right.name, 'es', { sensitivity: 'base', numeric: true }),
+    );
   }, [catalogs.data, kind]);
 
   async function refreshAll() {
@@ -107,19 +129,27 @@ export function SettingsPage() {
   const createMutation = useMutation({
     mutationFn: () =>
       createCatalogItem(kind, {
-        name,
+        name: name.trim(),
         description: description.trim() || null,
         brandId: kind === 'product-lines' ? brandId || null : undefined,
-        releasePenaltyAmount: kind === 'categories' && penalty ? Number(penalty) : undefined,
+        releasePenaltyAmount:
+          kind === 'categories' && penalty.trim() ? Number(penalty) : undefined,
         releasePenaltyCurrency: kind === 'categories' ? 'PEN' : undefined,
       }),
     onSuccess: async () => {
       setName('');
       setDescription('');
+      setBrandId('');
       setPenalty('');
-      setMessage('Elemento creado correctamente.');
+      setCreateErrors({});
+      notify({
+        title: 'Elemento creado correctamente',
+        message: `El registro se añadió a ${catalogLabels[kind].toLocaleLowerCase('es-PE')}.`,
+        tone: 'success',
+      });
       await refreshAll();
     },
+    onError: (error) => notifyError(error, 'No se pudo crear el elemento del catálogo.'),
   });
 
   const catalogMutation = useMutation({
@@ -144,158 +174,344 @@ export function SettingsPage() {
         reason,
       }),
     onSuccess: async () => {
-      setMessage('Catálogo actualizado.');
+      notify({ title: 'Catálogo actualizado', tone: 'success' });
       await refreshAll();
     },
+    onError: (error) => notifyError(error, 'No se pudo actualizar el catálogo.'),
   });
 
   const actionMutation = useMutation({
     mutationFn: async (action: () => Promise<unknown>) => action(),
     onSuccess: async () => {
-      setMessage('Configuración actualizada.');
+      notify({ title: 'Configuración actualizada', tone: 'success' });
       await refreshAll();
     },
+    onError: (error) => notifyError(error, 'No se pudo actualizar la configuración.'),
   });
+
+  function validateCreate() {
+    const errors: Record<string, string> = {};
+    if (!name.trim()) errors.name = 'El nombre es obligatorio.';
+    if (kind === 'product-lines' && !brandId) errors.brandId = 'Selecciona una marca.';
+    if (kind === 'categories' && penalty.trim()) {
+      const value = Number(penalty);
+      if (!Number.isFinite(value) || value < 0) errors.penalty = 'Ingresa una penalidad válida igual o mayor que cero.';
+    }
+    setCreateErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
 
   function handleCreate(event: FormEvent) {
     event.preventDefault();
-    setMessage(null);
-    if (name.trim()) createMutation.mutate();
+    if (!validateCreate()) return;
+    createMutation.mutate();
   }
 
-  function editCatalog(item: CatalogItem) {
-    const nextName = window.prompt('Nombre:', item.name)?.trim();
-    if (!nextName) return;
-    const nextDescription = window.prompt('Descripción:', item.description ?? '') ?? '';
-    const nextPenalty =
-      kind === 'categories'
-        ? window.prompt('Penalidad por liberación (PEN):', String(item.releasePenaltyAmount ?? 0))
-        : null;
-    const reason = reasonOrCancel(`editar ${item.name}`);
-    if (!reason) return;
+  async function requestReason(action: string, detail?: string) {
+    const values = await prompt({
+      title: 'Motivo de la modificación',
+      message: detail ?? `Indica por qué deseas ${action}. El motivo quedará registrado en auditoría.`,
+      fields: [
+        {
+          name: 'reason',
+          label: 'Motivo',
+          type: 'textarea',
+          required: true,
+          minLength: 5,
+          placeholder: 'Describe brevemente la razón del cambio…',
+        },
+      ],
+      confirmLabel: 'Continuar',
+    });
+    if (!values) return null;
+    const accepted = await confirm({
+      title: 'Confirmar modificación',
+      message: `¿Confirmas ${action}?`,
+      detail: 'Esta acción quedará registrada con tu usuario, fecha y motivo.',
+      confirmLabel: 'Sí, confirmar',
+    });
+    return accepted ? values.reason.trim() : null;
+  }
+
+  async function editCatalog(item: CatalogItem) {
+    const values = await prompt({
+      title: `Editar ${item.name}`,
+      message: 'Modifica los datos necesarios en una sola ventana. Los campos marcados con * son obligatorios.',
+      fields: [
+        { name: 'name', label: 'Nombre', initialValue: item.name, required: true },
+        {
+          name: 'description',
+          label: 'Descripción',
+          type: 'textarea',
+          initialValue: item.description ?? '',
+        },
+        ...(kind === 'categories'
+          ? [
+              {
+                name: 'penalty',
+                label: 'Penalidad por liberación (PEN)',
+                type: 'number' as const,
+                initialValue: String(item.releasePenaltyAmount ?? 0),
+                min: 0,
+                step: 0.01,
+                help: 'Se aplica según las reglas de liberación configuradas.',
+              },
+            ]
+          : []),
+        {
+          name: 'reason',
+          label: 'Motivo del cambio',
+          type: 'textarea',
+          required: true,
+          minLength: 5,
+          placeholder: 'Ej. Corrección solicitada por administración',
+        },
+      ],
+      confirmLabel: 'Revisar cambio',
+      validate: (form) => {
+        if (kind === 'categories' && form.penalty && Number(form.penalty) < 0) {
+          return { penalty: 'La penalidad no puede ser negativa.' };
+        }
+        return null;
+      },
+    });
+    if (!values) return;
+    const accepted = await confirm({
+      title: 'Confirmar edición',
+      message: `Se actualizará “${item.name}” y el cambio quedará auditado.`,
+      confirmLabel: 'Guardar cambios',
+    });
+    if (!accepted) {
+      notify({ title: 'Edición cancelada', message: 'No se modificó el catálogo.', tone: 'info' });
+      return;
+    }
     catalogMutation.mutate({
       item,
       patch: {
-        name: nextName,
-        description: nextDescription || null,
-        releasePenaltyAmount: nextPenalty == null ? undefined : Number(nextPenalty),
+        name: values.name.trim(),
+        description: values.description.trim() || null,
+        releasePenaltyAmount:
+          kind === 'categories' ? Number(values.penalty || 0) : undefined,
       },
-      reason,
+      reason: values.reason.trim(),
     });
   }
 
-  function toggleCatalog(item: CatalogItem) {
-    const reason = reasonOrCancel(`${item.isActive ? 'desactivar' : 'reactivar'} ${item.name}`);
+  async function toggleCatalog(item: CatalogItem) {
+    const action = item.isActive ? 'desactivar' : 'reactivar';
+    const reason = await requestReason(`${action} ${item.name}`);
     if (!reason) return;
     catalogMutation.mutate({ item, patch: { isActive: !item.isActive }, reason });
   }
 
-  function editSetting(key: string, value: unknown, version: number) {
-    const raw = window.prompt(`Nuevo valor JSON para ${key}:`, JSON.stringify(value, null, 2));
-    if (raw == null) return;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      setMessage('El valor debe ser JSON válido.');
-      return;
-    }
-    const reason = reasonOrCancel(`actualizar ${key}`);
-    if (!reason) return;
-    actionMutation.mutate(() => updateBusinessSetting(key, { value: parsed, version, reason }));
+  async function editSetting(key: string, value: unknown, version: number) {
+    const values = await prompt({
+      title: 'Editar regla del negocio',
+      message: `Actualiza el valor de ${key}. Debe mantenerse en formato JSON válido.`,
+      fields: [
+        {
+          name: 'value',
+          label: 'Valor JSON',
+          type: 'textarea',
+          initialValue: JSON.stringify(value, null, 2),
+          required: true,
+          help: 'Ejemplos válidos: 10, true, "texto" o {"clave":"valor"}.',
+        },
+        {
+          name: 'reason',
+          label: 'Motivo del cambio',
+          type: 'textarea',
+          required: true,
+          minLength: 5,
+        },
+      ],
+      confirmLabel: 'Revisar cambio',
+      validate: (form) => {
+        try {
+          JSON.parse(form.value);
+          return null;
+        } catch {
+          return { value: 'El valor debe ser JSON válido.' };
+        }
+      },
+    });
+    if (!values) return;
+    const accepted = await confirm({
+      title: 'Confirmar regla',
+      message: `Se actualizará ${key}.`,
+      detail: 'Una regla incorrecta puede afectar operaciones futuras. Revisa el valor antes de confirmar.',
+      confirmLabel: 'Actualizar regla',
+    });
+    if (!accepted) return;
+    actionMutation.mutate(() =>
+      updateBusinessSetting(key, {
+        value: JSON.parse(values.value) as unknown,
+        version,
+        reason: values.reason.trim(),
+      }),
+    );
   }
 
-  function createWarehouse() {
-    const code = window.prompt('Código del almacén:')?.trim().toUpperCase();
-    if (!code) return;
-    const warehouseName = window.prompt('Nombre del almacén:')?.trim();
-    if (!warehouseName) return;
-    const reason = reasonOrCancel(`crear el almacén ${warehouseName}`);
-    if (!reason) return;
+  async function createWarehouse() {
+    const values = await prompt({
+      title: 'Nuevo almacén',
+      message: 'Registra la ubicación que se utilizará en movimientos e inventario.',
+      fields: [
+        {
+          name: 'code',
+          label: 'Código',
+          required: true,
+          placeholder: 'Ej. CAMILA',
+          help: 'Usa un código corto y único.',
+        },
+        { name: 'name', label: 'Nombre del almacén', required: true },
+        {
+          name: 'warehouseType',
+          label: 'Tipo',
+          type: 'select',
+          initialValue: 'OPERATIONAL',
+          options: [
+            { value: 'OPERATIONAL', label: 'Operativo' },
+            { value: 'VIRTUAL', label: 'Virtual' },
+            { value: 'INTERNATIONAL', label: 'Internacional' },
+            { value: 'TRANSIT', label: 'En tránsito' },
+          ],
+          required: true,
+        },
+        { name: 'description', label: 'Descripción', type: 'textarea' },
+        { name: 'reason', label: 'Motivo', type: 'textarea', required: true, minLength: 5 },
+      ],
+      confirmLabel: 'Crear almacén',
+    });
+    if (!values) return;
     actionMutation.mutate(() =>
       upsertWarehouse({
-        code,
-        name: warehouseName,
-        warehouseType: 'OPERATIONAL',
-        description: null,
-        isVirtual: false,
+        code: values.code.trim().toUpperCase(),
+        name: values.name.trim(),
+        warehouseType: values.warehouseType,
+        description: values.description.trim() || null,
+        isVirtual: values.warehouseType === 'VIRTUAL',
         isVisibleInOperations: true,
         isActive: true,
-        reason,
+        reason: values.reason.trim(),
       }),
     );
   }
 
-  function editWarehouse(warehouse: NonNullable<typeof admin.data>['warehouses'][number]) {
-    const nextName = window.prompt('Nombre:', warehouse.name)?.trim();
-    if (!nextName) return;
-    const reason = reasonOrCancel(`actualizar el almacén ${warehouse.name}`);
-    if (!reason) return;
-    actionMutation.mutate(() => upsertWarehouse({ ...warehouse, name: nextName, reason }));
+  async function editWarehouse(warehouse: NonNullable<typeof admin.data>['warehouses'][number]) {
+    const values = await prompt({
+      title: `Editar ${warehouse.name}`,
+      fields: [
+        { name: 'name', label: 'Nombre', initialValue: warehouse.name, required: true },
+        {
+          name: 'reason',
+          label: 'Motivo del cambio',
+          type: 'textarea',
+          required: true,
+          minLength: 5,
+        },
+      ],
+      confirmLabel: 'Guardar cambios',
+    });
+    if (!values) return;
+    actionMutation.mutate(() =>
+      upsertWarehouse({ ...warehouse, name: values.name.trim(), reason: values.reason.trim() }),
+    );
   }
 
-  function createAccount() {
-    const code = window.prompt('Código de la cuenta (ej. YAPE-1-PEN):')?.trim().toUpperCase();
-    if (!code) return;
-    const accountName = window.prompt('Nombre visible:')?.trim();
-    if (!accountName) return;
-    const type = (window.prompt('Tipo: BANK, WALLET, CASH o CREDIT_CARD:', 'WALLET') ?? '')
-      .trim()
-      .toUpperCase();
-    if (!['BANK', 'WALLET', 'CASH', 'CREDIT_CARD'].includes(type)) return;
-    const ownerName =
-      window.prompt('Titular (déjalo vacío si aún no está confirmado):')?.trim() || null;
-    const maskedAccountNumber = window.prompt('Número enmascarado (opcional):')?.trim() || null;
-    const reason = reasonOrCancel(`crear la cuenta ${accountName}`);
-    if (!reason) return;
+  async function createAccount() {
+    const values = await prompt({
+      title: 'Nueva cuenta financiera',
+      message: 'No ingreses números completos sensibles; utiliza una versión enmascarada.',
+      fields: [
+        { name: 'code', label: 'Código', required: true, placeholder: 'Ej. YAPE-1-PEN' },
+        { name: 'name', label: 'Nombre visible', required: true },
+        {
+          name: 'type',
+          label: 'Tipo de cuenta',
+          type: 'select',
+          initialValue: 'WALLET',
+          options: [
+            { value: 'BANK', label: 'Cuenta bancaria' },
+            { value: 'WALLET', label: 'Billetera digital' },
+            { value: 'CASH', label: 'Efectivo' },
+            { value: 'CREDIT_CARD', label: 'Tarjeta de crédito' },
+          ],
+          required: true,
+        },
+        { name: 'ownerName', label: 'Titular' },
+        { name: 'maskedAccountNumber', label: 'Número enmascarado', placeholder: 'Ej. •••• 1234' },
+        { name: 'reason', label: 'Motivo', type: 'textarea', required: true, minLength: 5 },
+      ],
+      confirmLabel: 'Crear cuenta',
+    });
+    if (!values) return;
     actionMutation.mutate(() =>
       upsertFinancialAccount({
-        code,
-        name: accountName,
-        accountTypeCode: type as 'BANK' | 'WALLET' | 'CASH' | 'CREDIT_CARD',
+        code: values.code.trim().toUpperCase(),
+        name: values.name.trim(),
+        accountTypeCode: values.type as 'BANK' | 'WALLET' | 'CASH' | 'CREDIT_CARD',
         currencyCode: 'PEN',
         institutionName: null,
-        maskedAccountNumber,
-        ownerName,
+        maskedAccountNumber: values.maskedAccountNumber.trim() || null,
+        ownerName: values.ownerName.trim() || null,
         linkedParentAccountId: null,
         isActive: true,
-        reason,
+        reason: values.reason.trim(),
       }),
     );
   }
 
-  function editAccount(account: NonNullable<typeof admin.data>['financialAccounts'][number]) {
-    const ownerName = window.prompt('Titular:', account.ownerName ?? '')?.trim() || null;
-    const maskedAccountNumber =
-      window.prompt('Número enmascarado:', account.maskedAccountNumber ?? '')?.trim() || null;
-    const reason = reasonOrCancel(`actualizar ${account.name}`);
-    if (!reason) return;
+  async function editAccount(account: NonNullable<typeof admin.data>['financialAccounts'][number]) {
+    const values = await prompt({
+      title: `Editar ${account.name}`,
+      fields: [
+        { name: 'ownerName', label: 'Titular', initialValue: account.ownerName ?? '' },
+        {
+          name: 'maskedAccountNumber',
+          label: 'Número enmascarado',
+          initialValue: account.maskedAccountNumber ?? '',
+        },
+        { name: 'reason', label: 'Motivo', type: 'textarea', required: true, minLength: 5 },
+      ],
+      confirmLabel: 'Guardar cambios',
+    });
+    if (!values) return;
     actionMutation.mutate(() =>
-      upsertFinancialAccount({ ...account, ownerName, maskedAccountNumber, reason }),
+      upsertFinancialAccount({
+        ...account,
+        ownerName: values.ownerName.trim() || null,
+        maskedAccountNumber: values.maskedAccountNumber.trim() || null,
+        reason: values.reason.trim(),
+      }),
     );
   }
 
-  function editProfile(profile: NonNullable<typeof admin.data>['profiles'][number]) {
-    const displayName = window.prompt('Nombre visible:', profile.displayName)?.trim();
-    if (!displayName) return;
-    const phone = window.prompt('Teléfono:', profile.phone ?? '')?.trim() || null;
-    const reason = reasonOrCancel(`actualizar a ${profile.displayName}`);
-    if (!reason) return;
+  async function editProfile(profile: NonNullable<typeof admin.data>['profiles'][number]) {
+    const values = await prompt({
+      title: `Editar a ${profile.displayName}`,
+      fields: [
+        { name: 'displayName', label: 'Nombre visible', initialValue: profile.displayName, required: true },
+        { name: 'phone', label: 'Teléfono', initialValue: profile.phone ?? '' },
+        { name: 'reason', label: 'Motivo', type: 'textarea', required: true, minLength: 5 },
+      ],
+      confirmLabel: 'Guardar cambios',
+    });
+    if (!values) return;
     actionMutation.mutate(() =>
       updateAdminProfile(profile.id, {
-        displayName,
-        phone,
+        displayName: values.displayName.trim(),
+        phone: values.phone.trim() || null,
         isActive: profile.isActive,
         version: profile.version,
-        reason,
+        reason: values.reason.trim(),
       }),
     );
   }
 
-  function toggleProfile(profile: NonNullable<typeof admin.data>['profiles'][number]) {
-    const reason = reasonOrCancel(
-      `${profile.isActive ? 'desactivar' : 'reactivar'} a ${profile.displayName}`,
-    );
+  async function toggleProfile(profile: NonNullable<typeof admin.data>['profiles'][number]) {
+    const action = profile.isActive ? 'desactivar' : 'reactivar';
+    const reason = await requestReason(`${action} a ${profile.displayName}`);
     if (!reason) return;
     actionMutation.mutate(() =>
       updateAdminProfile(profile.id, {
@@ -323,38 +539,51 @@ export function SettingsPage() {
   }
 
   async function enablePush() {
-    if (
-      !webEnv.VITE_WEB_PUSH_PUBLIC_KEY ||
-      !('serviceWorker' in navigator) ||
-      !('PushManager' in window)
-    ) {
-      setMessage('Configura VITE_WEB_PUSH_PUBLIC_KEY y usa HTTPS para activar push.');
-      return;
+    try {
+      if (
+        !webEnv.VITE_WEB_PUSH_PUBLIC_KEY ||
+        !('serviceWorker' in navigator) ||
+        !('PushManager' in window)
+      ) {
+        notify({
+          title: 'Notificaciones push no disponibles',
+          message: 'Configura la clave pública de push y utiliza HTTPS antes de activar este canal.',
+          tone: 'warning',
+        });
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        notify({
+          title: 'Permiso no concedido',
+          message: 'El navegador no autorizó las notificaciones para este dispositivo.',
+          tone: 'warning',
+        });
+        return;
+      }
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: decodeBase64Url(webEnv.VITE_WEB_PUSH_PUBLIC_KEY) as BufferSource,
+      });
+      const payload = subscription.toJSON();
+      if (!payload.endpoint || !payload.keys?.p256dh || !payload.keys.auth) {
+        throw new Error('La suscripción push está incompleta.');
+      }
+      await registerPushSubscription({
+        endpoint: payload.endpoint,
+        p256dhKey: payload.keys.p256dh,
+        authKey: payload.keys.auth,
+        deviceName: navigator.userAgent.slice(0, 120),
+      });
+      notify({ title: 'Dispositivo registrado', message: 'Las notificaciones push quedaron activadas.', tone: 'success' });
+      await refreshAll();
+    } catch (error) {
+      notifyError(error, 'No se pudo activar las notificaciones push.');
     }
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      setMessage('El navegador no otorgó permiso para notificaciones.');
-      return;
-    }
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: decodeBase64Url(webEnv.VITE_WEB_PUSH_PUBLIC_KEY) as BufferSource,
-    });
-    const payload = subscription.toJSON();
-    if (!payload.endpoint || !payload.keys?.p256dh || !payload.keys.auth)
-      throw new Error('La suscripción push está incompleta.');
-    await registerPushSubscription({
-      endpoint: payload.endpoint,
-      p256dhKey: payload.keys.p256dh,
-      authKey: payload.keys.auth,
-      deviceName: navigator.userAgent.slice(0, 120),
-    });
-    setMessage('Dispositivo registrado para notificaciones push.');
-    await refreshAll();
   }
 
-  const error = createMutation.error ?? catalogMutation.error ?? actionMutation.error;
+  const loadError = catalogs.error ?? admin.error;
   const penaltySettings = (admin.data?.settings ?? []).filter((setting) =>
     /penalt|release|payment|term|due/i.test(`${setting.key} ${setting.category}`),
   );
@@ -366,22 +595,20 @@ export function SettingsPage() {
         title="Configuración"
         description="Reglas, catálogos, cuentas y canales editables con control de concurrencia y auditoría."
       />
-      {error ? (
-        <div className="alert alert-error">
-          {error instanceof Error ? error.message : 'No se pudo completar la operación.'}
+      {loadError ? (
+        <div className="alert alert-error" role="alert">
+          <strong>{friendlyError(loadError).title}</strong>
+          <span>{friendlyError(loadError).message}</span>
         </div>
       ) : null}
-      {message ? <div className="alert alert-info">{message}</div> : null}
       <section className="settings-layout">
-        <aside className="settings-nav">
+        <aside className="settings-nav" aria-label="Secciones de configuración">
           {settingSections.map(({ label, icon: Icon }) => (
             <button
+              type="button"
               className={activeSection === label ? 'active' : ''}
               key={label}
-              onClick={() => {
-                setActiveSection(label);
-                setMessage(null);
-              }}
+              onClick={() => setActiveSection(label)}
             >
               <Icon size={17} />
               {label}
@@ -392,8 +619,11 @@ export function SettingsPage() {
           {activeSection === 'Datos del negocio' ? (
             <Panel
               title="Datos del negocio"
-              subtitle="Los datos legales reales no se inventan: completa RUC, razón social y dirección cuando estén confirmados."
+              subtitle="Completa únicamente información legal confirmada. Cada cambio queda auditado."
             >
+              <ContextNote tone="warning">
+                No inventes RUC, razón social ni dirección. Déjalos pendientes hasta contar con los datos reales.
+              </ContextNote>
               <div className="setting-list">
                 {(admin.data?.settings ?? [])
                   .filter(
@@ -404,13 +634,12 @@ export function SettingsPage() {
                     <div key={setting.key}>
                       <div>
                         <strong>{setting.description ?? setting.key}</strong>
-                        <small>
-                          {setting.key} · {jsonPreview(setting.value)}
-                        </small>
+                        <small>{setting.key} · {jsonPreview(setting.value)}</small>
                       </div>
                       <button
+                        type="button"
                         className="button button-secondary button-compact"
-                        onClick={() => editSetting(setting.key, setting.value, setting.version)}
+                        onClick={() => void editSetting(setting.key, setting.value, setting.version)}
                       >
                         Editar
                       </button>
@@ -423,31 +652,23 @@ export function SettingsPage() {
           {activeSection === 'Administradoras' ? (
             <Panel
               title="Administradoras"
-              subtitle="Gestiona nombres, teléfono y acceso activo. Los cambios sensibles exigen motivo."
+              subtitle="Gestiona nombres, teléfonos y accesos. Los cambios sensibles exigen un motivo."
             >
               <div className="catalog-list">
                 {admin.data?.profiles.map((profile) => (
                   <div className="catalog-list-row" key={profile.id}>
                     <div>
                       <strong>{profile.displayName}</strong>
-                      <small>
-                        {profile.email ?? 'Sin correo'} · {profile.phone ?? 'Sin teléfono'}
-                      </small>
+                      <small>{profile.email ?? 'Sin correo'} · {profile.phone ?? 'Sin teléfono'}</small>
                     </div>
                     <StatusBadge tone={profile.isActive ? 'success' : 'neutral'}>
                       {profile.isActive ? 'Activa' : 'Inactiva'}
                     </StatusBadge>
-                    <div>
-                      <button
-                        className="button button-secondary button-compact"
-                        onClick={() => editProfile(profile)}
-                      >
+                    <div className="row-actions">
+                      <button type="button" className="button button-secondary button-compact" onClick={() => void editProfile(profile)}>
                         Editar
-                      </button>{' '}
-                      <button
-                        className="button button-compact button-danger"
-                        onClick={() => toggleProfile(profile)}
-                      >
+                      </button>
+                      <button type="button" className="button button-compact button-danger" onClick={() => void toggleProfile(profile)}>
                         {profile.isActive ? 'Desactivar' : 'Reactivar'}
                       </button>
                     </div>
@@ -460,9 +681,9 @@ export function SettingsPage() {
           {activeSection === 'Almacenes' ? (
             <Panel
               title="Almacenes"
-              subtitle="Incluye almacenes operativos, virtuales, internacionales y de tránsito."
+              subtitle="Ubicaciones operativas, virtuales, internacionales y de tránsito."
             >
-              <button className="button button-primary" onClick={createWarehouse}>
+              <button type="button" className="button button-primary" onClick={() => void createWarehouse()}>
                 <Plus size={17} /> Nuevo almacén
               </button>
               <div className="catalog-list">
@@ -471,17 +692,14 @@ export function SettingsPage() {
                     <div>
                       <strong>{warehouse.name}</strong>
                       <small>
-                        {warehouse.code} · {warehouse.warehouseType}
+                        {warehouse.code} · {warehouseTypeLabels[warehouse.warehouseType] ?? warehouse.warehouseType}
                         {warehouse.isVirtual ? ' · virtual' : ''}
                       </small>
                     </div>
                     <StatusBadge tone={warehouse.isActive ? 'success' : 'neutral'}>
                       {warehouse.isActive ? 'Activo' : 'Inactivo'}
                     </StatusBadge>
-                    <button
-                      className="button button-secondary button-compact"
-                      onClick={() => editWarehouse(warehouse)}
-                    >
+                    <button type="button" className="button button-secondary button-compact" onClick={() => void editWarehouse(warehouse)}>
                       Editar
                     </button>
                   </div>
@@ -492,74 +710,86 @@ export function SettingsPage() {
 
           {activeSection === 'Catálogos' ? (
             <>
-              <Panel
-                title="Catálogos de productos"
-                subtitle="Crea y edita categorías, franquicias, marcas y líneas."
-              >
+              <Panel title="Catálogos de productos" subtitle="Crea y edita categorías, franquicias, marcas y líneas.">
                 <div className="catalog-kind-tabs">
                   {(Object.keys(catalogLabels) as CatalogKind[]).map((catalogKind) => (
                     <button
                       className={kind === catalogKind ? 'active' : ''}
                       key={catalogKind}
                       type="button"
-                      onClick={() => setKind(catalogKind)}
+                      onClick={() => {
+                        setKind(catalogKind);
+                        setBrandId('');
+                        setCreateErrors({});
+                      }}
                     >
                       {catalogLabels[catalogKind]}
                     </button>
                   ))}
                 </div>
-                <form className="catalog-create-form" onSubmit={handleCreate}>
-                  <label className="field">
+                {Object.keys(createErrors).length > 0 ? (
+                  <div className="form-error-summary" role="alert">
+                    No se pudo crear el registro. Corrige los campos marcados en rojo.
+                  </div>
+                ) : null}
+                <form className="catalog-create-form" onSubmit={handleCreate} noValidate>
+                  <label className={`field ${createErrors.name ? 'field-invalid' : ''}`}>
                     <span>Nombre *</span>
-                    <input value={name} onChange={(event) => setName(event.target.value)} />
+                    <input
+                      value={name}
+                      aria-invalid={Boolean(createErrors.name)}
+                      onChange={(event) => {
+                        setName(event.target.value);
+                        setCreateErrors((current) => ({ ...current, name: '' }));
+                      }}
+                    />
+                    {createErrors.name ? <small className="field-error">{createErrors.name}</small> : null}
                   </label>
                   {kind === 'product-lines' ? (
-                    <label className="field">
-                      <span>Marca *</span>
-                      <select value={brandId} onChange={(event) => setBrandId(event.target.value)}>
-                        <option value="">Seleccionar</option>
-                        {catalogs.data?.brands
-                          .filter((brand) => brand.isActive)
-                          .map((brand) => (
-                            <option value={brand.id} key={brand.id}>
-                              {brand.name}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
+                    <SearchableSelect
+                      label="Marca"
+                      required
+                      value={brandId}
+                      error={createErrors.brandId}
+                      placeholder="Seleccionar marca"
+                      searchPlaceholder="Buscar marca…"
+                      options={(catalogs.data?.brands ?? [])
+                        .filter((brand) => brand.isActive)
+                        .map((brand) => ({ value: brand.id, label: brand.name }))}
+                      onChange={(value) => {
+                        setBrandId(value);
+                        setCreateErrors((current) => ({ ...current, brandId: '' }));
+                      }}
+                    />
                   ) : null}
                   {kind === 'categories' ? (
-                    <label className="field">
-                      <span>Penalidad PEN</span>
+                    <label className={`field ${createErrors.penalty ? 'field-invalid' : ''}`}>
+                      <span>Penalidad por liberación (PEN)</span>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         value={penalty}
-                        onChange={(event) => setPenalty(event.target.value)}
+                        aria-invalid={Boolean(createErrors.penalty)}
+                        onChange={(event) => {
+                          setPenalty(event.target.value);
+                          setCreateErrors((current) => ({ ...current, penalty: '' }));
+                        }}
                       />
+                      {createErrors.penalty ? <small className="field-error">{createErrors.penalty}</small> : null}
                     </label>
                   ) : null}
                   <label className="field catalog-description">
                     <span>Descripción</span>
-                    <input
-                      value={description}
-                      onChange={(event) => setDescription(event.target.value)}
-                    />
+                    <input value={description} onChange={(event) => setDescription(event.target.value)} />
                   </label>
-                  <button
-                    className="button button-primary"
-                    type="submit"
-                    disabled={createMutation.isPending || !name.trim()}
-                  >
-                    <Plus size={17} /> Crear
+                  <button className="button button-primary" type="submit" disabled={createMutation.isPending}>
+                    {createMutation.isPending ? <BusyLabel label="Creando…" /> : <><Plus size={17} /> Crear</>}
                   </button>
                 </form>
+                <small className="required-note">* Campo obligatorio</small>
               </Panel>
-              <Panel
-                title={catalogLabels[kind]}
-                subtitle={`${items.length} registros configurados.`}
-              >
+              <Panel title={catalogLabels[kind]} subtitle={`${items.length} registros configurados.`}>
                 <div className="catalog-list">
                   {items.map((item) => (
                     <div className="catalog-list-row" key={item.id}>
@@ -567,25 +797,17 @@ export function SettingsPage() {
                         <strong>{item.name}</strong>
                         <small>
                           {item.code}
-                          {item.releasePenaltyAmount != null
-                            ? ` · Penalidad S/ ${item.releasePenaltyAmount}`
-                            : ''}
+                          {item.releasePenaltyAmount != null ? ` · Penalidad S/ ${item.releasePenaltyAmount}` : ''}
                         </small>
                       </div>
                       <StatusBadge tone={item.isActive ? 'success' : 'neutral'}>
                         {item.isActive ? 'Activo' : 'Inactivo'}
                       </StatusBadge>
-                      <div>
-                        <button
-                          className="button button-secondary button-compact"
-                          onClick={() => editCatalog(item)}
-                        >
+                      <div className="row-actions">
+                        <button type="button" className="button button-secondary button-compact" onClick={() => void editCatalog(item)}>
                           Editar
-                        </button>{' '}
-                        <button
-                          className="button button-compact button-danger"
-                          onClick={() => toggleCatalog(item)}
-                        >
+                        </button>
+                        <button type="button" className="button button-compact button-danger" onClick={() => void toggleCatalog(item)}>
                           {item.isActive ? 'Desactivar' : 'Reactivar'}
                         </button>
                       </div>
@@ -597,23 +819,15 @@ export function SettingsPage() {
           ) : null}
 
           {activeSection === 'Penalidades y plazos' ? (
-            <Panel
-              title="Penalidades y plazos"
-              subtitle="Reglas editables sin modificar código; cada cambio requiere motivo y queda auditado."
-            >
+            <Panel title="Penalidades y plazos" subtitle="Reglas editables sin modificar código; cada cambio exige motivo.">
               <div className="setting-list">
                 {penaltySettings.map((setting) => (
                   <div key={setting.key}>
                     <div>
                       <strong>{setting.description ?? setting.key}</strong>
-                      <small>
-                        {setting.key} · {jsonPreview(setting.value)}
-                      </small>
+                      <small>{setting.key} · {jsonPreview(setting.value)}</small>
                     </div>
-                    <button
-                      className="button button-secondary button-compact"
-                      onClick={() => editSetting(setting.key, setting.value, setting.version)}
-                    >
+                    <button type="button" className="button button-secondary button-compact" onClick={() => void editSetting(setting.key, setting.value, setting.version)}>
                       Editar
                     </button>
                   </div>
@@ -625,9 +839,9 @@ export function SettingsPage() {
           {activeSection === 'Finanzas y cuentas' ? (
             <Panel
               title="Cuentas financieras"
-              subtitle="BCP, Scotiabank, dos Yapes separados, efectivo y tarjetas. Completa titulares y números reales sin exponerlos completos."
+              subtitle="Registra bancos, billeteras, efectivo y tarjetas sin exponer números completos."
             >
-              <button className="button button-primary" onClick={createAccount}>
+              <button type="button" className="button button-primary" onClick={() => void createAccount()}>
                 <Plus size={17} /> Nueva cuenta
               </button>
               <div className="catalog-list">
@@ -636,18 +850,14 @@ export function SettingsPage() {
                     <div>
                       <strong>{account.name}</strong>
                       <small>
-                        {account.code} · {account.accountTypeCode} ·{' '}
-                        {account.ownerName ?? 'Titular pendiente'} ·{' '}
-                        {account.maskedAccountNumber ?? 'Número pendiente'}
+                        {account.code} · {accountTypeLabels[account.accountTypeCode] ?? account.accountTypeCode} ·{' '}
+                        {account.ownerName ?? 'Titular pendiente'} · {account.maskedAccountNumber ?? 'Número pendiente'}
                       </small>
                     </div>
                     <StatusBadge tone={account.isActive ? 'success' : 'neutral'}>
                       {account.isActive ? 'Activa' : 'Inactiva'}
                     </StatusBadge>
-                    <button
-                      className="button button-secondary button-compact"
-                      onClick={() => editAccount(account)}
-                    >
+                    <button type="button" className="button button-secondary button-compact" onClick={() => void editAccount(account)}>
                       Editar
                     </button>
                   </div>
@@ -658,15 +868,8 @@ export function SettingsPage() {
 
           {activeSection === 'Notificaciones' ? (
             <>
-              <Panel
-                title="Canales de notificación"
-                subtitle="Configura alertas internas, push y correo por tipo de evento."
-              >
-                <button
-                  className="button button-primary"
-                  type="button"
-                  onClick={() => void enablePush()}
-                >
+              <Panel title="Canales de notificación" subtitle="Configura alertas internas, push y correo por tipo de evento.">
+                <button className="button button-primary" type="button" onClick={() => void enablePush()}>
                   <Bell size={17} /> Activar push en este dispositivo
                 </button>
                 <div className="setting-list">
@@ -678,16 +881,14 @@ export function SettingsPage() {
                       <div key={type.code}>
                         <div>
                           <strong>{type.name}</strong>
-                          <small>{type.description ?? type.code} · silencio 21:00–08:00</small>
+                          <small>{type.description ?? type.code} · horario silencioso 21:00–08:00</small>
                         </div>
                         <div className="settings-status">
                           <label>
                             <input
                               type="checkbox"
                               checked={preference?.inAppEnabled ?? true}
-                              onChange={(event) =>
-                                updatePreference(type.code, { inAppEnabled: event.target.checked })
-                              }
+                              onChange={(event) => updatePreference(type.code, { inAppEnabled: event.target.checked })}
                             />{' '}
                             Interna
                           </label>
@@ -695,9 +896,7 @@ export function SettingsPage() {
                             <input
                               type="checkbox"
                               checked={preference?.pushEnabled ?? false}
-                              onChange={(event) =>
-                                updatePreference(type.code, { pushEnabled: event.target.checked })
-                              }
+                              onChange={(event) => updatePreference(type.code, { pushEnabled: event.target.checked })}
                             />{' '}
                             Push
                           </label>
@@ -705,9 +904,7 @@ export function SettingsPage() {
                             <input
                               type="checkbox"
                               checked={preference?.emailEnabled ?? false}
-                              onChange={(event) =>
-                                updatePreference(type.code, { emailEnabled: event.target.checked })
-                              }
+                              onChange={(event) => updatePreference(type.code, { emailEnabled: event.target.checked })}
                             />{' '}
                             Correo
                           </label>
@@ -717,27 +914,12 @@ export function SettingsPage() {
                   })}
                 </div>
               </Panel>
-              <Panel
-                title="Monitoreo de capacidad"
-                subtitle="Indicadores para anticipar límites de base de datos, archivos y cola de entrega."
-              >
+              <Panel title="Monitoreo de capacidad" subtitle="Indicadores para anticipar límites de base de datos, archivos y cola de entrega.">
                 <div className="info-grid">
-                  <div>
-                    <span>Eventos pendientes</span>
-                    <strong>{capacity.data?.pendingOutbox ?? '—'}</strong>
-                  </div>
-                  <div>
-                    <span>Eventos fallidos</span>
-                    <strong>{capacity.data?.failedOutbox ?? '—'}</strong>
-                  </div>
-                  <div>
-                    <span>Dispositivos push</span>
-                    <strong>{capacity.data?.activePushSubscriptions ?? '—'}</strong>
-                  </div>
-                  <div>
-                    <span>Tablas controladas</span>
-                    <strong>{capacity.data?.tables.length ?? '—'}</strong>
-                  </div>
+                  <div><span>Eventos pendientes</span><strong>{capacity.data?.pendingOutbox ?? '—'}</strong></div>
+                  <div><span>Eventos fallidos</span><strong>{capacity.data?.failedOutbox ?? '—'}</strong></div>
+                  <div><span>Dispositivos push</span><strong>{capacity.data?.activePushSubscriptions ?? '—'}</strong></div>
+                  <div><span>Tablas controladas</span><strong>{capacity.data?.tables.length ?? '—'}</strong></div>
                 </div>
               </Panel>
             </>
