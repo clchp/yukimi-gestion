@@ -49,6 +49,14 @@ const deliveryLabels: Record<string, string> = {
   DELIVERED: 'Entregada',
   CANCELLED: 'Cancelada',
 };
+function saleItemStatusLabel(status: string, pending: boolean) {
+  if (pending) return 'Liberación pendiente';
+  if (status === 'RELEASED') return 'Liberado';
+  if (status === 'PARTIALLY_RELEASED') return 'Parcialmente liberado';
+  if (status === 'ACTIVE') return 'Reservado';
+  return status;
+}
+
 const releaseLabels: Record<string, string> = {
   REQUESTED: 'Solicitada',
   APPROVED: 'Aprobada',
@@ -380,8 +388,16 @@ export function SaleDetailPage() {
                           <strong>{money(item.lineTotal)}</strong>
                         </td>
                         <td>
-                          <StatusBadge tone={item.itemStatus === 'RELEASED' ? 'danger' : 'success'}>
-                            {item.itemStatus}
+                          <StatusBadge
+                            tone={
+                              pendingLineIds.has(item.id)
+                                ? 'warning'
+                                : item.itemStatus === 'RELEASED'
+                                  ? 'danger'
+                                  : 'success'
+                            }
+                          >
+                            {saleItemStatusLabel(item.itemStatus, pendingLineIds.has(item.id))}
                           </StatusBadge>
                         </td>
                         <td>
@@ -414,8 +430,16 @@ export function SaleDetailPage() {
                         {item.variantName} · {item.sku}
                       </small>
                     </div>
-                    <StatusBadge tone={item.itemStatus === 'RELEASED' ? 'danger' : 'success'}>
-                      {item.itemStatus}
+                    <StatusBadge
+                      tone={
+                        pendingLineIds.has(item.id)
+                          ? 'warning'
+                          : item.itemStatus === 'RELEASED'
+                            ? 'danger'
+                            : 'success'
+                      }
+                    >
+                      {saleItemStatusLabel(item.itemStatus, pendingLineIds.has(item.id))}
                     </StatusBadge>
                     <dl>
                       <div>
@@ -484,7 +508,8 @@ export function SaleDetailPage() {
                         </small>
                         <div className="release-amounts">
                           <span>
-                            Penalidad: <strong>{money(request.penaltyAmount)}</strong>
+                            Penalidad: <strong>{money(request.penaltyAmount)}</strong> —{' '}
+                            {requestProductName(request.saleItemId)}
                             {request.penaltyOverridden ? ' · editada' : ''}
                           </span>
                           <span>

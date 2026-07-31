@@ -128,9 +128,18 @@ function nullableNumeric(value: number | string | null): number | null {
 
 function normalizeSearch(search: string): string {
   return search
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[,%()]/g, ' ')
     .trim()
     .slice(0, 100);
+}
+
+function normalizeComparable(value: string | null | undefined): string {
+  return (value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es');
 }
 
 function toRpcPayload(input: CreateProductInput): Record<string, unknown> {
@@ -217,7 +226,7 @@ export class SupabaseProductRepository implements ProductRepository {
         const { data: matchingFranchises, error: franchiseError } = await this.client
           .from('franchises')
           .select('id')
-          .ilike('name', `%${search}%`)
+          .ilike('search_name_normalized', `%${search.toLocaleLowerCase('es')}%`)
           .limit(30)
           .returns<Array<{ id: string }>>();
         if (franchiseError)
@@ -228,7 +237,7 @@ export class SupabaseProductRepository implements ProductRepository {
             ? `,franchise_id.in.(${(matchingFranchises ?? []).map((item) => item.id).join(',')})`
             : '';
         idQuery = idQuery.or(
-          `code.ilike.%${search}%,name.ilike.%${search}%,character_name.ilike.%${search}%${franchiseFilter}`,
+          `code.ilike.%${search}%,search_name_normalized.ilike.%${search.toLocaleLowerCase('es')}%,search_character_normalized.ilike.%${search.toLocaleLowerCase('es')}%${franchiseFilter}`,
         );
       }
     }
@@ -554,18 +563,19 @@ export class SupabaseProductRepository implements ProductRepository {
 
     if (!query.includeVirtual) inventoryQuery = inventoryQuery.eq('is_visible_in_operations', true);
     if (query.warehouseId) inventoryQuery = inventoryQuery.eq('warehouse_id', query.warehouseId);
-    if (query.search) {
-      const search = normalizeSearch(query.search);
-      if (search)
-        inventoryQuery = inventoryQuery.or(
-          `product_name.ilike.%${search}%,sku.ilike.%${search}%,product_code.ilike.%${search}%`,
-        );
-    }
-
     const { data, error } = await inventoryQuery.returns<InventoryViewRow[]>();
     if (error) throw mapSupabaseError(error, 'No se pudo cargar el inventario.');
 
-    const items: InventoryRow[] = (data ?? []).map((row) => ({
+    const search = query.search ? normalizeComparable(normalizeSearch(query.search)) : '';
+    const filteredRows = search
+      ? (data ?? []).filter((row) =>
+          normalizeComparable(
+            `${row.product_name} ${row.variant_name} ${row.product_code} ${row.sku} ${row.franchise_name ?? ''}`,
+          ).includes(search),
+        )
+      : (data ?? []);
+
+    const items: InventoryRow[] = filteredRows.map((row) => ({
       variantId: row.variant_id,
       productId: row.product_id,
       productCode: row.product_code,

@@ -91,6 +91,7 @@ export function InventoryPage() {
         includeVirtual: false,
       }),
     placeholderData: (previous) => previous,
+    refetchOnMount: 'always',
   });
 
   const operationalWarehouses = useMemo(

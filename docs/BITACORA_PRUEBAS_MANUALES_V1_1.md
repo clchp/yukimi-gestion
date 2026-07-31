@@ -165,6 +165,25 @@ Primer recorrido manual en computadora por creación de cliente, nueva venta, bo
 - **Ajustes de UX:** buscadores, tablas, tildes, mensajes junto al campo, espacios, tamaños, botones, resumen VIP y estados visuales.
 - **Comportamiento correcto que debe conservarse:** la fecha personalizada puede dejarse vacía, pero cuando se modifica debe conservar un motivo.
 
+### Implementación realizada
+
+- Se agregó la ruta real de borradores y una pantalla de error recuperable.
+- Se reconstruyó la selección de productos para mostrar cada variante una sola vez, con stock total y distribución manual por almacén.
+- Se añadieron validaciones junto a cada campo para cantidades, distribución, descuentos, vencimiento y condiciones VIP.
+- Se hizo obligatorio el documento en el formulario y contrato de la API, conservando compatibilidad con registros históricos.
+- Se corrigieron el retorno al flujo de venta, la edición VIP, la regla de adelanto S/ 0, la constancia editable y los estados de liberación.
+- Se incorporaron búsquedas sin sensibilidad a tildes en clientes, ventas, productos e inventario.
+- Se corrigió el vencimiento efectivo, la visualización de reservas y la actualización de inventario al volver desde una venta.
+- Se añadieron las migraciones incrementales `044_sales_validation_fixes.sql` y `045_client_document_api_validation.sql`, sin reescribir migraciones desplegadas.
+- Se agregaron pruebas de contratos y pgTAP para las reglas corregidas.
+
+### Verificación técnica
+
+- Lint, formato, compilación compartida, typecheck, pruebas Node/API, validaciones estáticas, cumplimiento y build: aprobados.
+- Migraciones aplicadas desde cero en Supabase local: aprobadas.
+- Pruebas de base de datos y lint de PostgreSQL: aprobados.
+- La validación visual y funcional definitiva se realizará nuevamente con los datos reales de la usuaria después de actualizar el código y aplicar las migraciones remotas.
+
 ### Estado
 
-**Hallazgos guardados; todavía no implementados.** Continuar la validación de los módulos restantes antes de aplicar el paquete de correcciones.
+**Paquete de correcciones implementado y validado técnicamente. Pendiente de nueva comprobación manual con datos reales.**

@@ -1,18 +1,22 @@
 import { createBrowserRouter } from 'react-router';
 import { AppShell } from '../components/app-shell';
 import { ProtectedRoute } from '../features/auth/protected-route';
+import { RouteErrorPage } from '../pages/route-error-page';
 
 export const router = createBrowserRouter([
   {
     path: '/iniciar-sesion',
+    errorElement: <RouteErrorPage />,
     lazy: async () => ({ Component: (await import('../pages/login-page')).LoginPage }),
   },
   {
     path: '/establecer-contrasena',
+    errorElement: <RouteErrorPage />,
     lazy: async () => ({ Component: (await import('../pages/set-password-page')).SetPasswordPage }),
   },
   {
     element: <ProtectedRoute />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         element: <AppShell />,
@@ -29,6 +33,10 @@ export const router = createBrowserRouter([
           },
           {
             path: 'ventas/nueva',
+            lazy: async () => ({ Component: (await import('../pages/new-sale-page')).NewSalePage }),
+          },
+          {
+            path: 'ventas/borradores/:draftId',
             lazy: async () => ({ Component: (await import('../pages/new-sale-page')).NewSalePage }),
           },
           {
@@ -152,6 +160,10 @@ export const router = createBrowserRouter([
             lazy: async () => ({
               Component: (await import('../pages/settings-page')).SettingsPage,
             }),
+          },
+          {
+            path: '*',
+            Component: RouteErrorPage,
           },
         ],
       },

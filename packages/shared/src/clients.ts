@@ -161,8 +161,8 @@ export type CreateClientAddressInput = z.infer<typeof createClientAddressInputSc
 
 const clientCoreInputSchema = z.object({
   fullName: z.string().trim().min(3).max(200),
-  documentType: z.enum(['DNI', 'CE', 'PASSPORT', 'RUC', 'OTHER']).nullable().optional(),
-  documentNumber: nullableText(30),
+  documentType: z.enum(['DNI', 'CE', 'PASSPORT', 'RUC', 'OTHER']),
+  documentNumber: z.string().trim().min(1, 'El número de documento es obligatorio.').max(30),
   phone: nullableText(30),
   secondaryPhone: nullableText(30),
   email: z.string().trim().email().max(254).nullable().optional(),

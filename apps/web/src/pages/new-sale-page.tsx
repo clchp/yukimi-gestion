@@ -1,14 +1,15 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InventoryRow } from '@yukimi/shared';
 import { ArrowLeft, ArrowRight, Check, Search, Trash2, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
 import { StatusBadge } from '../components/ui/status-badge';
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
+import { useFeedback } from '../components/ui/feedback-provider';
 import { getClient, getClients } from '../features/clients/clients-api';
 import { getInventory } from '../features/products/products-api';
-import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 import {
   confirmSaleDraft,
   getSaleDraft,
@@ -16,21 +17,83 @@ import {
   saveSaleDraft,
 } from '../features/sales/sales-api';
 
+interface ProductGroup {
+  variantId: string;
+  productId: string;
+  productName: string;
+  variantName: string;
+  sku: string;
+  salePrice: number;
+  rows: InventoryRow[];
+  totalAvailable: number;
+}
+
 interface DraftLine {
-  row: InventoryRow;
+  group: ProductGroup;
   quantity: number;
+  allocations: Record<string, number>;
   finalUnitPrice: number;
   discountTypeCode: string;
   discountReason: string;
 }
 
+type FieldErrors = Record<string, string>;
+
 const steps = ['Cliente', 'Productos', 'Condiciones', 'Confirmación'];
 const money = (value: number) =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
 
+function groupInventory(items: InventoryRow[]): ProductGroup[] {
+  const groups = new Map<string, ProductGroup>();
+  for (const row of items) {
+    let group = groups.get(row.variantId);
+    if (!group) {
+      group = {
+        variantId: row.variantId,
+        productId: row.productId,
+        productName: row.productName,
+        variantName: row.variantName,
+        sku: row.sku,
+        salePrice: row.salePrice,
+        rows: [],
+        totalAvailable: 0,
+      };
+      groups.set(row.variantId, group);
+    }
+    group.rows.push(row);
+    group.totalAvailable += row.availableQuantity;
+  }
+  return [...groups.values()]
+    .filter((group) => group.totalAvailable > 0)
+    .map((group) => ({
+      ...group,
+      rows: [...group.rows].sort((left, right) =>
+        left.warehouseName.localeCompare(right.warehouseName, 'es', { sensitivity: 'base' }),
+      ),
+    }))
+    .sort((left, right) =>
+      `${left.productName} ${left.variantName}`.localeCompare(
+        `${right.productName} ${right.variantName}`,
+        'es',
+        { sensitivity: 'base' },
+      ),
+    );
+}
+
+function dateAfterDays(days: number) {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 export function NewSalePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const { notify } = useFeedback();
   const { draftId } = useParams<{ draftId?: string }>();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [clientSearch, setClientSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -46,7 +109,8 @@ export function NewSalePage() {
   const [negotiatedMinimumDeposit, setNegotiatedMinimumDeposit] = useState('');
   const [negotiatedDepositReason, setNegotiatedDepositReason] = useState('');
   const [notes, setNotes] = useState('');
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [actionError, setActionError] = useState<string | null>(null);
   const idempotencyKey = useRef(crypto.randomUUID());
 
   const clients = useQuery({
@@ -69,31 +133,47 @@ export function NewSalePage() {
     enabled: Boolean(draftId),
   });
 
+  const productGroups = useMemo(
+    () => groupInventory(inventory.data?.items ?? []),
+    [inventory.data?.items],
+  );
+
   useEffect(() => {
-    if (!salesChannelCode && support.data?.salesChannels[0])
+    if (!salesChannelCode && support.data?.salesChannels[0]) {
       setSalesChannelCode(support.data.salesChannels[0].code);
+    }
   }, [salesChannelCode, support.data]);
 
   useEffect(() => {
-    if (!draft.data || hydratedDraftId === draft.data.id || !inventory.data) return;
+    const returnedClientId = searchParams.get('clientId');
+    if (returnedClientId) setSelectedClientId(returnedClientId);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!clientDetail.data?.isVip) return;
+    setNegotiatedMinimumDeposit((current) => (current === '' ? '0' : current));
+  }, [clientDetail.data?.isVip]);
+
+  useEffect(() => {
+    if (!draft.data || hydratedDraftId === draft.data.id || productGroups.length === 0) return;
     const payload = draft.data.payload;
-    const hydratedLines: DraftLine[] = payload.items.flatMap((item) => {
-      const row = inventory.data.items.find(
-        (candidate) =>
-          candidate.variantId === item.variantId && candidate.warehouseId === item.warehouseId,
-      );
-      return row
-        ? [
-            {
-              row,
-              quantity: item.quantity,
-              finalUnitPrice: item.finalUnitPrice,
-              discountTypeCode: item.discountTypeCode ?? 'MANUAL',
-              discountReason: item.discountReason ?? '',
-            },
-          ]
-        : [];
-    });
+    const grouped = new Map<string, DraftLine>();
+    for (const item of payload.items) {
+      const group = productGroups.find((candidate) => candidate.variantId === item.variantId);
+      if (!group || !item.warehouseId) continue;
+      const current = grouped.get(item.variantId) ?? {
+        group,
+        quantity: 0,
+        allocations: Object.fromEntries(group.rows.map((row) => [row.warehouseId, 0])),
+        finalUnitPrice: item.finalUnitPrice,
+        discountTypeCode: item.discountTypeCode ?? 'MANUAL',
+        discountReason: item.discountReason ?? '',
+      };
+      current.quantity += item.quantity;
+      current.allocations[item.warehouseId] =
+        (current.allocations[item.warehouseId] ?? 0) + item.quantity;
+      grouped.set(item.variantId, current);
+    }
     setSelectedClientId(payload.clientId);
     setSalesChannelCode(payload.salesChannelCode);
     setDeliveryMode(payload.deliveryMode);
@@ -107,13 +187,13 @@ export function NewSalePage() {
     );
     setNegotiatedDepositReason(payload.negotiatedMinimumDepositReason ?? '');
     setNotes(payload.notes ?? '');
-    setLines(hydratedLines);
+    setLines([...grouped.values()]);
     setDraftVersion(draft.data.version);
     setHydratedDraftId(draft.data.id);
-  }, [draft.data, hydratedDraftId, inventory.data]);
+  }, [draft.data, hydratedDraftId, productGroups]);
 
   const subtotal = useMemo(
-    () => lines.reduce((sum, line) => sum + line.quantity * line.row.salePrice, 0),
+    () => lines.reduce((sum, line) => sum + line.quantity * line.group.salePrice, 0),
     [lines],
   );
   const total = useMemo(
@@ -121,10 +201,22 @@ export function NewSalePage() {
     [lines],
   );
   const discount = subtotal - total;
+  const paymentTermDays =
+    clientDetail.data?.vipProfile?.paymentTermDays ?? support.data?.defaultPaymentTermDays ?? 14;
+  const proposedDueDate = dateAfterDays(paymentTermDays);
+
+  function clearErrors(...keys: string[]) {
+    setFieldErrors((current) => {
+      const next = { ...current };
+      for (const key of keys) delete next[key];
+      return next;
+    });
+    setActionError(null);
+  }
 
   function buildInput() {
     return {
-      clientId: selectedClientId as string,
+      clientId: selectedClientId,
       salesChannelCode,
       currencyCode: 'PEN' as const,
       deliveryMode,
@@ -138,27 +230,55 @@ export function NewSalePage() {
         ? negotiatedDepositReason.trim()
         : null,
       notes: notes.trim() || null,
-      items: lines.map((line) => ({
-        variantId: line.row.variantId,
-        warehouseId: line.row.warehouseId,
-        quantity: line.quantity,
-        originalUnitPrice: line.row.salePrice,
-        finalUnitPrice: line.finalUnitPrice,
-        discountTypeCode: line.finalUnitPrice < line.row.salePrice ? line.discountTypeCode : null,
-        discountReason: line.finalUnitPrice < line.row.salePrice ? line.discountReason : null,
-        notes: null,
-      })),
+      items: lines.flatMap((line) =>
+        line.group.rows.flatMap((row) => {
+          const quantity = line.allocations[row.warehouseId] ?? 0;
+          if (quantity <= 0) return [];
+          return [
+            {
+              variantId: line.group.variantId,
+              warehouseId: row.warehouseId,
+              quantity,
+              originalUnitPrice: line.group.salePrice,
+              finalUnitPrice: line.finalUnitPrice,
+              discountTypeCode:
+                line.finalUnitPrice < line.group.salePrice ? line.discountTypeCode : null,
+              discountReason:
+                line.finalUnitPrice < line.group.salePrice ? line.discountReason.trim() : null,
+              notes: null,
+            },
+          ];
+        }),
+      ),
     };
   }
+
+  const invalidateAfterSale = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['sales'] }),
+      queryClient.invalidateQueries({ queryKey: ['sale-drafts'] }),
+      queryClient.invalidateQueries({ queryKey: ['inventory'] }),
+      queryClient.invalidateQueries({ queryKey: ['products'] }),
+      queryClient.invalidateQueries({ queryKey: ['client', selectedClientId] }),
+    ]);
+  };
 
   const draftSave = useMutation({
     mutationFn: () =>
       saveSaleDraft({ draftId: draftId ?? null, version: draftVersion, input: buildInput() }),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       setDraftVersion(result.version);
-      setLocalError(`Borrador ${result.code} guardado.`);
+      setActionError(null);
+      await queryClient.invalidateQueries({ queryKey: ['sale-drafts'] });
+      notify({
+        title: 'Borrador guardado',
+        message: `${result.code} se guardó sin reservar stock.`,
+        tone: 'success',
+      });
       if (!draftId) navigate(`/ventas/borradores/${result.id}`, { replace: true });
     },
+    onError: (error) =>
+      setActionError(error instanceof Error ? error.message : 'No se pudo guardar el borrador.'),
   });
 
   const save = useMutation({
@@ -170,99 +290,156 @@ export function NewSalePage() {
       });
       return confirmSaleDraft(saved.id, saved.version, idempotencyKey.current);
     },
-    onSuccess: (result) => navigate(`/ventas/${result.id}`),
+    onSuccess: async (result) => {
+      await invalidateAfterSale();
+      navigate(`/ventas/${result.id}`);
+    },
+    onError: (error) =>
+      setActionError(error instanceof Error ? error.message : 'No se pudo confirmar la venta.'),
   });
 
-  function addProduct(row: InventoryRow) {
-    setLocalError(null);
-    if (row.availableQuantity <= 0) return;
-    if (
-      lines.some(
-        (line) => line.row.variantId === row.variantId && line.row.warehouseId === row.warehouseId,
-      )
-    ) {
-      setLocalError(
-        'Esa variante ya fue agregada desde ese almacén. Modifica su cantidad en la lista.',
-      );
+  function addProduct(group: ProductGroup) {
+    clearErrors('products');
+    if (lines.some((line) => line.group.variantId === group.variantId)) {
+      setFieldErrors((current) => ({
+        ...current,
+        products: 'Este producto ya está agregado. Modifica sus cantidades en la tarjeta inferior.',
+      }));
       return;
     }
     setLines((current) => [
       ...current,
       {
-        row,
+        group,
         quantity: 1,
-        finalUnitPrice: row.salePrice,
+        allocations: Object.fromEntries(group.rows.map((row) => [row.warehouseId, 0])),
+        finalUnitPrice: group.salePrice,
         discountTypeCode: 'MANUAL',
         discountReason: '',
       },
     ]);
   }
 
-  function updateLine(index: number, patch: Partial<Omit<DraftLine, 'row'>>) {
+  function updateLine(index: number, patch: Partial<Omit<DraftLine, 'group' | 'allocations'>>) {
+    clearErrors(`line-${index}-quantity`, `line-${index}-price`, `line-${index}-discount`);
     setLines((current) =>
       current.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line)),
     );
   }
 
-  function validateStep(): boolean {
-    setLocalError(null);
-    if (step === 1 && !selectedClientId) {
-      setLocalError('Selecciona un cliente para continuar.');
+  function updateAllocation(index: number, warehouseId: string, quantity: number) {
+    clearErrors(`line-${index}-allocation`);
+    setLines((current) =>
+      current.map((line, lineIndex) =>
+        lineIndex === index
+          ? { ...line, allocations: { ...line.allocations, [warehouseId]: quantity } }
+          : line,
+      ),
+    );
+  }
+
+  function validateClient() {
+    if (selectedClientId) return true;
+    setFieldErrors((current) => ({ ...current, client: 'Selecciona un cliente para continuar.' }));
+    return false;
+  }
+
+  function validateProducts() {
+    const errors: FieldErrors = {};
+    if (lines.length === 0) errors.products = 'Agrega al menos un producto.';
+    lines.forEach((line, index) => {
+      if (!Number.isInteger(line.quantity) || line.quantity < 1) {
+        errors[`line-${index}-quantity`] = 'La cantidad debe ser de al menos 1 unidad.';
+      } else if (line.quantity > line.group.totalAvailable) {
+        errors[`line-${index}-quantity`] =
+          `Solo hay ${line.group.totalAvailable} unidades disponibles en total.`;
+      }
+      let allocated = 0;
+      for (const row of line.group.rows) {
+        const amount = line.allocations[row.warehouseId] ?? 0;
+        if (!Number.isInteger(amount) || amount < 0) {
+          errors[`line-${index}-allocation`] =
+            'Las cantidades por almacén deben ser enteros desde 0.';
+          break;
+        }
+        if (amount > row.availableQuantity) {
+          errors[`line-${index}-allocation`] =
+            `${row.warehouseName} solo tiene ${row.availableQuantity} unidades disponibles.`;
+          break;
+        }
+        allocated += amount;
+      }
+      if (!errors[`line-${index}-allocation`] && allocated !== line.quantity) {
+        errors[`line-${index}-allocation`] =
+          `Distribuye exactamente ${line.quantity} unidad(es). Actualmente asignaste ${allocated}.`;
+      }
+      if (!Number.isFinite(line.finalUnitPrice) || line.finalUnitPrice < 0) {
+        errors[`line-${index}-price`] = 'El precio final no puede ser negativo.';
+      } else if (line.finalUnitPrice > line.group.salePrice) {
+        errors[`line-${index}-price`] = 'El precio final no puede superar el precio original.';
+      }
+      if (
+        line.finalUnitPrice < line.group.salePrice &&
+        (!line.discountTypeCode || line.discountReason.trim().length < 3)
+      ) {
+        errors[`line-${index}-discount`] =
+          'Todo descuento requiere un tipo y un motivo de al menos 3 caracteres.';
+      }
+    });
+    setFieldErrors((current) => ({ ...current, ...errors }));
+    return Object.keys(errors).length === 0;
+  }
+
+  function validateConditions() {
+    const errors: FieldErrors = {};
+    if (!salesChannelCode) errors.channel = 'Selecciona el canal de venta.';
+    if (dueDate && dueDateReason.trim().length < 5) {
+      errors.dueDateReason = 'Explica el motivo del vencimiento personalizado.';
+    }
+    if (clientDetail.data?.isVip) {
+      const minimum = Number(negotiatedMinimumDeposit);
+      if (negotiatedMinimumDeposit === '' || !Number.isFinite(minimum) || minimum < 0) {
+        errors.vipMinimum = 'Registra un adelanto mínimo válido.';
+      } else if (minimum > total) {
+        errors.vipMinimum = 'El adelanto mínimo no puede superar el total de la venta.';
+      } else if (minimum === 0 && !clientDetail.data.vipProfile?.canReserveWithoutDeposit) {
+        errors.vipMinimum =
+          'Este cliente VIP no tiene habilitada la separación sin adelanto. Ingresa un monto mayor que 0 o edita su condición VIP.';
+      }
+      if (negotiatedDepositReason.trim().length < 3) {
+        errors.vipReason = 'Explica el acuerdo de separación de esta venta VIP.';
+      }
+    }
+    setFieldErrors((current) => ({ ...current, ...errors }));
+    return Object.keys(errors).length === 0;
+  }
+
+  function validateAll() {
+    setFieldErrors({});
+    setActionError(null);
+    if (!validateClient()) {
+      setStep(1);
       return false;
     }
-    if (step === 2) {
-      if (lines.length === 0) {
-        setLocalError('Agrega al menos un producto.');
-        return false;
-      }
-      const invalid = lines.find(
-        (line) => line.quantity < 1 || line.quantity > line.row.availableQuantity,
-      );
-      if (invalid) {
-        setLocalError(`La cantidad de ${invalid.row.productName} supera el stock disponible.`);
-        return false;
-      }
-      const badDiscount = lines.find(
-        (line) =>
-          line.finalUnitPrice < line.row.salePrice &&
-          (!line.discountTypeCode || line.discountReason.trim().length < 3),
-      );
-      if (badDiscount) {
-        setLocalError('Todo descuento requiere un tipo y un motivo de al menos 3 caracteres.');
-        return false;
-      }
+    if (!validateProducts()) {
+      setStep(2);
+      return false;
     }
-    if (step === 3) {
-      if (!salesChannelCode) {
-        setLocalError('Selecciona el canal de venta.');
-        return false;
-      }
-      if (dueDate && dueDateReason.trim().length < 5) {
-        setLocalError('Explica el motivo del vencimiento personalizado.');
-        return false;
-      }
-      if (clientDetail.data?.isVip) {
-        const minimum = Number(negotiatedMinimumDeposit);
-        if (negotiatedMinimumDeposit === '' || !Number.isFinite(minimum) || minimum < 0) {
-          setLocalError('Registra el adelanto mínimo negociado para esta venta VIP.');
-          return false;
-        }
-        if (minimum > total) {
-          setLocalError('El adelanto mínimo no puede superar el total de la venta.');
-          return false;
-        }
-        if (negotiatedDepositReason.trim().length < 3) {
-          setLocalError('Explica el acuerdo de separación de esta venta VIP.');
-          return false;
-        }
-      }
+    if (!validateConditions()) {
+      setStep(3);
+      return false;
     }
     return true;
   }
 
   function next() {
-    if (validateStep()) setStep((value) => Math.min(4, value + 1));
+    setActionError(null);
+    const valid =
+      step === 1 ? validateClient() : step === 2 ? validateProducts() : validateConditions();
+    if (valid) setStep((value) => Math.min(4, value + 1));
   }
+
+  const returnTo = location.pathname;
 
   return (
     <main className="page sale-wizard-page">
@@ -271,9 +448,10 @@ export function NewSalePage() {
       </button>
       <PageHeader
         eyebrow="Registro guiado"
-        title="Nueva venta o reserva"
+        title={draftId ? 'Editar borrador de venta' : 'Nueva venta o reserva'}
         description="Al confirmar, el stock se mueve de disponible a reservado de forma atómica."
       />
+
       <div className="stepper">
         {steps.map((label, index) => {
           const number = index + 1;
@@ -289,21 +467,9 @@ export function NewSalePage() {
           );
         })}
       </div>
-      {localError ? <div className="alert alert-error">{localError}</div> : null}
+
       {draft.isError ? (
         <div className="alert alert-error">No se pudo cargar el borrador.</div>
-      ) : null}
-      {draftSave.isError ? (
-        <div className="alert alert-error">
-          {draftSave.error instanceof Error
-            ? draftSave.error.message
-            : 'No se pudo guardar el borrador.'}
-        </div>
-      ) : null}
-      {save.isError ? (
-        <div className="alert alert-error">
-          {save.error instanceof Error ? save.error.message : 'No se pudo crear la venta.'}
-        </div>
       ) : null}
 
       <section className="wizard-layout">
@@ -321,24 +487,32 @@ export function NewSalePage() {
                 </label>
                 <button
                   className="button button-secondary"
-                  onClick={() => navigate('/clientes/nuevo')}
+                  onClick={() =>
+                    navigate(`/clientes/nuevo?returnTo=${encodeURIComponent(returnTo)}`)
+                  }
                 >
                   <UserPlus size={17} /> Crear cliente
                 </button>
               </div>
+              {fieldErrors.client ? (
+                <p className="field-error-inline">{fieldErrors.client}</p>
+              ) : null}
               <div className="selection-list">
                 {clients.data?.items.map((client) => (
                   <button
                     key={client.id}
                     className={`selection-row ${selectedClientId === client.id ? 'selected' : ''}`}
-                    onClick={() => setSelectedClientId(client.id)}
+                    onClick={() => {
+                      setSelectedClientId(client.id);
+                      clearErrors('client');
+                    }}
                   >
                     <span className="avatar">{client.fullName.slice(0, 1).toUpperCase()}</span>
                     <span>
                       <strong>{client.fullName}</strong>
                       <small>
-                        {client.code} · {client.phone ?? 'Sin celular'} · Saldo{' '}
-                        {money(client.balanceAmount)}
+                        {client.code} · {client.documentNumber ?? 'Sin documento'} ·{' '}
+                        {client.phone ?? 'Sin celular'} · Saldo {money(client.balanceAmount)}
                       </small>
                     </span>
                     {client.isVip ? (
@@ -359,17 +533,16 @@ export function NewSalePage() {
                   </div>
                   <div>
                     <span>Plazo</span>
-                    <strong>
-                      {clientDetail.data.vipProfile?.paymentTermDays ??
-                        support.data?.defaultPaymentTermDays ??
-                        14}{' '}
-                      días
-                    </strong>
+                    <strong>{paymentTermDays} días</strong>
                   </div>
                   <div>
                     <span>Separación VIP</span>
                     <strong>
-                      {clientDetail.data.isVip ? 'Se acuerda por venta' : 'Condición regular'}
+                      {clientDetail.data.isVip
+                        ? clientDetail.data.vipProfile?.canReserveWithoutDeposit
+                          ? 'Puede acordarse desde S/ 0'
+                          : 'Requiere adelanto mayor que S/ 0'
+                        : 'Condición regular'}
                     </strong>
                   </div>
                 </div>
@@ -380,7 +553,7 @@ export function NewSalePage() {
           {step === 2 ? (
             <Panel
               title="Agrega productos"
-              subtitle="Cada fila representa una variante y un almacén específicos."
+              subtitle="El producto aparece una sola vez. Distribuye manualmente la cantidad entre Lorena y Camila."
             >
               <label className="search-field product-search-large">
                 <Search size={18} />
@@ -390,116 +563,168 @@ export function NewSalePage() {
                   placeholder="Buscar por nombre, código, SKU o franquicia…"
                 />
               </label>
+              {fieldErrors.products ? (
+                <p className="field-error-inline">{fieldErrors.products}</p>
+              ) : null}
               <div className="sale-product-results">
-                {inventory.data?.items
-                  .filter((row) => row.availableQuantity > 0)
-                  .slice(0, 30)
-                  .map((row) => (
-                    <button
-                      key={`${row.variantId}:${row.warehouseId}`}
-                      onClick={() => addProduct(row)}
-                    >
-                      <span>
-                        <strong>{row.productName}</strong>
-                        <small>
-                          {row.variantName} · {row.sku}
-                        </small>
-                      </span>
-                      <span>
-                        <strong>{money(row.salePrice)}</strong>
-                        <small>
-                          {row.warehouseName}: {row.availableQuantity} disponibles
-                        </small>
-                      </span>
-                    </button>
-                  ))}
-              </div>
-              <div className="selected-product-list">
-                {lines.map((line, index) => (
-                  <div
-                    className="selected-product-row sale-line-editor"
-                    key={`${line.row.variantId}:${line.row.warehouseId}`}
+                {productGroups.slice(0, 30).map((group) => (
+                  <button
+                    className="sale-product-result"
+                    key={group.variantId}
+                    onClick={() => addProduct(group)}
                   >
-                    <div className="selected-product-copy">
-                      <strong>{line.row.productName}</strong>
+                    <span>
+                      <strong>{group.productName}</strong>
                       <small>
-                        {line.row.variantName} · {line.row.sku}
+                        {group.variantName} · {group.sku}
                       </small>
-                      <span>
-                        {line.row.warehouseName} · disponible {line.row.availableQuantity}
-                      </span>
-                    </div>
-                    <label>
-                      Cantidad
-                      <input
-                        type="number"
-                        min="1"
-                        max={line.row.availableQuantity}
-                        value={line.quantity}
-                        onChange={(event) =>
-                          updateLine(index, { quantity: Number(event.target.value) })
-                        }
-                      />
-                    </label>
-                    <label>
-                      Precio final
-                      <input
-                        type="number"
-                        min="0"
-                        max={line.row.salePrice}
-                        step="0.01"
-                        value={line.finalUnitPrice}
-                        onChange={(event) =>
-                          updateLine(index, { finalUnitPrice: Number(event.target.value) })
-                        }
-                      />
-                    </label>
-                    {line.finalUnitPrice < line.row.salePrice ? (
-                      <>
-                        <label>
-                          Tipo
-                          <SearchableNativeSelect
-                            value={line.discountTypeCode}
-                            onChange={(event) =>
-                              updateLine(index, { discountTypeCode: event.target.value })
-                            }
-                          >
-                            {support.data?.discountTypes.map((type) => (
-                              <option key={type.code} value={type.code}>
-                                {type.name}
-                              </option>
-                            ))}
-                          </SearchableNativeSelect>
-                        </label>
-                        <label className="sale-discount-reason">
-                          Motivo
-                          <input
-                            value={line.discountReason}
-                            onChange={(event) =>
-                              updateLine(index, { discountReason: event.target.value })
-                            }
-                            placeholder="Motivo obligatorio"
-                          />
-                        </label>
-                      </>
-                    ) : null}
-                    <button
-                      className="icon-button danger-icon"
-                      aria-label={`Quitar ${line.row.productName}`}
-                      onClick={() => setLines((current) => current.filter((_, i) => i !== index))}
-                    >
-                      <Trash2 size={17} />
-                    </button>
-                    {line.row.currentUnitCostPen != null &&
-                    line.finalUnitPrice < line.row.currentUnitCostPen ? (
-                      <div className="below-cost-warning">
-                        El precio queda por debajo del costo vigente de{' '}
-                        {money(line.row.currentUnitCostPen)}. Puedes continuar, pero el motivo del
-                        descuento quedará auditado.
-                      </div>
-                    ) : null}
-                  </div>
+                    </span>
+                    <span className="sale-product-result-summary">
+                      <strong>{money(group.salePrice)}</strong>
+                      <small>
+                        Total: {group.totalAvailable} ·{' '}
+                        {group.rows
+                          .map((row) => `${row.warehouseName} ${row.availableQuantity}`)
+                          .join(' · ')}
+                      </small>
+                    </span>
+                  </button>
                 ))}
+              </div>
+
+              <div className="selected-product-list">
+                {lines.map((line, index) => {
+                  const highestCost = Math.max(
+                    ...line.group.rows.map((row) => row.currentUnitCostPen ?? 0),
+                  );
+                  return (
+                    <div
+                      className="selected-product-row sale-line-editor"
+                      key={line.group.variantId}
+                    >
+                      <div className="selected-product-copy">
+                        <strong>{line.group.productName}</strong>
+                        <small>
+                          {line.group.variantName} · {line.group.sku}
+                        </small>
+                        <span>Disponible total: {line.group.totalAvailable}</span>
+                      </div>
+                      <label>
+                        Cantidad total
+                        <input
+                          type="number"
+                          min="1"
+                          max={line.group.totalAvailable}
+                          value={line.quantity}
+                          onChange={(event) =>
+                            updateLine(index, { quantity: Number(event.target.value) })
+                          }
+                          aria-invalid={Boolean(fieldErrors[`line-${index}-quantity`])}
+                        />
+                      </label>
+                      <label>
+                        Precio final
+                        <input
+                          type="number"
+                          min="0"
+                          max={line.group.salePrice}
+                          step="0.01"
+                          value={line.finalUnitPrice}
+                          onChange={(event) =>
+                            updateLine(index, { finalUnitPrice: Number(event.target.value) })
+                          }
+                          aria-invalid={Boolean(fieldErrors[`line-${index}-price`])}
+                        />
+                      </label>
+                      <button
+                        className="icon-button danger-icon"
+                        aria-label={`Quitar ${line.group.productName}`}
+                        onClick={() => {
+                          setLines((current) =>
+                            current.filter((_, itemIndex) => itemIndex !== index),
+                          );
+                          setFieldErrors({});
+                        }}
+                      >
+                        <Trash2 size={17} />
+                      </button>
+
+                      {fieldErrors[`line-${index}-quantity`] ? (
+                        <p className="sale-inline-error">{fieldErrors[`line-${index}-quantity`]}</p>
+                      ) : null}
+                      {fieldErrors[`line-${index}-price`] ? (
+                        <p className="sale-inline-error">{fieldErrors[`line-${index}-price`]}</p>
+                      ) : null}
+
+                      <div className="sale-line-allocations">
+                        {line.group.rows.map((row) => (
+                          <label className="sale-allocation-field" key={row.warehouseId}>
+                            <span>
+                              <strong>{row.warehouseName}</strong>
+                              <small>{row.availableQuantity} disponibles</small>
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              max={row.availableQuantity}
+                              value={line.allocations[row.warehouseId] ?? 0}
+                              onChange={(event) =>
+                                updateAllocation(index, row.warehouseId, Number(event.target.value))
+                              }
+                              aria-label={`Cantidad desde ${row.warehouseName}`}
+                              aria-invalid={Boolean(fieldErrors[`line-${index}-allocation`])}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      {fieldErrors[`line-${index}-allocation`] ? (
+                        <p className="sale-inline-error">
+                          {fieldErrors[`line-${index}-allocation`]}
+                        </p>
+                      ) : null}
+
+                      {line.finalUnitPrice < line.group.salePrice ? (
+                        <>
+                          <label>
+                            Tipo de descuento
+                            <SearchableNativeSelect
+                              value={line.discountTypeCode}
+                              onChange={(event) =>
+                                updateLine(index, { discountTypeCode: event.target.value })
+                              }
+                            >
+                              {support.data?.discountTypes.map((type) => (
+                                <option key={type.code} value={type.code}>
+                                  {type.name}
+                                </option>
+                              ))}
+                            </SearchableNativeSelect>
+                          </label>
+                          <label className="sale-discount-reason">
+                            Motivo del descuento
+                            <input
+                              value={line.discountReason}
+                              onChange={(event) =>
+                                updateLine(index, { discountReason: event.target.value })
+                              }
+                              placeholder="Motivo obligatorio"
+                              aria-invalid={Boolean(fieldErrors[`line-${index}-discount`])}
+                            />
+                          </label>
+                        </>
+                      ) : null}
+                      {fieldErrors[`line-${index}-discount`] ? (
+                        <p className="sale-inline-error">{fieldErrors[`line-${index}-discount`]}</p>
+                      ) : null}
+                      {highestCost > 0 && line.finalUnitPrice < highestCost ? (
+                        <div className="below-cost-warning">
+                          El precio queda por debajo del costo vigente de {money(highestCost)}.
+                          Puedes continuar, pero el motivo del descuento quedará auditado.
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </Panel>
           ) : null}
@@ -509,12 +734,15 @@ export function NewSalePage() {
               title="Condiciones de la reserva"
               subtitle="Define el vencimiento y el acuerdo comercial antes de reservar el stock."
             >
-              <div className="form-grid form-grid-2">
+              <div className="form-grid form-grid-2 sale-conditions-grid">
                 <label className="field">
                   <span>Canal de venta</span>
                   <SearchableNativeSelect
                     value={salesChannelCode}
-                    onChange={(event) => setSalesChannelCode(event.target.value)}
+                    onChange={(event) => {
+                      setSalesChannelCode(event.target.value);
+                      clearErrors('channel');
+                    }}
                   >
                     {support.data?.salesChannels.map((channel) => (
                       <option key={channel.code} value={channel.code}>
@@ -522,6 +750,9 @@ export function NewSalePage() {
                       </option>
                     ))}
                   </SearchableNativeSelect>
+                  {fieldErrors.channel ? (
+                    <small className="field-error">{fieldErrors.channel}</small>
+                  ) : null}
                 </label>
                 <label className="field">
                   <span>Tipo de venta</span>
@@ -534,33 +765,58 @@ export function NewSalePage() {
                     <option value="REGULAR">Regular</option>
                     <option value="CUSTOM_ORDER">Pedido personalizado</option>
                   </SearchableNativeSelect>
+                  {saleTypeCode === 'CUSTOM_ORDER' ? (
+                    <small>
+                      Se identificará y reportará por separado; requiere stock disponible.
+                    </small>
+                  ) : null}
                 </label>
-                <label className="field">
+                <label className="field sale-due-field">
                   <span>Fecha de vencimiento opcional</span>
                   <input
                     type="date"
                     value={dueDate}
-                    onChange={(event) => setDueDate(event.target.value)}
+                    onChange={(event) => {
+                      setDueDate(event.target.value);
+                      clearErrors('dueDateReason');
+                    }}
                   />
-                  <small>Vacía: se aplicará el plazo normal o VIP.</small>
+                  <small>
+                    Vacía: se aplicará el plazo {clientDetail.data?.isVip ? 'VIP' : 'normal'} de{' '}
+                    {paymentTermDays} días.
+                  </small>
                 </label>
-                {dueDate ? (
-                  <label className="field">
-                    <span>Motivo del vencimiento *</span>
-                    <input
-                      minLength={5}
-                      value={dueDateReason}
-                      onChange={(event) => setDueDateReason(event.target.value)}
-                      placeholder="Acuerdo específico con el cliente"
-                    />
-                  </label>
-                ) : null}
+                <label className="field sale-due-reason-field">
+                  <span>
+                    Motivo del vencimiento {dueDate ? '*' : '(se habilita al cambiar la fecha)'}
+                  </span>
+                  <input
+                    disabled={!dueDate}
+                    minLength={5}
+                    value={dueDateReason}
+                    onChange={(event) => {
+                      setDueDateReason(event.target.value);
+                      clearErrors('dueDateReason');
+                    }}
+                    placeholder="Acuerdo específico con el cliente"
+                    aria-invalid={Boolean(fieldErrors.dueDateReason)}
+                  />
+                  {fieldErrors.dueDateReason ? (
+                    <small className="field-error">{fieldErrors.dueDateReason}</small>
+                  ) : null}
+                </label>
               </div>
+
+              <div className="sale-proposed-due">
+                Vencimiento que se aplicará: <strong>{dueDate || proposedDueDate}</strong> ·{' '}
+                {dueDate ? 'fecha personalizada' : `${paymentTermDays} días`}
+              </div>
+
               {clientDetail.data?.isVip ? (
                 <div className="vip-sale-terms">
                   <div className="alert alert-info">
-                    Para clientes VIP, el adelanto mínimo se negocia según los productos de esta
-                    venta. Escribe 0 si acordaron separar sin adelanto.
+                    Para clientes VIP, el adelanto mínimo se acuerda por venta. El valor 0 solo se
+                    permite cuando el perfil tiene habilitada la separación sin adelanto.
                   </div>
                   <div className="form-grid form-grid-2">
                     <label className="field">
@@ -571,21 +827,36 @@ export function NewSalePage() {
                         max={total}
                         step="0.01"
                         value={negotiatedMinimumDeposit}
-                        onChange={(event) => setNegotiatedMinimumDeposit(event.target.value)}
+                        onChange={(event) => {
+                          setNegotiatedMinimumDeposit(event.target.value);
+                          clearErrors('vipMinimum');
+                        }}
+                        aria-invalid={Boolean(fieldErrors.vipMinimum)}
                       />
+                      {fieldErrors.vipMinimum ? (
+                        <small className="field-error">{fieldErrors.vipMinimum}</small>
+                      ) : null}
                     </label>
                     <label className="field">
                       <span>Motivo o criterio del acuerdo *</span>
                       <input
                         value={negotiatedDepositReason}
-                        onChange={(event) => setNegotiatedDepositReason(event.target.value)}
+                        onChange={(event) => {
+                          setNegotiatedDepositReason(event.target.value);
+                          clearErrors('vipReason');
+                        }}
                         placeholder="Margen, producto, historial…"
+                        aria-invalid={Boolean(fieldErrors.vipReason)}
                       />
+                      {fieldErrors.vipReason ? (
+                        <small className="field-error">{fieldErrors.vipReason}</small>
+                      ) : null}
                     </label>
                   </div>
                 </div>
               ) : null}
-              <div className="choice-grid">
+
+              <div className="choice-grid sale-delivery-choices">
                 <label
                   className={`choice-card ${deliveryMode === 'ACCUMULATED' ? 'selected' : ''}`}
                 >
@@ -641,7 +912,16 @@ export function NewSalePage() {
                   <span>Productos</span>
                   <strong>
                     {lines.reduce((sum, line) => sum + line.quantity, 0)} unidades en{' '}
-                    {new Set(lines.map((line) => line.row.warehouseId)).size} almacén(es)
+                    {
+                      new Set(
+                        lines.flatMap((line) =>
+                          line.group.rows
+                            .filter((row) => (line.allocations[row.warehouseId] ?? 0) > 0)
+                            .map((row) => row.warehouseId),
+                        ),
+                      ).size
+                    }{' '}
+                    almacén(es)
                   </strong>
                 </div>
                 <div>
@@ -668,21 +948,42 @@ export function NewSalePage() {
                     {deliveryMode === 'ACCUMULATED' ? 'Acumula almacén' : 'Pendiente de definir'}
                   </strong>
                 </div>
-                {dueDate ? (
-                  <div>
-                    <span>Vencimiento personalizado</span>
-                    <strong>
-                      {dueDate} · {dueDateReason}
-                    </strong>
-                  </div>
-                ) : null}
+                <div>
+                  <span>Vencimiento</span>
+                  <strong>
+                    {dueDate || proposedDueDate}
+                    {dueDate ? ` · ${dueDateReason}` : ` · plazo de ${paymentTermDays} días`}
+                  </strong>
+                </div>
                 {clientDetail.data?.isVip ? (
-                  <div>
-                    <span>Adelanto mínimo acordado</span>
-                    <strong>{money(Number(negotiatedMinimumDeposit) || 0)}</strong>
-                  </div>
+                  <>
+                    <div>
+                      <span>Adelanto mínimo acordado</span>
+                      <strong>{money(Number(negotiatedMinimumDeposit) || 0)}</strong>
+                    </div>
+                    <div>
+                      <span>Motivo del acuerdo VIP</span>
+                      <strong>{negotiatedDepositReason || '—'}</strong>
+                    </div>
+                  </>
                 ) : null}
               </div>
+
+              <div className="review-allocation-list">
+                {lines.map((line) => (
+                  <div className="detail-note" key={line.group.variantId}>
+                    <strong>{line.group.productName}:</strong>{' '}
+                    {line.group.rows
+                      .filter((row) => (line.allocations[row.warehouseId] ?? 0) > 0)
+                      .map(
+                        (row) =>
+                          `${row.warehouseName} ${line.allocations[row.warehouseId]} unidad(es)`,
+                      )
+                      .join(' · ')}
+                  </div>
+                ))}
+              </div>
+
               <div className="alert alert-info">
                 Después de reservar podrás registrar uno o varios medios de pago y emitir el
                 comprobante correspondiente desde el detalle de la venta.
@@ -730,9 +1031,7 @@ export function NewSalePage() {
             <button
               className="button button-secondary"
               disabled={draftSave.isPending || !selectedClientId || lines.length === 0}
-              onClick={() => {
-                if (selectedClientId && lines.length > 0) draftSave.mutate();
-              }}
+              onClick={() => draftSave.mutate()}
             >
               {draftSave.isPending ? 'Guardando…' : 'Guardar borrador'}
             </button>
@@ -745,7 +1044,7 @@ export function NewSalePage() {
                 className="button button-primary"
                 disabled={save.isPending}
                 onClick={() => {
-                  if (validateStep()) save.mutate();
+                  if (validateAll()) save.mutate();
                 }}
               >
                 {save.isPending ? (
@@ -758,6 +1057,9 @@ export function NewSalePage() {
               </button>
             )}
           </div>
+          {actionError ? (
+            <div className="alert alert-error sale-action-error">{actionError}</div>
+          ) : null}
         </aside>
       </section>
     </main>

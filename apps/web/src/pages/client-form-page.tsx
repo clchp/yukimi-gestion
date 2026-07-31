@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save, UserRoundPlus } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import type { CreateClientInput, UpdateClientInput } from '@yukimi/shared';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
@@ -17,7 +17,11 @@ export function ClientFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { clientId } = useParams();
+  const [searchParams] = useSearchParams();
   const isEditing = Boolean(clientId);
+  const rawReturnTo = searchParams.get('returnTo');
+  const returnTo =
+    rawReturnTo?.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : null;
   const idempotencyKeyRef = useRef(crypto.randomUUID());
 
   const client = useQuery({
@@ -56,14 +60,12 @@ export function ClientFormPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       if (fullName.trim().length < 3) throw new Error('El nombre completo es obligatorio.');
-      if (documentNumber.trim() && !documentType)
-        throw new Error('Selecciona el tipo de documento.');
+      if (!documentType) throw new Error('Selecciona el tipo de documento.');
+      if (!documentNumber.trim()) throw new Error('El número de documento es obligatorio.');
       const base = {
         fullName: fullName.trim(),
-        documentType: documentNumber.trim()
-          ? (documentType as 'DNI' | 'CE' | 'PASSPORT' | 'RUC' | 'OTHER')
-          : null,
-        documentNumber: documentNumber.trim() || null,
+        documentType: documentType as 'DNI' | 'CE' | 'PASSPORT' | 'RUC' | 'OTHER',
+        documentNumber: documentNumber.trim(),
         phone: phone.trim() || null,
         secondaryPhone: secondaryPhone.trim() || null,
         email: email.trim() || null,
@@ -99,7 +101,12 @@ export function ClientFormPage() {
         queryClient.invalidateQueries({ queryKey: ['clients'] }),
         queryClient.invalidateQueries({ queryKey: ['client', result.id] }),
       ]);
-      navigate(`/clientes/${result.id}`);
+      if (!isEditing && returnTo) {
+        const separator = returnTo.includes('?') ? '&' : '?';
+        navigate(`${returnTo}${separator}clientId=${result.id}`, { replace: true });
+      } else {
+        navigate(`/clientes/${result.id}`);
+      }
     },
   });
 
@@ -118,7 +125,9 @@ export function ClientFormPage() {
       <button
         className="back-link"
         type="button"
-        onClick={() => navigate(isEditing && clientId ? `/clientes/${clientId}` : '/clientes')}
+        onClick={() =>
+          navigate(isEditing && clientId ? `/clientes/${clientId}` : (returnTo ?? '/clientes'))
+        }
       >
         <ArrowLeft size={17} /> Volver
       </button>
@@ -161,13 +170,15 @@ export function ClientFormPage() {
                     onChange={(event) => setFullName(event.target.value)}
                     maxLength={200}
                     placeholder="Ej. María López"
+                    required
                   />
                 </label>
                 <label className="field">
-                  <span>Tipo de documento</span>
+                  <span>Tipo de documento *</span>
                   <SearchableNativeSelect
                     value={documentType}
                     onChange={(event) => setDocumentType(event.target.value)}
+                    required
                   >
                     <option value="DNI">DNI</option>
                     <option value="CE">Carné de extranjería</option>
@@ -177,11 +188,12 @@ export function ClientFormPage() {
                   </SearchableNativeSelect>
                 </label>
                 <label className="field">
-                  <span>Número de documento</span>
+                  <span>Número de documento *</span>
                   <input
                     value={documentNumber}
                     onChange={(event) => setDocumentNumber(event.target.value)}
                     maxLength={30}
+                    required
                   />
                 </label>
                 <label className="field">

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  createClientSchema,
   createObligationSchema,
   createSaleSchema,
   globalSearchResponseSchema,
@@ -10,6 +11,14 @@ import {
 
 const id = '11111111-1111-4111-8111-111111111111';
 const secondId = '22222222-2222-4222-8222-222222222222';
+
+const saleItem = {
+  variantId: secondId,
+  warehouseId: id,
+  quantity: 1,
+  originalUnitPrice: 80,
+  finalUnitPrice: 80,
+};
 
 test('release quote preserves the per-line maximum-single penalty rule', () => {
   const quote = saleReleaseQuoteSchema.parse({
@@ -48,15 +57,7 @@ test('sale creation requires a reason for negotiated VIP deposit terms', () => {
     clientId: id,
     salesChannelCode: 'STORE',
     negotiatedMinimumDepositAmount: 20,
-    items: [
-      {
-        variantId: secondId,
-        warehouseId: id,
-        quantity: 1,
-        originalUnitPrice: 80,
-        finalUnitPrice: 80,
-      },
-    ],
+    items: [saleItem],
   };
 
   assert.equal(createSaleSchema.safeParse(base).success, false);
@@ -64,6 +65,63 @@ test('sale creation requires a reason for negotiated VIP deposit terms', () => {
     createSaleSchema.safeParse({
       ...base,
       negotiatedMinimumDepositReason: 'Acuerdo según el margen de esta figura.',
+    }).success,
+    true,
+  );
+});
+
+test('custom orders accept Peru-offset due dates and require a reason only when customized', () => {
+  const base = {
+    clientId: id,
+    salesChannelCode: 'WHATSAPP',
+    saleTypeCode: 'CUSTOM_ORDER' as const,
+    items: [saleItem],
+  };
+
+  assert.equal(createSaleSchema.safeParse(base).success, true);
+  assert.equal(
+    createSaleSchema.safeParse({
+      ...base,
+      dueAt: '2026-08-01T23:59:59-05:00',
+    }).success,
+    false,
+  );
+  assert.equal(
+    createSaleSchema.safeParse({
+      ...base,
+      dueAt: '2026-08-01T23:59:59-05:00',
+      dueDateReason: 'Acuerdo específico con el cliente.',
+    }).success,
+    true,
+  );
+});
+
+test('sale quantities must be at least one unit', () => {
+  assert.equal(
+    createSaleSchema.safeParse({
+      clientId: id,
+      salesChannelCode: 'WHATSAPP',
+      items: [{ ...saleItem, quantity: 0 }],
+    }).success,
+    false,
+  );
+});
+
+test('new and edited clients require a document', () => {
+  const base = {
+    fullName: 'Cliente de prueba',
+    phone: null,
+    secondaryPhone: null,
+    email: null,
+    notes: null,
+  };
+
+  assert.equal(createClientSchema.safeParse(base).success, false);
+  assert.equal(
+    createClientSchema.safeParse({
+      ...base,
+      documentType: 'DNI',
+      documentNumber: '70000001',
     }).success,
     true,
   );
