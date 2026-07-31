@@ -213,3 +213,41 @@ Primer recorrido manual en computadora por creación de cliente, nueva venta, bo
 ### Estado
 
 **Pendiente de diseño, implementación y prueba manual en la rama `version-1-1`.**
+
+### Aclaración de las opciones de entrega
+
+- `Acumula almacén` significa que los productos separados o pagados permanecen temporalmente en el almacén de Yukimi para que el cliente pueda agruparlos con compras futuras. Continúan vinculados al cliente y no vuelven al stock disponible.
+- La opción visual `Entrega pendiente` significa que el producto no se mantendrá para acumular futuras compras, pero la agencia o el método de entrega todavía se coordinará o registrará después.
+- Para que el texto sea más claro para las administradoras, evaluar cambiar la etiqueta `Entrega pendiente` por `Entrega por coordinar`, manteniendo internamente el estado de entrega correspondiente.
+
+### Resumen previo a la confirmación
+
+- El resumen debe continuar mostrando la modalidad elegida: `Acumula almacén` o `Entrega por coordinar`.
+- Cuando se trate de un pedido personalizado y se haya registrado una fecha acordada, debe aparecer una fila independiente: `Fecha acordada de entrega`.
+- No se debe inventar una fecha de entrega para una venta regular cuya entrega aún está por coordinar.
+- La fecha real de entrega se registra después, cuando la entrega efectivamente se completa, y debe mostrarse en el detalle y trazabilidad logística de la venta.
+
+### Eliminación de borradores
+
+- Cada tarjeta de `Borradores pendientes` debe incluir una acción con icono `X` o papelera para eliminar definitivamente un borrador que ya no se utilizará.
+- Antes de eliminarlo, debe mostrarse una confirmación clara para evitar borrados accidentales.
+- Como el borrador todavía no confirma la venta ni reserva definitivamente el stock, su eliminación no debe generar movimientos de inventario ni afectar ventas confirmadas.
+- Después de eliminarlo, debe desaparecer inmediatamente de la lista de borradores.
+
+### Buscador del listado de ventas
+
+- Corregir la presentación del buscador mostrado sobre la tabla de ventas.
+- Debe quedar alineado y centrado dentro del ancho disponible, con separación respecto de los bordes.
+- El icono de búsqueda debe quedar dentro del campo, con espacio suficiente antes del texto.
+- El campo no debe verse pegado a la esquina, recortado ni superpuesto con el borde del contenedor.
+- Este ajuste amplía el pendiente transversal ya registrado para los buscadores del sistema.
+
+### Clasificación adicional
+
+- **Aclaración funcional basada en requisitos:** diferencia entre acumulación en almacén y entrega por coordinar.
+- **Nuevo cambio funcional:** eliminación definitiva de borradores no confirmados.
+- **Ajustes de experiencia de usuario:** fecha relevante en el resumen, etiqueta más clara para la entrega y presentación del buscador.
+
+### Estado adicional
+
+**Pendiente de implementación y prueba manual en la rama `version-1-1`.**
