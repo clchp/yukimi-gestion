@@ -326,7 +326,7 @@ export function SettingsPage() {
       confirmLabel: 'Revisar cambio',
       validate: (form) => {
         try {
-          JSON.parse(form.value);
+          JSON.parse(form.value ?? '');
           return null;
         } catch {
           return { value: 'El valor debe ser JSON válido.' };
