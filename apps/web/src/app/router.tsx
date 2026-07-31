@@ -72,6 +72,18 @@ export const router = createBrowserRouter([
             }),
           },
           {
+            path: 'productos/:productId/editar',
+            lazy: async () => ({
+              Component: (await import('../pages/edit-product-page')).EditProductPage,
+            }),
+          },
+          {
+            path: 'productos/:productId',
+            lazy: async () => ({
+              Component: (await import('../pages/product-detail-page')).ProductDetailPage,
+            }),
+          },
+          {
             path: 'inventario',
             lazy: async () => ({
               Component: (await import('../pages/inventory-page')).InventoryPage,
