@@ -5,7 +5,10 @@ import type {
   CreateProductResult,
   InventoryMovementResult,
   InventoryResponse,
+  ProductDetail,
   ProductListResponse,
+  UpdateProductInput,
+  UpdateProductResult,
 } from '@yukimi/shared';
 import { apiRequest } from '../../app/api-client';
 
@@ -27,6 +30,10 @@ export function getProducts(filters: ProductListFilters): Promise<ProductListRes
   return apiRequest<ProductListResponse>(`/products?${params.toString()}`);
 }
 
+export function getProduct(productId: string): Promise<ProductDetail> {
+  return apiRequest<ProductDetail>(`/products/${productId}`);
+}
+
 export function createProduct(
   input: CreateProductInput,
   idempotencyKey = crypto.randomUUID(),
@@ -34,6 +41,16 @@ export function createProduct(
   return apiRequest<CreateProductResult>('/products', {
     method: 'POST',
     headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateProduct(
+  productId: string,
+  input: UpdateProductInput,
+): Promise<UpdateProductResult> {
+  return apiRequest<UpdateProductResult>(`/products/${productId}`, {
+    method: 'PATCH',
     body: JSON.stringify(input),
   });
 }
