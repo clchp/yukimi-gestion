@@ -1,0 +1,1383 @@
+# sales-api.ts
+import type {
+  CreateReturnCaseInput,
+  CreateSaleInput,
+  CreateSaleResult,
+  RequestSaleReleaseInput,
+  ReturnCaseResult,
+  ReviewSaleReleaseInput,
+  SaleDraftDetail,
+  SaleDraftList,
+  SaveSaleDraftInput,
+  SaleDetail,
+  SaleFilter,
+  SaleListResponse,
+  SaleReleaseQuote,
+  SaleSupportData,
+} from '@yukimi/shared';
+import { apiRequest } from '../../app/api-client';
+
+export function getSales(filters: {
+  search?: string;
+  filter?: SaleFilter;
+  page?: number;
+  pageSize?: number;
+}): Promise<SaleListResponse> {
+  const params = new URLSearchParams();
+  if (filters.search) params.set('search', filters.search);
+  params.set('filter', filters.filter ?? 'ALL');
+  params.set('page', String(filters.page ?? 1));
+  params.set('pageSize', String(filters.pageSize ?? 20));
+  return apiRequest<SaleListResponse>(`/sales?${params.toString()}`);
+}
+
+export function getSaleSupportData(): Promise<SaleSupportData> {
+  return apiRequest<SaleSupportData>('/sales/support-data');
+}
+
+export function getSale(saleId: string): Promise<SaleDetail> {
+  return apiRequest<SaleDetail>(`/sales/${saleId}`);
+}
+
+export function createSale(
+  input: CreateSaleInput,
+  idempotencyKey: string,
+): Promise<CreateSaleResult> {
+  return apiRequest<CreateSaleResult>('/sales', {
+    method: 'POST',
+    headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
+}
+
+export function getSaleReleaseQuote(saleItemId: string): Promise<SaleReleaseQuote> {
+  return apiRequest<SaleReleaseQuote>(`/sales/items/${saleItemId}/release-quote`);
+}
+
+export function requestSaleRelease(saleItemId: string, input: RequestSaleReleaseInput) {
+  return apiRequest<{ id: string; stateCode: string; version: number }>(
+    `/sales/items/${saleItemId}/release-requests`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function reviewSaleRelease(requestId: string, input: ReviewSaleReleaseInput) {
+  return apiRequest<{ id: string; stateCode: string; version: number }>(
+    `/sales/release-requests/${requestId}/review`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function getSaleDrafts(): Promise<SaleDraftList> {
+  return apiRequest<SaleDraftList>('/sales/drafts');
+}
+
+export function getSaleDraft(draftId: string): Promise<SaleDraftDetail> {
+  return apiRequest<SaleDraftDetail>(`/sales/drafts/${draftId}`);
+}
+
+export function saveSaleDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetail> {
+  return apiRequest<SaleDraftDetail>('/sales/drafts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function confirmSaleDraft(
+  draftId: string,
+  version: number,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<CreateSaleResult> {
+  return apiRequest<CreateSaleResult>(`/sales/drafts/${draftId}/confirm`, {
+    method: 'POST',
+    headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify({ version }),
+  });
+}
+
+export function createReturnCase(
+  saleId: string,
+  input: CreateReturnCaseInput,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<ReturnCaseResult> {
+  return apiRequest<ReturnCaseResult>(`/sales/${saleId}/returns`, {
+    method: 'POST',
+    headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
+}
+\n# shared sales draft symbols
+packages/shared/src/sales.ts-273-  penaltyAmount: z.number().nonnegative(),
+packages/shared/src/sales.ts-274-});
+packages/shared/src/sales.ts-275-export type RequestSaleReleaseInput = z.infer<typeof requestSaleReleaseSchema>;
+packages/shared/src/sales.ts-276-
+packages/shared/src/sales.ts-277-export const reviewSaleReleaseSchema = z.object({
+packages/shared/src/sales.ts-278-  decision: z.enum(['APPROVE', 'REJECT']),
+packages/shared/src/sales.ts-279-  reviewNotes: z.string().trim().min(3).max(1000),
+packages/shared/src/sales.ts-280-});
+packages/shared/src/sales.ts-281-export type ReviewSaleReleaseInput = z.infer<typeof reviewSaleReleaseSchema>;
+packages/shared/src/sales.ts-282-
+packages/shared/src/sales.ts:283:export const saleDraftSummarySchema = z.object({
+packages/shared/src/sales.ts-284-  id: z.string().uuid(),
+packages/shared/src/sales.ts-285-  code: z.string(),
+packages/shared/src/sales.ts-286-  clientId: z.string().uuid(),
+packages/shared/src/sales.ts-287-  clientName: z.string(),
+packages/shared/src/sales.ts-288-  status: z.enum(['DRAFT', 'CONFIRMED', 'CANCELLED']),
+packages/shared/src/sales.ts-289-  totalAmount: z.number().nonnegative(),
+packages/shared/src/sales.ts-290-  itemLines: z.number().int().nonnegative(),
+packages/shared/src/sales.ts-291-  updatedAt: z.string(),
+packages/shared/src/sales.ts-292-  version: z.number().int().positive(),
+packages/shared/src/sales.ts-293-});
+packages/shared/src/sales.ts:294:export type SaleDraftSummary = z.infer<typeof saleDraftSummarySchema>;
+packages/shared/src/sales.ts-295-
+packages/shared/src/sales.ts:296:export const saleDraftDetailSchema = saleDraftSummarySchema.extend({
+packages/shared/src/sales.ts-297-  payload: createSaleSchema,
+packages/shared/src/sales.ts-298-  confirmedSaleId: z.string().uuid().nullable(),
+packages/shared/src/sales.ts-299-});
+packages/shared/src/sales.ts:300:export type SaleDraftDetail = z.infer<typeof saleDraftDetailSchema>;
+packages/shared/src/sales.ts-301-
+packages/shared/src/sales.ts:302:export const saleDraftListSchema = z.object({
+packages/shared/src/sales.ts:303:  items: z.array(saleDraftSummarySchema),
+packages/shared/src/sales.ts-304-});
+packages/shared/src/sales.ts:305:export type SaleDraftList = z.infer<typeof saleDraftListSchema>;
+packages/shared/src/sales.ts-306-
+packages/shared/src/sales.ts:307:export const saveSaleDraftSchema = z.object({
+packages/shared/src/sales.ts-308-  draftId: z.string().uuid().nullable().optional(),
+packages/shared/src/sales.ts-309-  input: createSaleSchema,
+packages/shared/src/sales.ts-310-  version: z.number().int().positive().nullable().optional(),
+packages/shared/src/sales.ts-311-});
+packages/shared/src/sales.ts:312:export type SaveSaleDraftInput = z.infer<typeof saveSaleDraftSchema>;
+packages/shared/src/sales.ts-313-
+packages/shared/src/sales.ts-314-export const createReturnCaseSchema = z.object({
+packages/shared/src/sales.ts-315-  caseType: z.enum(['RETURN', 'EXCHANGE']),
+packages/shared/src/sales.ts-316-  reason: z.string().trim().min(5).max(1000),
+packages/shared/src/sales.ts-317-  items: z
+packages/shared/src/sales.ts-318-    .array(
+packages/shared/src/sales.ts-319-      z.object({
+packages/shared/src/sales.ts-320-        saleItemId: z.string().uuid(),
+packages/shared/src/sales.ts-321-        quantity: z.number().int().positive(),
+packages/shared/src/sales.ts-322-        receivedCondition: z.enum(['NEW', 'OPENED', 'DAMAGED', 'DEFECTIVE', 'OTHER']),
+packages/shared/src/sales.ts-323-        destinationWarehouseId: z.string().uuid(),
+packages/shared/src/sales.ts-324-        replacementVariantId: z.string().uuid().nullable().optional(),
+packages/shared/src/sales.ts-325-        notes: z.string().trim().max(500).nullable().optional(),
+packages/shared/src/sales.ts-326-      }),
+packages/shared/src/sales.ts-327-    )
+packages/shared/src/sales.ts-328-    .min(1)
+packages/shared/src/sales.ts-329-    .max(100),
+packages/shared/src/sales.ts-330-});
+packages/shared/src/sales.ts-331-export type CreateReturnCaseInput = z.infer<typeof createReturnCaseSchema>;
+packages/shared/src/sales.ts-332-
+packages/shared/src/sales.ts-333-export const returnCaseResultSchema = z.object({
+packages/shared/src/sales.ts-334-  id: z.string().uuid(),
+packages/shared/src/sales.ts-335-  code: z.string(),
+packages/shared/src/sales.ts-336-  stateCode: z.string(),
+packages/shared/src/sales.ts-337-  caseType: z.enum(['RETURN', 'EXCHANGE']),
+packages/shared/src/sales.ts-338-  version: z.number().int().positive(),
+packages/shared/src/sales.ts-339-});
+packages/shared/src/sales.ts-340-export type ReturnCaseResult = z.infer<typeof returnCaseResultSchema>;
+--
+apps/api/src/modules/sales/sales.routes.ts-1-import { randomUUID } from 'node:crypto';
+apps/api/src/modules/sales/sales.routes.ts-2-import { Router, type Request } from 'express';
+apps/api/src/modules/sales/sales.routes.ts-3-import {
+apps/api/src/modules/sales/sales.routes.ts-4-  createReturnCaseSchema,
+apps/api/src/modules/sales/sales.routes.ts-5-  createSaleSchema,
+apps/api/src/modules/sales/sales.routes.ts-6-  requestSaleReleaseSchema,
+apps/api/src/modules/sales/sales.routes.ts-7-  reviewSaleReleaseSchema,
+apps/api/src/modules/sales/sales.routes.ts-8-  saleFilterSchema,
+apps/api/src/modules/sales/sales.routes.ts:9:  saveSaleDraftSchema,
+apps/api/src/modules/sales/sales.routes.ts-10-} from '@yukimi/shared';
+apps/api/src/modules/sales/sales.routes.ts-11-import { z } from 'zod';
+apps/api/src/modules/sales/sales.routes.ts-12-import { AppError } from '../../shared/errors/app-error.js';
+apps/api/src/modules/sales/sales.routes.ts-13-import type { UserSupabaseClientFactory } from '../../shared/supabase/user-client.js';
+apps/api/src/modules/sales/sales.routes.ts-14-import type { SupabaseAuthGateway } from '../auth/supabase-auth.gateway.js';
+apps/api/src/modules/sales/sales.routes.ts-15-import { requireAuth } from '../auth/require-auth.js';
+apps/api/src/modules/sales/sales.routes.ts-16-import { SalesService } from './sales.service.js';
+apps/api/src/modules/sales/sales.routes.ts-17-import { SupabaseSalesRepository } from './supabase-sales.repository.js';
+apps/api/src/modules/sales/sales.routes.ts-18-
+apps/api/src/modules/sales/sales.routes.ts-19-const listQuerySchema = z.object({
+apps/api/src/modules/sales/sales.routes.ts-20-  search: z.string().trim().max(100).optional(),
+apps/api/src/modules/sales/sales.routes.ts-21-  filter: saleFilterSchema.default('ALL'),
+apps/api/src/modules/sales/sales.routes.ts-22-  page: z.coerce.number().int().min(1).default(1),
+apps/api/src/modules/sales/sales.routes.ts-23-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+apps/api/src/modules/sales/sales.routes.ts-24-});
+apps/api/src/modules/sales/sales.routes.ts-25-
+apps/api/src/modules/sales/sales.routes.ts-26-function actorIdOrThrow(id: string | undefined): string {
+apps/api/src/modules/sales/sales.routes.ts-27-  if (!id)
+apps/api/src/modules/sales/sales.routes.ts-28-    throw new AppError({
+apps/api/src/modules/sales/sales.routes.ts-29-      code: 'INVALID_SESSION',
+apps/api/src/modules/sales/sales.routes.ts-30-      message: 'No se encontró el usuario de la sesión.',
+apps/api/src/modules/sales/sales.routes.ts-31-      statusCode: 401,
+apps/api/src/modules/sales/sales.routes.ts-32-    });
+apps/api/src/modules/sales/sales.routes.ts-33-  return id;
+apps/api/src/modules/sales/sales.routes.ts-34-}
+apps/api/src/modules/sales/sales.routes.ts-35-
+apps/api/src/modules/sales/sales.routes.ts-36-function accessTokenOrThrow(token: string | undefined): string {
+apps/api/src/modules/sales/sales.routes.ts-37-  if (!token)
+apps/api/src/modules/sales/sales.routes.ts-38-    throw new AppError({
+apps/api/src/modules/sales/sales.routes.ts-39-      code: 'INVALID_SESSION',
+apps/api/src/modules/sales/sales.routes.ts-40-      message: 'No se encontró la sesión.',
+apps/api/src/modules/sales/sales.routes.ts-41-      statusCode: 401,
+apps/api/src/modules/sales/sales.routes.ts-42-    });
+apps/api/src/modules/sales/sales.routes.ts-43-  return token;
+apps/api/src/modules/sales/sales.routes.ts-44-}
+apps/api/src/modules/sales/sales.routes.ts-45-
+apps/api/src/modules/sales/sales.routes.ts-46-export function createSalesRouter(
+apps/api/src/modules/sales/sales.routes.ts-47-  authGateway: SupabaseAuthGateway,
+apps/api/src/modules/sales/sales.routes.ts-48-  clientFactory: UserSupabaseClientFactory,
+apps/api/src/modules/sales/sales.routes.ts-49-): Router {
+apps/api/src/modules/sales/sales.routes.ts-50-  const router = Router();
+apps/api/src/modules/sales/sales.routes.ts-51-  router.use(requireAuth(authGateway));
+apps/api/src/modules/sales/sales.routes.ts-52-
+apps/api/src/modules/sales/sales.routes.ts-53-  function serviceFor(request: Request) {
+apps/api/src/modules/sales/sales.routes.ts-54-    return new SalesService(
+--
+apps/api/src/modules/sales/sales.routes.ts-70-  router.get('/drafts', async (request, response, next) => {
+apps/api/src/modules/sales/sales.routes.ts-71-    try {
+apps/api/src/modules/sales/sales.routes.ts-72-      response.json({ data: await serviceFor(request).listDrafts() });
+apps/api/src/modules/sales/sales.routes.ts-73-    } catch (error) {
+apps/api/src/modules/sales/sales.routes.ts-74-      next(error);
+apps/api/src/modules/sales/sales.routes.ts-75-    }
+apps/api/src/modules/sales/sales.routes.ts-76-  });
+apps/api/src/modules/sales/sales.routes.ts-77-
+apps/api/src/modules/sales/sales.routes.ts-78-  router.post('/drafts', async (request, response, next) => {
+apps/api/src/modules/sales/sales.routes.ts-79-    try {
+apps/api/src/modules/sales/sales.routes.ts:80:      const input = saveSaleDraftSchema.parse(request.body);
+apps/api/src/modules/sales/sales.routes.ts-81-      response
+apps/api/src/modules/sales/sales.routes.ts-82-        .status(input.draftId ? 200 : 201)
+apps/api/src/modules/sales/sales.routes.ts-83-        .json({ data: await serviceFor(request).saveDraft(input) });
+apps/api/src/modules/sales/sales.routes.ts-84-    } catch (error) {
+apps/api/src/modules/sales/sales.routes.ts-85-      next(error);
+apps/api/src/modules/sales/sales.routes.ts-86-    }
+apps/api/src/modules/sales/sales.routes.ts-87-  });
+apps/api/src/modules/sales/sales.routes.ts-88-
+apps/api/src/modules/sales/sales.routes.ts-89-  router.get('/drafts/:draftId', async (request, response, next) => {
+apps/api/src/modules/sales/sales.routes.ts-90-    try {
+apps/api/src/modules/sales/sales.routes.ts-91-      const draftId = z.string().uuid().parse(request.params.draftId);
+apps/api/src/modules/sales/sales.routes.ts-92-      response.json({ data: await serviceFor(request).getDraft(draftId) });
+apps/api/src/modules/sales/sales.routes.ts-93-    } catch (error) {
+apps/api/src/modules/sales/sales.routes.ts-94-      next(error);
+apps/api/src/modules/sales/sales.routes.ts-95-    }
+apps/api/src/modules/sales/sales.routes.ts-96-  });
+apps/api/src/modules/sales/sales.routes.ts-97-
+apps/api/src/modules/sales/sales.routes.ts-98-  router.post('/drafts/:draftId/confirm', async (request, response, next) => {
+apps/api/src/modules/sales/sales.routes.ts-99-    try {
+apps/api/src/modules/sales/sales.routes.ts-100-      const draftId = z.string().uuid().parse(request.params.draftId);
+apps/api/src/modules/sales/sales.routes.ts-101-      const version = z
+apps/api/src/modules/sales/sales.routes.ts-102-        .object({ version: z.number().int().positive() })
+apps/api/src/modules/sales/sales.routes.ts-103-        .parse(request.body).version;
+apps/api/src/modules/sales/sales.routes.ts-104-      const idempotencyKey = request.header('idempotency-key')?.trim() || randomUUID();
+apps/api/src/modules/sales/sales.routes.ts-105-      response.json({
+apps/api/src/modules/sales/sales.routes.ts-106-        data: await serviceFor(request).confirmDraft(draftId, version, idempotencyKey),
+apps/api/src/modules/sales/sales.routes.ts-107-      });
+apps/api/src/modules/sales/sales.routes.ts-108-    } catch (error) {
+apps/api/src/modules/sales/sales.routes.ts-109-      next(error);
+apps/api/src/modules/sales/sales.routes.ts-110-    }
+apps/api/src/modules/sales/sales.routes.ts-111-  });
+apps/api/src/modules/sales/sales.routes.ts-112-
+apps/api/src/modules/sales/sales.routes.ts-113-  router.get('/items/:saleItemId/release-quote', async (request, response, next) => {
+apps/api/src/modules/sales/sales.routes.ts-114-    try {
+apps/api/src/modules/sales/sales.routes.ts-115-      const saleItemId = z.string().uuid().parse(request.params.saleItemId);
+apps/api/src/modules/sales/sales.routes.ts-116-      response.json({ data: await serviceFor(request).getReleaseQuote(saleItemId) });
+apps/api/src/modules/sales/sales.routes.ts-117-    } catch (error) {
+apps/api/src/modules/sales/sales.routes.ts-118-      next(error);
+apps/api/src/modules/sales/sales.routes.ts-119-    }
+apps/api/src/modules/sales/sales.routes.ts-120-  });
+apps/api/src/modules/sales/sales.routes.ts-121-
+apps/api/src/modules/sales/sales.routes.ts-122-  router.post('/items/:saleItemId/release-requests', async (request, response, next) => {
+apps/api/src/modules/sales/sales.routes.ts-123-    try {
+apps/api/src/modules/sales/sales.routes.ts-124-      const saleItemId = z.string().uuid().parse(request.params.saleItemId);
+apps/api/src/modules/sales/sales.routes.ts-125-      const input = requestSaleReleaseSchema.parse(request.body);
+--
+apps/api/src/modules/sales/sales.repository.ts-1-import type {
+apps/api/src/modules/sales/sales.repository.ts-2-  CreateReturnCaseInput,
+apps/api/src/modules/sales/sales.repository.ts-3-  CreateSaleInput,
+apps/api/src/modules/sales/sales.repository.ts-4-  CreateSaleResult,
+apps/api/src/modules/sales/sales.repository.ts-5-  RequestSaleReleaseInput,
+apps/api/src/modules/sales/sales.repository.ts-6-  ReturnCaseResult,
+apps/api/src/modules/sales/sales.repository.ts-7-  ReviewSaleReleaseInput,
+apps/api/src/modules/sales/sales.repository.ts:8:  SaleDraftDetail,
+apps/api/src/modules/sales/sales.repository.ts:9:  SaleDraftList,
+apps/api/src/modules/sales/sales.repository.ts:10:  SaveSaleDraftInput,
+apps/api/src/modules/sales/sales.repository.ts-11-  SaleDetail,
+apps/api/src/modules/sales/sales.repository.ts-12-  SaleFilter,
+apps/api/src/modules/sales/sales.repository.ts-13-  SaleListResponse,
+apps/api/src/modules/sales/sales.repository.ts-14-  SaleReleaseQuote,
+apps/api/src/modules/sales/sales.repository.ts-15-  SaleSupportData,
+apps/api/src/modules/sales/sales.repository.ts-16-} from '@yukimi/shared';
+apps/api/src/modules/sales/sales.repository.ts-17-
+apps/api/src/modules/sales/sales.repository.ts-18-export interface SaleListQuery {
+apps/api/src/modules/sales/sales.repository.ts-19-  search?: string | undefined;
+apps/api/src/modules/sales/sales.repository.ts-20-  filter: SaleFilter;
+apps/api/src/modules/sales/sales.repository.ts-21-  page: number;
+apps/api/src/modules/sales/sales.repository.ts-22-  pageSize: number;
+apps/api/src/modules/sales/sales.repository.ts-23-}
+apps/api/src/modules/sales/sales.repository.ts-24-
+apps/api/src/modules/sales/sales.repository.ts-25-export interface SalesRepository {
+apps/api/src/modules/sales/sales.repository.ts-26-  list(query: SaleListQuery): Promise<SaleListResponse>;
+apps/api/src/modules/sales/sales.repository.ts-27-  getSupportData(): Promise<SaleSupportData>;
+apps/api/src/modules/sales/sales.repository.ts-28-  getById(saleId: string): Promise<SaleDetail>;
+apps/api/src/modules/sales/sales.repository.ts-29-  create(input: CreateSaleInput, idempotencyKey: string): Promise<CreateSaleResult>;
+apps/api/src/modules/sales/sales.repository.ts:30:  listDrafts(): Promise<SaleDraftList>;
+apps/api/src/modules/sales/sales.repository.ts:31:  getDraft(draftId: string): Promise<SaleDraftDetail>;
+apps/api/src/modules/sales/sales.repository.ts:32:  saveDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetail>;
+apps/api/src/modules/sales/sales.repository.ts:33:  confirmDraft(draftId: string, version: number, idempotencyKey: string): Promise<CreateSaleResult>;
+apps/api/src/modules/sales/sales.repository.ts-34-  createReturnCase(
+apps/api/src/modules/sales/sales.repository.ts-35-    saleId: string,
+apps/api/src/modules/sales/sales.repository.ts-36-    input: CreateReturnCaseInput,
+apps/api/src/modules/sales/sales.repository.ts-37-    idempotencyKey: string,
+apps/api/src/modules/sales/sales.repository.ts-38-  ): Promise<ReturnCaseResult>;
+apps/api/src/modules/sales/sales.repository.ts-39-  getReleaseQuote(saleItemId: string): Promise<SaleReleaseQuote>;
+apps/api/src/modules/sales/sales.repository.ts-40-  requestRelease(
+apps/api/src/modules/sales/sales.repository.ts-41-    saleItemId: string,
+apps/api/src/modules/sales/sales.repository.ts-42-    input: RequestSaleReleaseInput,
+apps/api/src/modules/sales/sales.repository.ts-43-  ): Promise<{ id: string; stateCode: string; version: number }>;
+apps/api/src/modules/sales/sales.repository.ts-44-  reviewRelease(
+apps/api/src/modules/sales/sales.repository.ts-45-    requestId: string,
+apps/api/src/modules/sales/sales.repository.ts-46-    input: ReviewSaleReleaseInput,
+apps/api/src/modules/sales/sales.repository.ts-47-  ): Promise<{ id: string; stateCode: string; version: number }>;
+apps/api/src/modules/sales/sales.repository.ts-48-}
+--
+apps/api/src/modules/sales/sales.service.ts-1-import type {
+apps/api/src/modules/sales/sales.service.ts-2-  CreateReturnCaseInput,
+apps/api/src/modules/sales/sales.service.ts-3-  CreateSaleInput,
+apps/api/src/modules/sales/sales.service.ts-4-  RequestSaleReleaseInput,
+apps/api/src/modules/sales/sales.service.ts-5-  ReviewSaleReleaseInput,
+apps/api/src/modules/sales/sales.service.ts:6:  SaveSaleDraftInput,
+apps/api/src/modules/sales/sales.service.ts-7-} from '@yukimi/shared';
+apps/api/src/modules/sales/sales.service.ts-8-import type { SaleListQuery, SalesRepository } from './sales.repository.js';
+apps/api/src/modules/sales/sales.service.ts-9-
+apps/api/src/modules/sales/sales.service.ts-10-export class SalesService {
+apps/api/src/modules/sales/sales.service.ts-11-  public constructor(private readonly repository: SalesRepository) {}
+apps/api/src/modules/sales/sales.service.ts-12-
+apps/api/src/modules/sales/sales.service.ts-13-  public list(query: SaleListQuery) {
+apps/api/src/modules/sales/sales.service.ts-14-    return this.repository.list(query);
+apps/api/src/modules/sales/sales.service.ts-15-  }
+apps/api/src/modules/sales/sales.service.ts-16-
+apps/api/src/modules/sales/sales.service.ts-17-  public getSupportData() {
+apps/api/src/modules/sales/sales.service.ts-18-    return this.repository.getSupportData();
+apps/api/src/modules/sales/sales.service.ts-19-  }
+apps/api/src/modules/sales/sales.service.ts-20-
+apps/api/src/modules/sales/sales.service.ts-21-  public getById(saleId: string) {
+apps/api/src/modules/sales/sales.service.ts-22-    return this.repository.getById(saleId);
+apps/api/src/modules/sales/sales.service.ts-23-  }
+apps/api/src/modules/sales/sales.service.ts-24-
+apps/api/src/modules/sales/sales.service.ts-25-  public create(input: CreateSaleInput, idempotencyKey: string) {
+apps/api/src/modules/sales/sales.service.ts-26-    return this.repository.create(input, idempotencyKey);
+apps/api/src/modules/sales/sales.service.ts-27-  }
+apps/api/src/modules/sales/sales.service.ts-28-
+apps/api/src/modules/sales/sales.service.ts-29-  public listDrafts() {
+apps/api/src/modules/sales/sales.service.ts-30-    return this.repository.listDrafts();
+apps/api/src/modules/sales/sales.service.ts-31-  }
+apps/api/src/modules/sales/sales.service.ts-32-
+apps/api/src/modules/sales/sales.service.ts-33-  public getDraft(draftId: string) {
+apps/api/src/modules/sales/sales.service.ts-34-    return this.repository.getDraft(draftId);
+apps/api/src/modules/sales/sales.service.ts-35-  }
+apps/api/src/modules/sales/sales.service.ts-36-
+apps/api/src/modules/sales/sales.service.ts:37:  public saveDraft(input: SaveSaleDraftInput) {
+apps/api/src/modules/sales/sales.service.ts-38-    return this.repository.saveDraft(input);
+apps/api/src/modules/sales/sales.service.ts-39-  }
+apps/api/src/modules/sales/sales.service.ts-40-
+apps/api/src/modules/sales/sales.service.ts-41-  public confirmDraft(draftId: string, version: number, idempotencyKey: string) {
+apps/api/src/modules/sales/sales.service.ts-42-    return this.repository.confirmDraft(draftId, version, idempotencyKey);
+apps/api/src/modules/sales/sales.service.ts-43-  }
+apps/api/src/modules/sales/sales.service.ts-44-
+apps/api/src/modules/sales/sales.service.ts-45-  public createReturnCase(saleId: string, input: CreateReturnCaseInput, idempotencyKey: string) {
+apps/api/src/modules/sales/sales.service.ts-46-    return this.repository.createReturnCase(saleId, input, idempotencyKey);
+apps/api/src/modules/sales/sales.service.ts-47-  }
+apps/api/src/modules/sales/sales.service.ts-48-
+apps/api/src/modules/sales/sales.service.ts-49-  public getReleaseQuote(saleItemId: string) {
+apps/api/src/modules/sales/sales.service.ts-50-    return this.repository.getReleaseQuote(saleItemId);
+apps/api/src/modules/sales/sales.service.ts-51-  }
+apps/api/src/modules/sales/sales.service.ts-52-
+apps/api/src/modules/sales/sales.service.ts-53-  public requestRelease(saleItemId: string, input: RequestSaleReleaseInput) {
+apps/api/src/modules/sales/sales.service.ts-54-    return this.repository.requestRelease(saleItemId, input);
+apps/api/src/modules/sales/sales.service.ts-55-  }
+apps/api/src/modules/sales/sales.service.ts-56-
+apps/api/src/modules/sales/sales.service.ts-57-  public reviewRelease(requestId: string, input: ReviewSaleReleaseInput) {
+apps/api/src/modules/sales/sales.service.ts-58-    return this.repository.reviewRelease(requestId, input);
+apps/api/src/modules/sales/sales.service.ts-59-  }
+apps/api/src/modules/sales/sales.service.ts-60-}
+--
+apps/api/src/modules/sales/supabase-sales.repository.ts-1-import type { SupabaseClient } from '@supabase/supabase-js';
+apps/api/src/modules/sales/supabase-sales.repository.ts-2-import {
+apps/api/src/modules/sales/supabase-sales.repository.ts-3-  createSaleResultSchema,
+apps/api/src/modules/sales/supabase-sales.repository.ts-4-  returnCaseResultSchema,
+apps/api/src/modules/sales/supabase-sales.repository.ts:5:  saleDraftDetailSchema,
+apps/api/src/modules/sales/supabase-sales.repository.ts:6:  saleDraftListSchema,
+apps/api/src/modules/sales/supabase-sales.repository.ts-7-  saleDetailSchema,
+apps/api/src/modules/sales/supabase-sales.repository.ts-8-  saleListResponseSchema,
+apps/api/src/modules/sales/supabase-sales.repository.ts-9-  saleReleaseQuoteSchema,
+apps/api/src/modules/sales/supabase-sales.repository.ts-10-  saleSupportDataSchema,
+apps/api/src/modules/sales/supabase-sales.repository.ts-11-  type CreateReturnCaseInput,
+apps/api/src/modules/sales/supabase-sales.repository.ts-12-  type CreateSaleInput,
+apps/api/src/modules/sales/supabase-sales.repository.ts-13-  type CreateSaleResult,
+apps/api/src/modules/sales/supabase-sales.repository.ts-14-  type RequestSaleReleaseInput,
+apps/api/src/modules/sales/supabase-sales.repository.ts-15-  type ReturnCaseResult,
+apps/api/src/modules/sales/supabase-sales.repository.ts-16-  type ReviewSaleReleaseInput,
+apps/api/src/modules/sales/supabase-sales.repository.ts:17:  type SaleDraftDetail,
+apps/api/src/modules/sales/supabase-sales.repository.ts:18:  type SaleDraftList,
+apps/api/src/modules/sales/supabase-sales.repository.ts:19:  type SaveSaleDraftInput,
+apps/api/src/modules/sales/supabase-sales.repository.ts-20-  type SaleDetail,
+apps/api/src/modules/sales/supabase-sales.repository.ts-21-  type SaleListResponse,
+apps/api/src/modules/sales/supabase-sales.repository.ts-22-  type SaleReleaseQuote,
+apps/api/src/modules/sales/supabase-sales.repository.ts-23-  type SaleSupportData,
+apps/api/src/modules/sales/supabase-sales.repository.ts-24-} from '@yukimi/shared';
+apps/api/src/modules/sales/supabase-sales.repository.ts-25-import { mapSupabaseError } from '../../shared/supabase/map-error.js';
+apps/api/src/modules/sales/supabase-sales.repository.ts-26-import type { SaleListQuery, SalesRepository } from './sales.repository.js';
+apps/api/src/modules/sales/supabase-sales.repository.ts-27-
+apps/api/src/modules/sales/supabase-sales.repository.ts-28-export class SupabaseSalesRepository implements SalesRepository {
+apps/api/src/modules/sales/supabase-sales.repository.ts-29-  public constructor(
+apps/api/src/modules/sales/supabase-sales.repository.ts-30-    private readonly client: SupabaseClient,
+apps/api/src/modules/sales/supabase-sales.repository.ts-31-    private readonly actorId: string,
+apps/api/src/modules/sales/supabase-sales.repository.ts-32-  ) {}
+apps/api/src/modules/sales/supabase-sales.repository.ts-33-
+apps/api/src/modules/sales/supabase-sales.repository.ts-34-  public async list(query: SaleListQuery): Promise<SaleListResponse> {
+apps/api/src/modules/sales/supabase-sales.repository.ts-35-    const { data, error } = await this.client.rpc('list_sales_v1', {
+apps/api/src/modules/sales/supabase-sales.repository.ts-36-      p_search: query.search ?? null,
+apps/api/src/modules/sales/supabase-sales.repository.ts-37-      p_filter: query.filter,
+apps/api/src/modules/sales/supabase-sales.repository.ts-38-      p_page: query.page,
+apps/api/src/modules/sales/supabase-sales.repository.ts-39-      p_page_size: query.pageSize,
+apps/api/src/modules/sales/supabase-sales.repository.ts-40-    });
+apps/api/src/modules/sales/supabase-sales.repository.ts-41-    if (error) throw mapSupabaseError(error, 'No se pudieron cargar las ventas.');
+apps/api/src/modules/sales/supabase-sales.repository.ts-42-    return saleListResponseSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-43-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-44-
+apps/api/src/modules/sales/supabase-sales.repository.ts-45-  public async getSupportData(): Promise<SaleSupportData> {
+apps/api/src/modules/sales/supabase-sales.repository.ts-46-    const { data, error } = await this.client.rpc('get_sale_support_v1');
+apps/api/src/modules/sales/supabase-sales.repository.ts-47-    if (error) throw mapSupabaseError(error, 'No se pudieron cargar las opciones de venta.');
+apps/api/src/modules/sales/supabase-sales.repository.ts-48-    return saleSupportDataSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-49-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-50-
+apps/api/src/modules/sales/supabase-sales.repository.ts-51-  public async getById(saleId: string): Promise<SaleDetail> {
+apps/api/src/modules/sales/supabase-sales.repository.ts-52-    const { data, error } = await this.client.rpc('get_sale_detail_v3', { p_sale_id: saleId });
+apps/api/src/modules/sales/supabase-sales.repository.ts-53-    if (error) throw mapSupabaseError(error, 'No se pudo cargar la venta.');
+apps/api/src/modules/sales/supabase-sales.repository.ts-54-    return saleDetailSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-55-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-56-
+apps/api/src/modules/sales/supabase-sales.repository.ts-57-  public async create(input: CreateSaleInput, idempotencyKey: string): Promise<CreateSaleResult> {
+apps/api/src/modules/sales/supabase-sales.repository.ts-58-    const { data, error } = await this.client.rpc('create_sale_v3', {
+apps/api/src/modules/sales/supabase-sales.repository.ts-59-      p_input: input,
+apps/api/src/modules/sales/supabase-sales.repository.ts-60-      p_idempotency_key: idempotencyKey,
+apps/api/src/modules/sales/supabase-sales.repository.ts-61-    });
+apps/api/src/modules/sales/supabase-sales.repository.ts-62-    if (error) throw mapSupabaseError(error, 'No se pudo crear la venta.');
+apps/api/src/modules/sales/supabase-sales.repository.ts-63-    return createSaleResultSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-64-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-65-
+apps/api/src/modules/sales/supabase-sales.repository.ts:66:  public async listDrafts(): Promise<SaleDraftList> {
+apps/api/src/modules/sales/supabase-sales.repository.ts:67:    const { data, error } = await this.client.rpc('list_sale_drafts_v1');
+apps/api/src/modules/sales/supabase-sales.repository.ts-68-    if (error) throw mapSupabaseError(error, 'No se pudieron cargar los borradores.');
+apps/api/src/modules/sales/supabase-sales.repository.ts:69:    return saleDraftListSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-70-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-71-
+apps/api/src/modules/sales/supabase-sales.repository.ts:72:  public async getDraft(draftId: string): Promise<SaleDraftDetail> {
+apps/api/src/modules/sales/supabase-sales.repository.ts:73:    const { data, error } = await this.client.rpc('get_sale_draft_v1', { p_draft_id: draftId });
+apps/api/src/modules/sales/supabase-sales.repository.ts-74-    if (error) throw mapSupabaseError(error, 'No se pudo cargar el borrador.');
+apps/api/src/modules/sales/supabase-sales.repository.ts:75:    return saleDraftDetailSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-76-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-77-
+apps/api/src/modules/sales/supabase-sales.repository.ts:78:  public async saveDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetail> {
+apps/api/src/modules/sales/supabase-sales.repository.ts:79:    const { data, error } = await this.client.rpc('save_sale_draft_v1', {
+apps/api/src/modules/sales/supabase-sales.repository.ts-80-      p_input: input.input,
+apps/api/src/modules/sales/supabase-sales.repository.ts-81-      p_draft_id: input.draftId ?? null,
+apps/api/src/modules/sales/supabase-sales.repository.ts-82-      p_expected_version: input.version ?? null,
+apps/api/src/modules/sales/supabase-sales.repository.ts-83-    });
+apps/api/src/modules/sales/supabase-sales.repository.ts-84-    if (error) throw mapSupabaseError(error, 'No se pudo guardar el borrador.');
+apps/api/src/modules/sales/supabase-sales.repository.ts:85:    return saleDraftDetailSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-86-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-87-
+apps/api/src/modules/sales/supabase-sales.repository.ts-88-  public async confirmDraft(
+apps/api/src/modules/sales/supabase-sales.repository.ts-89-    draftId: string,
+apps/api/src/modules/sales/supabase-sales.repository.ts-90-    version: number,
+apps/api/src/modules/sales/supabase-sales.repository.ts-91-    idempotencyKey: string,
+apps/api/src/modules/sales/supabase-sales.repository.ts-92-  ): Promise<CreateSaleResult> {
+apps/api/src/modules/sales/supabase-sales.repository.ts:93:    const { data, error } = await this.client.rpc('confirm_sale_draft_v1', {
+apps/api/src/modules/sales/supabase-sales.repository.ts-94-      p_draft_id: draftId,
+apps/api/src/modules/sales/supabase-sales.repository.ts-95-      p_expected_version: version,
+apps/api/src/modules/sales/supabase-sales.repository.ts-96-      p_idempotency_key: idempotencyKey,
+apps/api/src/modules/sales/supabase-sales.repository.ts-97-    });
+apps/api/src/modules/sales/supabase-sales.repository.ts-98-    if (error) throw mapSupabaseError(error, 'No se pudo confirmar el borrador.');
+apps/api/src/modules/sales/supabase-sales.repository.ts-99-    return createSaleResultSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-100-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-101-
+apps/api/src/modules/sales/supabase-sales.repository.ts-102-  public async createReturnCase(
+apps/api/src/modules/sales/supabase-sales.repository.ts-103-    saleId: string,
+apps/api/src/modules/sales/supabase-sales.repository.ts-104-    input: CreateReturnCaseInput,
+apps/api/src/modules/sales/supabase-sales.repository.ts-105-    idempotencyKey: string,
+apps/api/src/modules/sales/supabase-sales.repository.ts-106-  ): Promise<ReturnCaseResult> {
+apps/api/src/modules/sales/supabase-sales.repository.ts-107-    const { data, error } = await this.client.rpc('create_return_case_v1', {
+apps/api/src/modules/sales/supabase-sales.repository.ts-108-      p_sale_id: saleId,
+apps/api/src/modules/sales/supabase-sales.repository.ts-109-      p_input: input,
+apps/api/src/modules/sales/supabase-sales.repository.ts-110-      p_idempotency_key: idempotencyKey,
+apps/api/src/modules/sales/supabase-sales.repository.ts-111-    });
+apps/api/src/modules/sales/supabase-sales.repository.ts-112-    if (error) throw mapSupabaseError(error, 'No se pudo registrar la devolución o cambio.');
+apps/api/src/modules/sales/supabase-sales.repository.ts-113-    return returnCaseResultSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-114-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-115-
+apps/api/src/modules/sales/supabase-sales.repository.ts-116-  public async getReleaseQuote(saleItemId: string): Promise<SaleReleaseQuote> {
+apps/api/src/modules/sales/supabase-sales.repository.ts-117-    const { data, error } = await this.client.rpc('get_sale_release_quote_v2', {
+apps/api/src/modules/sales/supabase-sales.repository.ts-118-      p_sale_item_id: saleItemId,
+apps/api/src/modules/sales/supabase-sales.repository.ts-119-    });
+apps/api/src/modules/sales/supabase-sales.repository.ts-120-    if (error) throw mapSupabaseError(error, 'No se pudo calcular la penalidad sugerida.');
+apps/api/src/modules/sales/supabase-sales.repository.ts-121-    return saleReleaseQuoteSchema.parse(data);
+apps/api/src/modules/sales/supabase-sales.repository.ts-122-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-123-
+apps/api/src/modules/sales/supabase-sales.repository.ts-124-  public async requestRelease(
+apps/api/src/modules/sales/supabase-sales.repository.ts-125-    saleItemId: string,
+apps/api/src/modules/sales/supabase-sales.repository.ts-126-    input: RequestSaleReleaseInput,
+apps/api/src/modules/sales/supabase-sales.repository.ts-127-  ): Promise<{ id: string; stateCode: string; version: number }> {
+apps/api/src/modules/sales/supabase-sales.repository.ts-128-    const { data, error } = await this.client.rpc('request_sale_release_v2', {
+apps/api/src/modules/sales/supabase-sales.repository.ts-129-      p_sale_item_id: saleItemId,
+apps/api/src/modules/sales/supabase-sales.repository.ts-130-      p_reason: input.reason,
+apps/api/src/modules/sales/supabase-sales.repository.ts-131-      p_penalty_amount: input.penaltyAmount,
+apps/api/src/modules/sales/supabase-sales.repository.ts-132-    });
+apps/api/src/modules/sales/supabase-sales.repository.ts-133-    if (error) throw mapSupabaseError(error, 'No se pudo solicitar la liberación.');
+apps/api/src/modules/sales/supabase-sales.repository.ts-134-    const row = data as { id: string; stateCode: string; version: number };
+apps/api/src/modules/sales/supabase-sales.repository.ts-135-    return { id: row.id, stateCode: row.stateCode, version: row.version };
+apps/api/src/modules/sales/supabase-sales.repository.ts-136-  }
+apps/api/src/modules/sales/supabase-sales.repository.ts-137-
+apps/api/src/modules/sales/supabase-sales.repository.ts-138-  public async reviewRelease(
+--
+apps/web/src/pages/new-sale-page.tsx-2-import type { InventoryRow } from '@yukimi/shared';
+apps/web/src/pages/new-sale-page.tsx-3-import { ArrowLeft, ArrowRight, Check, Search, Trash2, UserPlus } from 'lucide-react';
+apps/web/src/pages/new-sale-page.tsx-4-import { useEffect, useMemo, useRef, useState } from 'react';
+apps/web/src/pages/new-sale-page.tsx-5-import { useNavigate, useParams } from 'react-router';
+apps/web/src/pages/new-sale-page.tsx-6-import { PageHeader } from '../components/ui/page-header';
+apps/web/src/pages/new-sale-page.tsx-7-import { Panel } from '../components/ui/panel';
+apps/web/src/pages/new-sale-page.tsx-8-import { StatusBadge } from '../components/ui/status-badge';
+apps/web/src/pages/new-sale-page.tsx-9-import { getClient, getClients } from '../features/clients/clients-api';
+apps/web/src/pages/new-sale-page.tsx-10-import { getInventory } from '../features/products/products-api';
+apps/web/src/pages/new-sale-page.tsx-11-import {
+apps/web/src/pages/new-sale-page.tsx:12:  confirmSaleDraft,
+apps/web/src/pages/new-sale-page.tsx:13:  getSaleDraft,
+apps/web/src/pages/new-sale-page.tsx-14-  getSaleSupportData,
+apps/web/src/pages/new-sale-page.tsx:15:  saveSaleDraft,
+apps/web/src/pages/new-sale-page.tsx-16-} from '../features/sales/sales-api';
+apps/web/src/pages/new-sale-page.tsx-17-
+apps/web/src/pages/new-sale-page.tsx-18-interface DraftLine {
+apps/web/src/pages/new-sale-page.tsx-19-  row: InventoryRow;
+apps/web/src/pages/new-sale-page.tsx-20-  quantity: number;
+apps/web/src/pages/new-sale-page.tsx-21-  finalUnitPrice: number;
+apps/web/src/pages/new-sale-page.tsx-22-  discountTypeCode: string;
+apps/web/src/pages/new-sale-page.tsx-23-  discountReason: string;
+apps/web/src/pages/new-sale-page.tsx-24-}
+apps/web/src/pages/new-sale-page.tsx-25-
+apps/web/src/pages/new-sale-page.tsx-26-const steps = ['Cliente', 'Productos', 'Condiciones', 'Confirmación'];
+apps/web/src/pages/new-sale-page.tsx-27-const money = (value: number) =>
+apps/web/src/pages/new-sale-page.tsx-28-  new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
+apps/web/src/pages/new-sale-page.tsx-29-
+apps/web/src/pages/new-sale-page.tsx-30-export function NewSalePage() {
+apps/web/src/pages/new-sale-page.tsx-31-  const navigate = useNavigate();
+apps/web/src/pages/new-sale-page.tsx-32-  const { draftId } = useParams<{ draftId?: string }>();
+apps/web/src/pages/new-sale-page.tsx-33-  const [step, setStep] = useState(1);
+apps/web/src/pages/new-sale-page.tsx-34-  const [clientSearch, setClientSearch] = useState('');
+apps/web/src/pages/new-sale-page.tsx-35-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+apps/web/src/pages/new-sale-page.tsx-36-  const [productSearch, setProductSearch] = useState('');
+apps/web/src/pages/new-sale-page.tsx-37-  const [lines, setLines] = useState<DraftLine[]>([]);
+apps/web/src/pages/new-sale-page.tsx-38-  const [salesChannelCode, setSalesChannelCode] = useState('WHATSAPP');
+apps/web/src/pages/new-sale-page.tsx-39-  const [deliveryMode, setDeliveryMode] = useState<'PENDING' | 'ACCUMULATED'>('ACCUMULATED');
+apps/web/src/pages/new-sale-page.tsx-40-  const [dueDate, setDueDate] = useState('');
+apps/web/src/pages/new-sale-page.tsx-41-  const [dueDateReason, setDueDateReason] = useState('');
+apps/web/src/pages/new-sale-page.tsx-42-  const [saleTypeCode, setSaleTypeCode] = useState<'REGULAR' | 'CUSTOM_ORDER'>('REGULAR');
+apps/web/src/pages/new-sale-page.tsx-43-  const [draftVersion, setDraftVersion] = useState<number | null>(null);
+apps/web/src/pages/new-sale-page.tsx-44-  const [hydratedDraftId, setHydratedDraftId] = useState<string | null>(null);
+apps/web/src/pages/new-sale-page.tsx-45-  const [negotiatedMinimumDeposit, setNegotiatedMinimumDeposit] = useState('');
+apps/web/src/pages/new-sale-page.tsx-46-  const [negotiatedDepositReason, setNegotiatedDepositReason] = useState('');
+apps/web/src/pages/new-sale-page.tsx-47-  const [notes, setNotes] = useState('');
+apps/web/src/pages/new-sale-page.tsx-48-  const [localError, setLocalError] = useState<string | null>(null);
+apps/web/src/pages/new-sale-page.tsx-49-  const idempotencyKey = useRef(crypto.randomUUID());
+apps/web/src/pages/new-sale-page.tsx-50-
+apps/web/src/pages/new-sale-page.tsx-51-  const clients = useQuery({
+apps/web/src/pages/new-sale-page.tsx-52-    queryKey: ['sale-client-search', clientSearch],
+apps/web/src/pages/new-sale-page.tsx-53-    queryFn: () => getClients({ search: clientSearch, filter: 'ACTIVE', page: 1, pageSize: 20 }),
+apps/web/src/pages/new-sale-page.tsx-54-  });
+apps/web/src/pages/new-sale-page.tsx-55-  const clientDetail = useQuery({
+apps/web/src/pages/new-sale-page.tsx-56-    queryKey: ['client', selectedClientId],
+apps/web/src/pages/new-sale-page.tsx-57-    queryFn: () => getClient(selectedClientId as string),
+apps/web/src/pages/new-sale-page.tsx-58-    enabled: Boolean(selectedClientId),
+apps/web/src/pages/new-sale-page.tsx-59-  });
+apps/web/src/pages/new-sale-page.tsx-60-  const inventory = useQuery({
+apps/web/src/pages/new-sale-page.tsx-61-    queryKey: ['sale-product-search', productSearch],
+apps/web/src/pages/new-sale-page.tsx-62-    queryFn: () => getInventory({ search: productSearch, includeVirtual: false }),
+apps/web/src/pages/new-sale-page.tsx-63-  });
+apps/web/src/pages/new-sale-page.tsx-64-  const support = useQuery({ queryKey: ['sale-support'], queryFn: getSaleSupportData });
+apps/web/src/pages/new-sale-page.tsx-65-  const draft = useQuery({
+apps/web/src/pages/new-sale-page.tsx:66:    queryKey: ['sale-draft', draftId],
+apps/web/src/pages/new-sale-page.tsx:67:    queryFn: () => getSaleDraft(draftId as string),
+apps/web/src/pages/new-sale-page.tsx-68-    enabled: Boolean(draftId),
+apps/web/src/pages/new-sale-page.tsx-69-  });
+apps/web/src/pages/new-sale-page.tsx-70-
+apps/web/src/pages/new-sale-page.tsx-71-  useEffect(() => {
+apps/web/src/pages/new-sale-page.tsx-72-    if (!salesChannelCode && support.data?.salesChannels[0])
+apps/web/src/pages/new-sale-page.tsx-73-      setSalesChannelCode(support.data.salesChannels[0].code);
+apps/web/src/pages/new-sale-page.tsx-74-  }, [salesChannelCode, support.data]);
+apps/web/src/pages/new-sale-page.tsx-75-
+apps/web/src/pages/new-sale-page.tsx-76-  useEffect(() => {
+apps/web/src/pages/new-sale-page.tsx-77-    if (!draft.data || hydratedDraftId === draft.data.id || !inventory.data) return;
+apps/web/src/pages/new-sale-page.tsx-78-    const payload = draft.data.payload;
+apps/web/src/pages/new-sale-page.tsx-79-    const hydratedLines: DraftLine[] = payload.items.flatMap((item) => {
+apps/web/src/pages/new-sale-page.tsx-80-      const row = inventory.data.items.find(
+apps/web/src/pages/new-sale-page.tsx-81-        (candidate) =>
+apps/web/src/pages/new-sale-page.tsx-82-          candidate.variantId === item.variantId && candidate.warehouseId === item.warehouseId,
+apps/web/src/pages/new-sale-page.tsx-83-      );
+apps/web/src/pages/new-sale-page.tsx-84-      return row
+apps/web/src/pages/new-sale-page.tsx-85-        ? [
+apps/web/src/pages/new-sale-page.tsx-86-            {
+apps/web/src/pages/new-sale-page.tsx-87-              row,
+apps/web/src/pages/new-sale-page.tsx-88-              quantity: item.quantity,
+apps/web/src/pages/new-sale-page.tsx-89-              finalUnitPrice: item.finalUnitPrice,
+apps/web/src/pages/new-sale-page.tsx-90-              discountTypeCode: item.discountTypeCode ?? 'MANUAL',
+apps/web/src/pages/new-sale-page.tsx-91-              discountReason: item.discountReason ?? '',
+apps/web/src/pages/new-sale-page.tsx-92-            },
+apps/web/src/pages/new-sale-page.tsx-93-          ]
+apps/web/src/pages/new-sale-page.tsx-94-        : [];
+apps/web/src/pages/new-sale-page.tsx-95-    });
+apps/web/src/pages/new-sale-page.tsx-96-    setSelectedClientId(payload.clientId);
+apps/web/src/pages/new-sale-page.tsx-97-    setSalesChannelCode(payload.salesChannelCode);
+apps/web/src/pages/new-sale-page.tsx-98-    setDeliveryMode(payload.deliveryMode);
+apps/web/src/pages/new-sale-page.tsx-99-    setDueDate(payload.dueAt?.slice(0, 10) ?? '');
+apps/web/src/pages/new-sale-page.tsx-100-    setDueDateReason(payload.dueDateReason ?? '');
+apps/web/src/pages/new-sale-page.tsx-101-    setSaleTypeCode(payload.saleTypeCode);
+apps/web/src/pages/new-sale-page.tsx-102-    setNegotiatedMinimumDeposit(
+apps/web/src/pages/new-sale-page.tsx-103-      payload.negotiatedMinimumDepositAmount == null
+apps/web/src/pages/new-sale-page.tsx-104-        ? ''
+apps/web/src/pages/new-sale-page.tsx-105-        : String(payload.negotiatedMinimumDepositAmount),
+apps/web/src/pages/new-sale-page.tsx-106-    );
+apps/web/src/pages/new-sale-page.tsx-107-    setNegotiatedDepositReason(payload.negotiatedMinimumDepositReason ?? '');
+apps/web/src/pages/new-sale-page.tsx-108-    setNotes(payload.notes ?? '');
+apps/web/src/pages/new-sale-page.tsx-109-    setLines(hydratedLines);
+apps/web/src/pages/new-sale-page.tsx-110-    setDraftVersion(draft.data.version);
+apps/web/src/pages/new-sale-page.tsx-111-    setHydratedDraftId(draft.data.id);
+apps/web/src/pages/new-sale-page.tsx-112-  }, [draft.data, hydratedDraftId, inventory.data]);
+--
+apps/web/src/pages/new-sale-page.tsx-145-        finalUnitPrice: line.finalUnitPrice,
+apps/web/src/pages/new-sale-page.tsx-146-        discountTypeCode: line.finalUnitPrice < line.row.salePrice ? line.discountTypeCode : null,
+apps/web/src/pages/new-sale-page.tsx-147-        discountReason: line.finalUnitPrice < line.row.salePrice ? line.discountReason : null,
+apps/web/src/pages/new-sale-page.tsx-148-        notes: null,
+apps/web/src/pages/new-sale-page.tsx-149-      })),
+apps/web/src/pages/new-sale-page.tsx-150-    };
+apps/web/src/pages/new-sale-page.tsx-151-  }
+apps/web/src/pages/new-sale-page.tsx-152-
+apps/web/src/pages/new-sale-page.tsx-153-  const draftSave = useMutation({
+apps/web/src/pages/new-sale-page.tsx-154-    mutationFn: () =>
+apps/web/src/pages/new-sale-page.tsx:155:      saveSaleDraft({ draftId: draftId ?? null, version: draftVersion, input: buildInput() }),
+apps/web/src/pages/new-sale-page.tsx-156-    onSuccess: (result) => {
+apps/web/src/pages/new-sale-page.tsx-157-      setDraftVersion(result.version);
+apps/web/src/pages/new-sale-page.tsx-158-      setLocalError(`Borrador ${result.code} guardado.`);
+apps/web/src/pages/new-sale-page.tsx-159-      if (!draftId) navigate(`/ventas/borradores/${result.id}`, { replace: true });
+apps/web/src/pages/new-sale-page.tsx-160-    },
+apps/web/src/pages/new-sale-page.tsx-161-  });
+apps/web/src/pages/new-sale-page.tsx-162-
+apps/web/src/pages/new-sale-page.tsx-163-  const save = useMutation({
+apps/web/src/pages/new-sale-page.tsx-164-    mutationFn: async () => {
+apps/web/src/pages/new-sale-page.tsx:165:      const saved = await saveSaleDraft({
+apps/web/src/pages/new-sale-page.tsx-166-        draftId: draftId ?? null,
+apps/web/src/pages/new-sale-page.tsx-167-        version: draftVersion,
+apps/web/src/pages/new-sale-page.tsx-168-        input: buildInput(),
+apps/web/src/pages/new-sale-page.tsx-169-      });
+apps/web/src/pages/new-sale-page.tsx:170:      return confirmSaleDraft(saved.id, saved.version, idempotencyKey.current);
+apps/web/src/pages/new-sale-page.tsx-171-    },
+apps/web/src/pages/new-sale-page.tsx-172-    onSuccess: (result) => navigate(`/ventas/${result.id}`),
+apps/web/src/pages/new-sale-page.tsx-173-  });
+apps/web/src/pages/new-sale-page.tsx-174-
+apps/web/src/pages/new-sale-page.tsx-175-  function addProduct(row: InventoryRow) {
+apps/web/src/pages/new-sale-page.tsx-176-    setLocalError(null);
+apps/web/src/pages/new-sale-page.tsx-177-    if (row.availableQuantity <= 0) return;
+apps/web/src/pages/new-sale-page.tsx-178-    if (
+apps/web/src/pages/new-sale-page.tsx-179-      lines.some(
+apps/web/src/pages/new-sale-page.tsx-180-        (line) => line.row.variantId === row.variantId && line.row.warehouseId === row.warehouseId,
+apps/web/src/pages/new-sale-page.tsx-181-      )
+apps/web/src/pages/new-sale-page.tsx-182-    ) {
+apps/web/src/pages/new-sale-page.tsx-183-      setLocalError(
+apps/web/src/pages/new-sale-page.tsx-184-        'Esa variante ya fue agregada desde ese almacén. Modifica su cantidad en la lista.',
+apps/web/src/pages/new-sale-page.tsx-185-      );
+apps/web/src/pages/new-sale-page.tsx-186-      return;
+apps/web/src/pages/new-sale-page.tsx-187-    }
+apps/web/src/pages/new-sale-page.tsx-188-    setLines((current) => [
+apps/web/src/pages/new-sale-page.tsx-189-      ...current,
+apps/web/src/pages/new-sale-page.tsx-190-      {
+apps/web/src/pages/new-sale-page.tsx-191-        row,
+apps/web/src/pages/new-sale-page.tsx-192-        quantity: 1,
+apps/web/src/pages/new-sale-page.tsx-193-        finalUnitPrice: row.salePrice,
+apps/web/src/pages/new-sale-page.tsx-194-        discountTypeCode: 'MANUAL',
+apps/web/src/pages/new-sale-page.tsx-195-        discountReason: '',
+apps/web/src/pages/new-sale-page.tsx-196-      },
+apps/web/src/pages/new-sale-page.tsx-197-    ]);
+apps/web/src/pages/new-sale-page.tsx-198-  }
+apps/web/src/pages/new-sale-page.tsx-199-
+apps/web/src/pages/new-sale-page.tsx-200-  function updateLine(index: number, patch: Partial<Omit<DraftLine, 'row'>>) {
+apps/web/src/pages/new-sale-page.tsx-201-    setLines((current) =>
+apps/web/src/pages/new-sale-page.tsx-202-      current.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line)),
+apps/web/src/pages/new-sale-page.tsx-203-    );
+apps/web/src/pages/new-sale-page.tsx-204-  }
+apps/web/src/pages/new-sale-page.tsx-205-
+apps/web/src/pages/new-sale-page.tsx-206-  function validateStep(): boolean {
+apps/web/src/pages/new-sale-page.tsx-207-    setLocalError(null);
+apps/web/src/pages/new-sale-page.tsx-208-    if (step === 1 && !selectedClientId) {
+apps/web/src/pages/new-sale-page.tsx-209-      setLocalError('Selecciona un cliente para continuar.');
+apps/web/src/pages/new-sale-page.tsx-210-      return false;
+apps/web/src/pages/new-sale-page.tsx-211-    }
+apps/web/src/pages/new-sale-page.tsx-212-    if (step === 2) {
+apps/web/src/pages/new-sale-page.tsx-213-      if (lines.length === 0) {
+apps/web/src/pages/new-sale-page.tsx-214-        setLocalError('Agrega al menos un producto.');
+apps/web/src/pages/new-sale-page.tsx-215-        return false;
+\n# migration 034 draft area
+57-insert into public.financial_accounts(
+58-  code, name, account_type_code, currency_code, institution_name,
+59-  owner_name, linked_parent_account_id, opening_balance, current_balance, is_active
+60-)
+61-select 'YAPE-1-PEN', 'Yape 1', 'WALLET', 'PEN', 'Yape', null, bcp.id, 0, 0, true
+62-from public.financial_accounts bcp
+63-where bcp.code = 'BCP-PEN'
+64-on conflict (code) do update set
+65-  name = excluded.name,
+66-  institution_name = excluded.institution_name,
+67-  linked_parent_account_id = excluded.linked_parent_account_id,
+68-  is_active = true;
+69-
+70-insert into public.financial_accounts(
+71-  code, name, account_type_code, currency_code, institution_name,
+72-  owner_name, linked_parent_account_id, opening_balance, current_balance, is_active
+73-)
+74-select 'YAPE-2-PEN', 'Yape 2', 'WALLET', 'PEN', 'Yape', null, bcp.id, 0, 0, true
+75-from public.financial_accounts bcp
+76-where bcp.code = 'BCP-PEN'
+77-on conflict (code) do update set
+78-  name = excluded.name,
+79-  institution_name = excluded.institution_name,
+80-  linked_parent_account_id = excluded.linked_parent_account_id,
+81-  is_active = true;
+82-
+83-update public.financial_accounts
+84-set is_active = false,
+85-    notes = concat_ws(E'\n', nullif(notes, ''), 'Cuenta histórica reemplazada por YAPE-1-PEN y YAPE-2-PEN.'),
+86-    updated_at = now()
+87-where code = 'YAPE-PEN' and is_active = true;
+88-
+89--- =========================================================
+90--- Borradores de venta persistentes, sin reserva de stock
+91--- =========================================================
+92-
+93-insert into public.business_counters(counter_key, prefix, last_value, padding)
+94-values ('SALE_DRAFT', 'BOR-', 0, 6)
+95-on conflict (counter_key) do nothing;
+96-
+97:create table if not exists public.sale_drafts (
+98-  id uuid primary key default extensions.gen_random_uuid(),
+99-  code text not null unique,
+100-  client_id uuid not null references public.clients(id) on delete restrict,
+101-  status text not null default 'DRAFT' check (status in ('DRAFT', 'CONFIRMED', 'CANCELLED')),
+102-  payload jsonb not null,
+103-  total_amount numeric(14,2) not null default 0 check (total_amount >= 0),
+104-  item_lines integer not null default 0 check (item_lines >= 0),
+105-  confirmed_sale_id uuid references public.sales(id) on delete restrict,
+106-  created_by uuid references public.profiles(id) on delete set null,
+107-  updated_by uuid references public.profiles(id) on delete set null,
+108-  created_at timestamptz not null default now(),
+109-  updated_at timestamptz not null default now(),
+110-  version bigint not null default 1
+111-);
+112-
+113:alter table public.sale_drafts enable row level security;
+114:alter table public.sale_drafts force row level security;
+115:grant select, insert, update on public.sale_drafts to authenticated;
+116-
+117:drop policy if exists admin_select on public.sale_drafts;
+118:drop policy if exists admin_insert on public.sale_drafts;
+119:drop policy if exists admin_update on public.sale_drafts;
+120:create policy admin_select on public.sale_drafts for select to authenticated using (private.is_active_admin());
+121:create policy admin_insert on public.sale_drafts for insert to authenticated with check (private.is_active_admin());
+122:create policy admin_update on public.sale_drafts for update to authenticated using (private.is_active_admin()) with check (private.is_active_admin());
+123-
+124:drop trigger if exists trg_touch_version on public.sale_drafts;
+125:create trigger trg_touch_version before update on public.sale_drafts
+126-for each row execute function private.touch_updated_at_and_version();
+127-
+128:drop trigger if exists trg_audit_row_change on public.sale_drafts;
+129:create trigger trg_audit_row_change after insert or update or delete on public.sale_drafts
+130-for each row execute function private.audit_row_change();
+131-
+132-create or replace function public.save_sale_draft_v1(
+133-  p_input jsonb,
+134-  p_draft_id uuid default null,
+135-  p_expected_version bigint default null
+136-)
+137-returns jsonb
+138-language plpgsql
+139-security definer
+140-set search_path = ''
+141-as $$
+142-declare
+143-  v_actor uuid := private.current_actor_id();
+144:  v_draft public.sale_drafts%rowtype;
+145-  v_total numeric(14,2);
+146-  v_lines integer;
+147-begin
+148-  if not private.is_active_admin() then
+149-    raise exception 'Usuario no autorizado.' using errcode = '42501';
+150-  end if;
+151-  if jsonb_typeof(p_input) <> 'object' or jsonb_typeof(p_input -> 'items') <> 'array' then
+152-    raise exception 'El borrador de venta no tiene un formato válido.';
+153-  end if;
+154-  if jsonb_array_length(p_input -> 'items') = 0 then
+155-    raise exception 'Agrega al menos un producto al borrador.';
+156-  end if;
+157-
+158-  perform 1 from public.clients
+159-  where id = (p_input ->> 'clientId')::uuid and is_active = true;
+160-  if not found then
+161-    raise exception 'El cliente no existe o está inactivo.' using errcode = 'P0001';
+162-  end if;
+163-
+164-  select coalesce(sum(
+165-    greatest(0, (item ->> 'quantity')::integer) * greatest(0, (item ->> 'finalUnitPrice')::numeric)
+166-  ), 0), count(*)::integer
+167-  into v_total, v_lines
+168-  from jsonb_array_elements(p_input -> 'items') item;
+169-
+170-  perform set_config('app.audit_reason', case when p_draft_id is null then 'Creación de borrador de venta' else 'Actualización de borrador de venta' end, true);
+171-
+172-  if p_draft_id is null then
+173:    insert into public.sale_drafts(
+174-      code, client_id, payload, total_amount, item_lines, created_by, updated_by
+175-    ) values (
+176-      public.next_business_code('SALE_DRAFT'),
+177-      (p_input ->> 'clientId')::uuid,
+178-      p_input,
+179-      round(v_total, 2),
+180-      v_lines,
+181-      v_actor,
+182-      v_actor
+183-    ) returning * into v_draft;
+184-  else
+185:    update public.sale_drafts
+186-    set client_id = (p_input ->> 'clientId')::uuid,
+187-        payload = p_input,
+188-        total_amount = round(v_total, 2),
+189-        item_lines = v_lines,
+190-        updated_by = v_actor
+191-    where id = p_draft_id
+192-      and status = 'DRAFT'
+193-      and (p_expected_version is null or version = p_expected_version)
+194-    returning * into v_draft;
+195-
+196-    if not found then
+197-      raise exception 'El borrador cambió, fue confirmado o ya no existe. Recarga antes de continuar.' using errcode = '40001';
+198-    end if;
+199-  end if;
+200-
+201-  return jsonb_build_object(
+202-    'id', v_draft.id,
+203-    'code', v_draft.code,
+204-    'clientId', v_draft.client_id,
+205-    'clientName', (select full_name from public.clients where id = v_draft.client_id),
+206-    'status', v_draft.status,
+207-    'totalAmount', v_draft.total_amount,
+208-    'itemLines', v_draft.item_lines,
+209-    'payload', v_draft.payload,
+210-    'confirmedSaleId', v_draft.confirmed_sale_id,
+211-    'updatedAt', v_draft.updated_at,
+212-    'version', v_draft.version
+213-  );
+214-end;
+215-$$;
+216-
+217:create or replace function public.list_sale_drafts_v1()
+218-returns jsonb
+219-language plpgsql
+220-stable
+221-security definer
+222-set search_path = ''
+223-as $$
+224-begin
+225-  if not private.is_active_admin() then
+226-    raise exception 'Usuario no autorizado.' using errcode = '42501';
+227-  end if;
+228-  return jsonb_build_object(
+229-    'items', coalesce((
+230-      select jsonb_agg(jsonb_build_object(
+231-        'id', d.id,
+232-        'code', d.code,
+233-        'clientId', d.client_id,
+234-        'clientName', c.full_name,
+235-        'status', d.status,
+236-        'totalAmount', d.total_amount,
+237-        'itemLines', d.item_lines,
+238-        'updatedAt', d.updated_at,
+239-        'version', d.version
+240-      ) order by d.updated_at desc)
+241:      from public.sale_drafts d
+242-      join public.clients c on c.id = d.client_id
+243-      where d.status = 'DRAFT'
+244-    ), '[]'::jsonb)
+245-  );
+246-end;
+247-$$;
+248-
+249-create or replace function public.get_sale_draft_v1(p_draft_id uuid)
+250-returns jsonb
+251-language plpgsql
+252-stable
+253-security definer
+254-set search_path = ''
+255-as $$
+256-declare
+257:  v_draft public.sale_drafts%rowtype;
+258-begin
+259-  if not private.is_active_admin() then
+260-    raise exception 'Usuario no autorizado.' using errcode = '42501';
+261-  end if;
+262:  select * into v_draft from public.sale_drafts where id = p_draft_id;
+263-  if not found then raise exception 'El borrador no existe.' using errcode = 'P0002'; end if;
+264-  return jsonb_build_object(
+265-    'id', v_draft.id,
+266-    'code', v_draft.code,
+267-    'clientId', v_draft.client_id,
+268-    'clientName', (select full_name from public.clients where id = v_draft.client_id),
+269-    'status', v_draft.status,
+270-    'totalAmount', v_draft.total_amount,
+271-    'itemLines', v_draft.item_lines,
+272-    'payload', v_draft.payload,
+273-    'confirmedSaleId', v_draft.confirmed_sale_id,
+274-    'updatedAt', v_draft.updated_at,
+275-    'version', v_draft.version
+276-  );
+277-end;
+278-$$;
+279-
+280--- Extiende la creación confirmada con tipo de venta y motivo de plazo especial.
+281-create or replace function public.create_sale_v3(
+282-  p_input jsonb,
+283-  p_idempotency_key text
+284-)
+285-returns jsonb
+286-language plpgsql
+287-security definer
+288-set search_path = ''
+289-as $$
+290-declare
+291-  v_result jsonb;
+292-  v_sale_type text := coalesce(nullif(p_input ->> 'saleTypeCode', ''), 'REGULAR');
+293-  v_due_reason text := nullif(btrim(p_input ->> 'dueDateReason'), '');
+294-  v_due_at timestamptz := nullif(p_input ->> 'dueAt', '')::timestamptz;
+295-begin
+296-  if v_sale_type not in ('REGULAR', 'CUSTOM_ORDER') then
+297-    raise exception 'Tipo de venta no permitido.';
+298-  end if;
+299-  if v_due_at is not null and length(coalesce(v_due_reason, '')) < 5 then
+300-    raise exception 'Explica el motivo del plazo personalizado.';
+301-  end if;
+302-
+303-  v_result := public.create_sale_v2(p_input, p_idempotency_key);
+304-  perform set_config('app.audit_reason', 'Confirmación de venta con condiciones comerciales', true);
+305-  update public.sales
+306-  set sale_type_code = v_sale_type,
+307-      due_date_reason = v_due_reason,
+308-      updated_by = private.current_actor_id()
+309-  where id = (v_result ->> 'id')::uuid;
+310-  return v_result;
+311-end;
+312-$$;
+313-
+314-create or replace function public.get_sale_detail_v3(p_sale_id uuid)
+315-returns jsonb
+316-language plpgsql
+317-stable
+318-security definer
+319-set search_path = ''
+320-as $$
+321-declare
+322-  v_result jsonb;
+323-  v_reason text;
+324-begin
+325-  v_result := public.get_sale_detail_v2(p_sale_id);
+326-  select due_date_reason into v_reason from public.sales where id = p_sale_id;
+327-  return jsonb_set(v_result, '{dueDateReason}', coalesce(to_jsonb(v_reason), 'null'::jsonb), true);
+328-end;
+329-$$;
+330-
+331-create or replace function public.confirm_sale_draft_v1(
+332-  p_draft_id uuid,
+333-  p_expected_version bigint,
+334-  p_idempotency_key text
+335-)
+336-returns jsonb
+337-language plpgsql
+338-security definer
+339-set search_path = ''
+340-as $$
+341-declare
+342:  v_draft public.sale_drafts%rowtype;
+343-  v_result jsonb;
+344-begin
+345-  if not private.is_active_admin() then
+346-    raise exception 'Usuario no autorizado.' using errcode = '42501';
+347-  end if;
+348-  select * into v_draft
+349:  from public.sale_drafts
+350-  where id = p_draft_id and status = 'DRAFT'
+351-  for update;
+352-  if not found or v_draft.version <> p_expected_version then
+353-    raise exception 'El borrador cambió o ya fue confirmado.' using errcode = '40001';
+354-  end if;
+355-
+356-  v_result := public.create_sale_v3(v_draft.payload, p_idempotency_key);
+357-  perform set_config('app.audit_reason', 'Confirmación de borrador y reserva atómica de stock', true);
+358:  update public.sale_drafts
+359-  set status = 'CONFIRMED',
+360-      confirmed_sale_id = (v_result ->> 'id')::uuid,
+361-      updated_by = private.current_actor_id()
+362-  where id = v_draft.id;
+363-
+364-  return v_result;
+365-end;
+366-$$;
+367-
+368--- =========================================================
+369--- Movimientos de inventario operativos
+370--- =========================================================
+371-
+372-create or replace function public.create_inventory_movement_v1(
+373-  p_input jsonb,
+374-  p_idempotency_key text
+375-)
+376-returns jsonb
+377-language plpgsql
+378-security definer
+379-set search_path = ''
+380-as $$
+381-declare
+382-  v_actor uuid := private.current_actor_id();
+383-  v_action text := p_input ->> 'action';
+384-  v_variant_id uuid := (p_input ->> 'variantId')::uuid;
+385-  v_source uuid := (p_input ->> 'sourceWarehouseId')::uuid;
+386-  v_destination uuid := nullif(p_input ->> 'destinationWarehouseId', '')::uuid;
+387-  v_quantity integer := (p_input ->> 'quantity')::integer;
+388-  v_reason text := nullif(btrim(p_input ->> 'reason'), '');
+389-  v_notes text := nullif(btrim(p_input ->> 'notes'), '');
+390-  v_target_bucket text;
+391-  v_movement public.inventory_movements%rowtype;
+392-  v_balance record;
+393-  v_needed integer;
+394-  v_take integer;
+395-begin
+396-  if not private.is_active_admin() then raise exception 'Usuario no autorizado.' using errcode = '42501'; end if;
+397-  if v_action not in ('TRANSFER','DAMAGE','LOSS','GIFT','DYNAMIC') then raise exception 'Tipo de movimiento no permitido.'; end if;
+398-  if v_quantity <= 0 then raise exception 'La cantidad debe ser mayor que cero.'; end if;
+399-  if length(coalesce(v_reason, '')) < 5 then raise exception 'El motivo es obligatorio y debe ser específico.'; end if;
+400-  if v_action = 'TRANSFER' and (v_destination is null or v_destination = v_source) then
+401-    raise exception 'Selecciona un almacén de destino diferente.';
+402-  end if;
+403-
+404-  perform 1 from public.product_variants where id = v_variant_id and is_active = true;
+405-  if not found then raise exception 'La variante no existe o está inactiva.'; end if;
+406-  perform 1 from public.warehouses where id = v_source and is_active = true and warehouse_type = 'OPERATIONAL';
+407-  if not found then raise exception 'El almacén de origen no está operativo.'; end if;
+408-  if v_destination is not null then
+409-    perform 1 from public.warehouses where id = v_destination and is_active = true and warehouse_type = 'OPERATIONAL';
+410-    if not found then raise exception 'El almacén de destino no está operativo.'; end if;
+411-  end if;
+412-
+413-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('INVENTORY_MOVEMENT:' || p_idempotency_key, 0));
+414-  select * into v_movement from public.inventory_movements where idempotency_key = p_idempotency_key;
+415-  if found then
+416-    return jsonb_build_object('id', v_movement.id, 'code', v_movement.code, 'action', v_movement.movement_type_code, 'quantity', v_quantity, 'createdAt', v_movement.created_at);
+417-  end if;
+418-
+419-  v_target_bucket := case v_action
+420-    when 'DAMAGE' then 'DAMAGED'
+421-    when 'LOSS' then 'LOST'
+422-    when 'GIFT' then 'GIFTED'
+423-    when 'DYNAMIC' then 'USED_DYNAMIC'
+424-    else 'AVAILABLE'
+425-  end;
+426-
+427-  perform set_config('app.audit_reason', v_reason, true);
+428-  insert into public.inventory_movements(
+429-    code, movement_type_code, reference_type, reason, notes, idempotency_key, created_by, metadata
+430-  ) values (
+431-    public.next_business_code('INVENTORY_MOVEMENT'), v_action, 'MANUAL_OPERATION', v_reason, v_notes,
+432-    p_idempotency_key, v_actor, jsonb_build_object('sourceWarehouseId', v_source, 'destinationWarehouseId', v_destination)
+433-  ) returning * into v_movement;
+434-
+435-  v_needed := v_quantity;
+436-  for v_balance in
+437-    select ib.lot_id, ib.quantity, il.final_unit_cost_pen
+438-    from public.inventory_balances ib
+439-    join public.inventory_lots il on il.id = ib.lot_id
+440-    where ib.variant_id = v_variant_id
+441-      and ib.warehouse_id = v_source
+442-      and ib.bucket_code = 'AVAILABLE'
+443-      and ib.quantity > 0
+444-      and il.status = 'ACTIVE'
+445-    order by coalesce(il.received_at, il.acquired_at, il.created_at), il.id
+446-    for update of ib
+447-  loop
+448-    exit when v_needed <= 0;
+449-    v_take := least(v_needed, v_balance.quantity);
+450-    insert into public.inventory_movement_lines(movement_id, variant_id, lot_id, warehouse_id, bucket_code, quantity_delta, unit_cost_pen)
+451-    values (v_movement.id, v_variant_id, v_balance.lot_id, v_source, 'AVAILABLE', -v_take, v_balance.final_unit_cost_pen);
+452-
+453-    if v_action = 'TRANSFER' then
+454-      insert into public.inventory_movement_lines(movement_id, variant_id, lot_id, warehouse_id, bucket_code, quantity_delta, unit_cost_pen)
+455-      values (v_movement.id, v_variant_id, v_balance.lot_id, v_destination, 'AVAILABLE', v_take, v_balance.final_unit_cost_pen);
+456-    else
+457-      insert into public.inventory_movement_lines(movement_id, variant_id, lot_id, warehouse_id, bucket_code, quantity_delta, unit_cost_pen)
+458-      values (v_movement.id, v_variant_id, v_balance.lot_id, v_source, v_target_bucket, v_take, v_balance.final_unit_cost_pen);
+459-    end if;
+460-    v_needed := v_needed - v_take;
+461-  end loop;
+462-
+463-  if v_needed > 0 then
+464-    raise exception 'Stock disponible insuficiente. Faltan % unidades.', v_needed using errcode = 'P0001';
+465-  end if;
+466-
+467-  return jsonb_build_object('id', v_movement.id, 'code', v_movement.code, 'action', v_action, 'quantity', v_quantity, 'createdAt', v_movement.created_at);
+468-end;
+469-$$;
+470-
+471--- =========================================================
+472--- Devoluciones y cambios con inventario trazable
+473--- =========================================================
+474-
+475-create or replace function public.create_return_case_v1(
+476-  p_sale_id uuid,
+477-  p_input jsonb,
+478-  p_idempotency_key text
+479-)
+480-returns jsonb
+481-language plpgsql
+482-security definer
+483-set search_path = ''
+484-as $$
+485-declare
+486-  v_actor uuid := private.current_actor_id();
+487-  v_sale public.sales%rowtype;
+488-  v_case public.return_cases%rowtype;
+489-  v_case_type text := p_input ->> 'caseType';
+490-  v_reason text := nullif(btrim(p_input ->> 'reason'), '');
+491-  v_item jsonb;
+492-  v_sale_item public.sale_items%rowtype;
+493-  v_movement public.inventory_movements%rowtype;
+494-  v_allocation record;
+495-  v_balance record;
+496-  v_needed integer;
+497-  v_take integer;
+498-  v_quantity integer;
+499-  v_destination uuid;
+500-  v_replacement uuid;
+501-  v_existing integer;
+502-begin
+503-  if not private.is_active_admin() then raise exception 'Usuario no autorizado.' using errcode = '42501'; end if;
+504-  if v_case_type not in ('RETURN','EXCHANGE') then raise exception 'Tipo de caso no permitido.'; end if;
+505-  if length(coalesce(v_reason, '')) < 5 then raise exception 'El motivo es obligatorio.'; end if;
+506-  if jsonb_typeof(p_input -> 'items') <> 'array' or jsonb_array_length(p_input -> 'items') = 0 then
+507-    raise exception 'Agrega al menos un producto.';
+508-  end if;
+509-
+510-  select * into v_sale from public.sales where id = p_sale_id for update;
+511-  if not found then raise exception 'La venta no existe.' using errcode = 'P0002'; end if;
+512-
+513-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('RETURN_CASE:' || p_idempotency_key, 0));
+514-  select rc.* into v_case
+515-  from public.return_cases rc
+516-  where rc.id = (select (metadata ->> 'returnCaseId')::uuid from public.inventory_movements where idempotency_key = p_idempotency_key limit 1);
+517-  if found then
+518-    return jsonb_build_object('id', v_case.id, 'code', v_case.code, 'stateCode', v_case.state_code, 'caseType', v_case.case_type, 'version', v_case.version);
+519-  end if;
+520-
+521-  perform set_config('app.audit_reason', v_reason, true);
+522-  insert into public.return_cases(
+523-    code, sale_id, client_id, state_code, case_type, reason, created_by, resolved_by, resolved_at, resolution_notes
+524-  ) values (
+525-    public.next_business_code('RETURN_CASE'), v_sale.id, v_sale.client_id, 'COMPLETED', v_case_type, v_reason,
+526-    v_actor, v_actor, now(), 'Operación procesada de forma atómica.'
+527-  ) returning * into v_case;
+528-
+529-  insert into public.inventory_movements(
+530-    code, movement_type_code, reference_type, reference_id, reason, idempotency_key, created_by, metadata
+531-  ) values (
+532-    public.next_business_code('INVENTORY_MOVEMENT'), 'RETURN', 'RETURN_CASE', v_case.id,
+533-    v_reason, p_idempotency_key, v_actor, jsonb_build_object('returnCaseId', v_case.id, 'caseType', v_case_type)
+534-  ) returning * into v_movement;
+535-
+536-  for v_item in select value from jsonb_array_elements(p_input -> 'items')
+537-  loop
+538-    v_quantity := (v_item ->> 'quantity')::integer;
+539-    v_destination := (v_item ->> 'destinationWarehouseId')::uuid;
+540-    v_replacement := nullif(v_item ->> 'replacementVariantId', '')::uuid;
+541-    if v_quantity <= 0 then raise exception 'La cantidad debe ser mayor que cero.'; end if;
+542-
+543-    select * into v_sale_item
+544-    from public.sale_items
+545-    where id = (v_item ->> 'saleItemId')::uuid and sale_id = v_sale.id
+546-    for update;
+547-    if not found then raise exception 'Un producto no pertenece a la venta.'; end if;
+548-
+549-    select coalesce(sum(ri.quantity), 0)::integer into v_existing
+550-    from public.return_items ri
+551-    join public.return_cases rc on rc.id = ri.return_case_id
+552-    where ri.sale_item_id = v_sale_item.id and rc.state_code <> 'CANCELLED';
+553-    if v_existing + v_quantity > v_sale_item.quantity then
+554-      raise exception 'La cantidad devuelta supera la cantidad vendida de %.', v_sale_item.product_name_snapshot;
+555-    end if;
+556-
+557-    perform 1 from public.warehouses where id = v_destination and is_active = true and warehouse_type = 'OPERATIONAL';
+558-    if not found then raise exception 'El almacén de retorno no está operativo.'; end if;
+559-    if v_case_type = 'EXCHANGE' and v_replacement is null then
+560-      raise exception 'Selecciona la variante de reemplazo.';
+561-    end if;
+562-
+563-    insert into public.return_items(
+564-      return_case_id, sale_item_id, quantity, received_condition,
+565-      replacement_variant_id, inventory_movement_id, notes
+566-    ) values (
+567-      v_case.id, v_sale_item.id, v_quantity,
+568-      coalesce(nullif(v_item ->> 'receivedCondition', ''), 'OTHER'),
+569-      v_replacement, v_movement.id, nullif(btrim(v_item ->> 'notes'), '')
+570-    );
+571-
+572-    -- Retorna el lote original al almacén seleccionado.
+573-    v_needed := v_quantity;
+574-    for v_allocation in
+575-      select sia.lot_id, sia.quantity, il.final_unit_cost_pen
+576-      from public.sale_item_allocations sia
+577-      join public.inventory_lots il on il.id = sia.lot_id
+578-      where sia.sale_item_id = v_sale_item.id
+579-      order by sia.created_at, sia.id
+580-    loop
+581-      exit when v_needed <= 0;
+582-      v_take := least(v_needed, v_allocation.quantity);
+583-      insert into public.inventory_movement_lines(movement_id, variant_id, lot_id, warehouse_id, bucket_code, quantity_delta, unit_cost_pen)
+584-      values (v_movement.id, v_sale_item.variant_id, v_allocation.lot_id, v_destination, 'AVAILABLE', v_take, v_allocation.final_unit_cost_pen);
+585-      v_needed := v_needed - v_take;
+586-    end loop;
+587-    if v_needed > 0 then raise exception 'No se pudo reconstruir el lote original de la devolución.'; end if;
+588-
+589-    if v_case_type = 'EXCHANGE' then
+590-      v_needed := v_quantity;
+591-      for v_balance in
+592-        select ib.lot_id, ib.quantity, il.final_unit_cost_pen
+593-        from public.inventory_balances ib
+594-        join public.inventory_lots il on il.id = ib.lot_id
+595-        where ib.variant_id = v_replacement
+596-          and ib.warehouse_id = v_destination
+597-          and ib.bucket_code = 'AVAILABLE'
+598-          and ib.quantity > 0
+599-          and il.status = 'ACTIVE'
+600-        order by coalesce(il.received_at, il.acquired_at, il.created_at), il.id
+601-        for update of ib
+602-      loop
+603-        exit when v_needed <= 0;
+604-        v_take := least(v_needed, v_balance.quantity);
+605-        insert into public.inventory_movement_lines(movement_id, variant_id, lot_id, warehouse_id, bucket_code, quantity_delta, unit_cost_pen)
+606-        values
+607-          (v_movement.id, v_replacement, v_balance.lot_id, v_destination, 'AVAILABLE', -v_take, v_balance.final_unit_cost_pen),
+608-          (v_movement.id, v_replacement, v_balance.lot_id, v_destination, 'DELIVERED', v_take, v_balance.final_unit_cost_pen);
+609-        v_needed := v_needed - v_take;
+610-      end loop;
+611-      if v_needed > 0 then raise exception 'Stock insuficiente para completar el cambio.' using errcode = 'P0001'; end if;
+612-      update public.sale_items set item_status = 'EXCHANGED', updated_by = v_actor where id = v_sale_item.id;
+613-    else
+614-      update public.sale_items set item_status = 'RETURNED', updated_by = v_actor where id = v_sale_item.id;
+615-    end if;
+616-  end loop;
+617-
+618-  insert into public.client_incidents(
+--
+1070-  v_type text := coalesce(nullif(p_input ->> 'reportType',''), 'GENERAL');
+1071-  v_format text := p_input ->> 'format';
+1072-  v_filename text := p_input ->> 'filename';
+1073-begin
+1074-  if not private.is_active_admin() then raise exception 'Usuario no autorizado.' using errcode='42501'; end if;
+1075-  if v_format not in ('CSV','XLSX','PDF','PDF_PRINT') then raise exception 'Formato de exportación no válido.' using errcode='22023'; end if;
+1076-  if coalesce(v_filename,'')='' then raise exception 'El nombre del archivo es obligatorio.' using errcode='22023'; end if;
+1077-  insert into public.report_exports(id,code,report_type,export_format,period_start,period_end,filters,filename,object_path,generated_by)
+1078-  values (v_id,v_code,v_type,v_format,nullif(p_input->>'startDate','')::date,nullif(p_input->>'endDate','')::date,coalesce(p_input->'filters','{}'::jsonb),v_filename,nullif(p_input->>'objectPath',''),v_actor);
+1079-  insert into public.audit_log(schema_name,table_name,entity_id,action,new_values,reason,actor_user_id,actor_role,metadata)
+1080-  values ('public','report_exports',v_id::text,'OTHER',jsonb_build_object('code',v_code,'format',v_format,'filename',v_filename),'Exportación de reporte',v_actor,'ADMIN',jsonb_build_object('reportType',v_type));
+1081-  return jsonb_build_object('id',v_id,'code',v_code,'generatedAt',now());
+1082-end;
+1083-$$;
+1084-
+1085-create or replace function public.update_finance_category_v1(p_category_id uuid, p_input jsonb)
+1086-returns jsonb
+1087-language plpgsql
+1088-security definer
+1089-set search_path = ''
+1090-as $$
+1091-declare v_row public.financial_categories%rowtype; v_reason text := btrim(p_input ->> 'reason');
+1092-begin
+1093-  if not private.is_active_admin() then raise exception 'Usuario no autorizado.' using errcode='42501'; end if;
+1094-  if length(coalesce(v_reason,'')) < 5 then raise exception 'El motivo es obligatorio.'; end if;
+1095-  perform set_config('app.audit_reason',v_reason,true);
+1096-  update public.financial_categories set
+1097-    name=btrim(p_input ->> 'name'),
+1098-    nature=p_input ->> 'nature',
+1099-    description=nullif(btrim(p_input ->> 'description'),''),
+1100-    is_active=(p_input ->> 'isActive')::boolean,
+1101-    updated_by=private.current_actor_id()
+1102-  where id=p_category_id and version=(p_input ->> 'version')::bigint
+1103-  returning * into v_row;
+1104-  if not found then raise exception 'La categoría cambió. Recarga antes de guardar.' using errcode='40001'; end if;
+1105-  return jsonb_build_object('id',v_row.id,'code',v_row.code,'name',v_row.name,'nature',v_row.nature,'description',v_row.description,'isActive',v_row.is_active,'version',v_row.version);
+1106-end;
+1107-$$;
+1108-
+1109-revoke all on function public.save_sale_draft_v1(jsonb,uuid,bigint) from public,anon;
+1110:revoke all on function public.list_sale_drafts_v1() from public,anon;
+1111-revoke all on function public.get_sale_draft_v1(uuid) from public,anon;
+1112-revoke all on function public.create_sale_v3(jsonb,text) from public,anon;
+1113-revoke all on function public.get_sale_detail_v3(uuid) from public,anon;
+1114-revoke all on function public.confirm_sale_draft_v1(uuid,bigint,text) from public,anon;
+1115-revoke all on function public.create_inventory_movement_v1(jsonb,text) from public,anon;
+1116-revoke all on function public.create_return_case_v1(uuid,jsonb,text) from public,anon;
+1117-revoke all on function public.update_business_setting_v1(text,jsonb,bigint,text) from public,anon;
+1118-revoke all on function public.upsert_warehouse_v1(jsonb) from public,anon;
+1119-revoke all on function public.upsert_financial_account_v1(jsonb) from public,anon;
+1120-revoke all on function public.update_admin_profile_v1(uuid,jsonb) from public,anon;
+1121-revoke all on function public.update_catalog_item_v1(text,uuid,jsonb) from public,anon;
+1122-revoke all on function public.update_finance_category_v1(uuid,jsonb) from public,anon;
+1123-revoke all on function public.upsert_push_subscription_v1(jsonb) from public,anon;
+1124-revoke all on function public.upsert_notification_preference_v1(jsonb) from public,anon;
+1125-revoke all on function public.queue_weekly_summary_v1(timestamptz) from public,anon;
+1126-revoke all on function public.queue_dispatch_day_reminders_v1(timestamptz) from public,anon;
+1127-revoke all on function public.queue_notification_deliveries_v1() from public,anon;
+1128-revoke all on function public.claim_outbox_events_v1(text,integer) from public,anon,authenticated;
+1129-revoke all on function public.defer_outbox_event_v1(uuid,timestamptz,text) from public,anon,authenticated;
+1130-revoke all on function public.complete_outbox_event_v1(uuid,boolean,text) from public,anon,authenticated;
+1131-revoke all on function public.get_capacity_snapshot_v1() from public,anon;
+1132-revoke all on function public.run_notification_scheduler_v1(timestamptz) from public,anon,authenticated;
+1133-
+1134-grant execute on function public.save_sale_draft_v1(jsonb,uuid,bigint) to authenticated,service_role;
+1135:grant execute on function public.list_sale_drafts_v1() to authenticated,service_role;
+1136-grant execute on function public.get_sale_draft_v1(uuid) to authenticated,service_role;
+1137-grant execute on function public.create_sale_v3(jsonb,text) to authenticated,service_role;
+1138-grant execute on function public.get_sale_detail_v3(uuid) to authenticated,service_role;
+1139-grant execute on function public.confirm_sale_draft_v1(uuid,bigint,text) to authenticated,service_role;
+1140-grant execute on function public.create_inventory_movement_v1(jsonb,text) to authenticated,service_role;
+1141-grant execute on function public.create_return_case_v1(uuid,jsonb,text) to authenticated,service_role;
+1142-grant execute on function public.update_business_setting_v1(text,jsonb,bigint,text) to authenticated,service_role;
+1143-grant execute on function public.upsert_warehouse_v1(jsonb) to authenticated,service_role;
+1144-grant execute on function public.upsert_financial_account_v1(jsonb) to authenticated,service_role;
+1145-grant execute on function public.update_admin_profile_v1(uuid,jsonb) to authenticated,service_role;
+1146-grant execute on function public.update_catalog_item_v1(text,uuid,jsonb) to authenticated,service_role;
+1147-grant execute on function public.update_finance_category_v1(uuid,jsonb) to authenticated,service_role;
+1148-grant execute on function public.upsert_push_subscription_v1(jsonb) to authenticated,service_role;
+1149-grant execute on function public.upsert_notification_preference_v1(jsonb) to authenticated,service_role;
+1150-grant execute on function public.queue_weekly_summary_v1(timestamptz) to authenticated,service_role;
+1151-grant execute on function public.queue_dispatch_day_reminders_v1(timestamptz) to authenticated,service_role;
+1152-grant execute on function public.queue_notification_deliveries_v1() to authenticated,service_role;
+1153-grant execute on function public.claim_outbox_events_v1(text,integer) to service_role;
+1154-grant execute on function public.defer_outbox_event_v1(uuid,timestamptz,text) to service_role;
+1155-grant execute on function public.complete_outbox_event_v1(uuid,boolean,text) to service_role;
+1156-grant execute on function public.get_capacity_snapshot_v1() to authenticated,service_role;
+1157-grant execute on function public.run_notification_scheduler_v1(timestamptz) to service_role;
+1158-
+1159-notify pgrst, 'reload schema';
+1160-commit;
