@@ -7,6 +7,7 @@ import { FeedbackProvider } from './components/ui/feedback-provider';
 import { AuthProvider } from './features/auth/auth-context';
 import './styles/global.css';
 
+import { GlobalFormValidationBridge } from './components/ui/global-form-validation-bridge';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -28,6 +29,7 @@ createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <FeedbackProvider>
+          <GlobalFormValidationBridge />
           <RouterProvider router={router} />
         </FeedbackProvider>
       </AuthProvider>

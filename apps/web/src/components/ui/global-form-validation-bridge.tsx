@@ -1,8 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { useFeedback } from './feedback-provider';
 
-function friendlyValidationMessage(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) {
-  const label = control.closest('label')?.querySelector('span')?.textContent?.replace('*', '').trim();
+function friendlyValidationMessage(
+  control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+) {
+  const label = control
+    .closest('label')
+    ?.querySelector('span')
+    ?.textContent?.replace('*', '')
+    .trim();
   const field = label || control.getAttribute('aria-label') || control.name || 'Este campo';
   const validity = control.validity;
   if (validity.valueMissing) return `${field} es obligatorio.`;
