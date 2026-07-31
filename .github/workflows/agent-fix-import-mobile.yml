@@ -1,0 +1,47 @@
+name: Agent fix import mobile contract
+
+on:
+  push:
+    branches: [version-1-1]
+    paths:
+      - .github/workflows/agent-fix-import-mobile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: version-1-1
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Mantener líneas de caja accesibles en móvil
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/pages/import-detail-page.tsx')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              "className={`import-box-card ${repair ? 'import-box-card-error' : ''}`}",
+              "className={`import-box-card import-box-detail ${repair ? 'import-box-card-error' : ''}`}",
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
+          npx prettier --write apps/web/src/pages/import-detail-page.tsx
+          npm run test:ui:static
+      - name: Publicar corrección
+        run: |
+          rm -f .github/workflows/agent-fix-import-mobile.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(ux): conservar líneas de importación en móvil"
+          git pull --rebase origin version-1-1
+          git push origin HEAD:version-1-1
