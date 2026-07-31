@@ -1,0 +1,86 @@
+name: Agent fix UX native-dialog check
+
+on:
+  push:
+    branches: [version-1-1]
+    paths:
+      - .github/workflows/agent-fix-ux-native-dialog-check.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: version-1-1
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Evitar falsos positivos y cargar estilos faltantes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          confirm_only = [
+              Path('apps/web/src/pages/edit-product-page.tsx'),
+              Path('apps/web/src/pages/inventory-page.tsx'),
+          ]
+          confirm_prompt = [
+              Path('apps/web/src/pages/import-detail-page.tsx'),
+              Path('apps/web/src/pages/new-import-page.tsx'),
+              Path('apps/web/src/pages/settings-page.tsx'),
+          ]
+
+          for path in confirm_only:
+              text = path.read_text(encoding='utf-8')
+              text = text.replace(
+                  'const { confirm, notify, notifyError } = useFeedback();',
+                  'const { confirm: confirmDialog, notify, notifyError } = useFeedback();',
+              )
+              text = re.sub(r'\bconfirm\s*\(', 'confirmDialog(', text)
+              path.write_text(text, encoding='utf-8')
+
+          for path in confirm_prompt:
+              text = path.read_text(encoding='utf-8')
+              text = text.replace(
+                  'const { confirm, notify, notifyError, prompt } = useFeedback();',
+                  'const { confirm: confirmDialog, notify, notifyError, prompt: promptDialog } = useFeedback();',
+              )
+              text = re.sub(r'\bconfirm\s*\(', 'confirmDialog(', text)
+              text = re.sub(r'\bprompt\s*\(', 'promptDialog(', text)
+              path.write_text(text, encoding='utf-8')
+
+          css = Path('apps/web/src/styles/global.css')
+          text = css.read_text(encoding='utf-8')
+          required = "@import './ux-new-import.css';"
+          if required not in text:
+              marker = "@import './ux-imports.css';"
+              text = text.replace(marker, marker + '\n' + required)
+          css.write_text(text, encoding='utf-8')
+          PY
+      - name: Formatear y validar todo el proyecto
+        run: |
+          npx prettier --write \
+            apps/web/src/pages/edit-product-page.tsx \
+            apps/web/src/pages/import-detail-page.tsx \
+            apps/web/src/pages/inventory-page.tsx \
+            apps/web/src/pages/new-import-page.tsx \
+            apps/web/src/pages/settings-page.tsx \
+            apps/web/src/styles/global.css
+          npm run verify
+      - name: Publicar corrección en version-1-1
+        run: |
+          rm -f .github/workflows/agent-fix-ux-native-dialog-check.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(ux): eliminar falsos positivos de diálogos y cargar estilos de importación"
+          git pull --rebase origin version-1-1
+          git push origin HEAD:version-1-1
