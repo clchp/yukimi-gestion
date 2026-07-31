@@ -1,0 +1,145 @@
+.page {
+  display: grid;
+  gap: 20px;
+}
+
+.page > .panel,
+.page > section,
+.page > form,
+.page > .alert {
+  min-width: 0;
+}
+
+.button,
+.icon-button,
+.link-button,
+.pagination button,
+.warehouse-tabs button,
+.product-thumb-button,
+.product-name-button,
+.stock-alert-action,
+.clickable-row {
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 120ms ease;
+}
+
+.button:not(:disabled),
+.icon-button:not(:disabled),
+.link-button:not(:disabled),
+.pagination button:not(:disabled),
+.warehouse-tabs button:not(:disabled),
+.product-thumb-button:not(:disabled),
+.product-name-button:not(:disabled),
+.stock-alert-action:not(:disabled),
+.clickable-row:not(:disabled) {
+  cursor: pointer;
+}
+
+.button:not(:disabled):active,
+.icon-button:not(:disabled):active,
+.link-button:not(:disabled):active,
+.product-thumb-button:not(:disabled):active,
+.product-name-button:not(:disabled):active,
+.stock-alert-action:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.icon-button:hover:not(:disabled),
+.table-action:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+}
+
+.link-button:hover:not(:disabled) {
+  color: var(--primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.button:focus-visible,
+.icon-button:focus-visible,
+.link-button:focus-visible,
+.pagination button:focus-visible,
+.warehouse-tabs button:focus-visible,
+.product-thumb-button:focus-visible,
+.product-name-button:focus-visible,
+.stock-alert-action:focus-visible,
+.clickable-row:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.button:disabled,
+.icon-button:disabled,
+.link-button:disabled,
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.panel + .panel,
+.summary-strip + .panel,
+.stat-grid + .panel {
+  margin-top: 0;
+}
+
+.data-table tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.data-table tbody tr:has(.product-name-button):hover,
+.data-table tbody tr:has(.clickable-row):hover,
+.data-table tbody tr[role='button']:hover {
+  background: color-mix(in srgb, var(--primary-soft) 42%, white);
+}
+
+.context-note {
+  margin-block: 4px;
+}
+
+.app-modal-card,
+.filter-panel-card {
+  max-height: min(88vh, 900px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.app-modal-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-inline: -2px;
+  padding-top: 12px;
+  background: linear-gradient(to bottom, transparent, white 28%);
+}
+
+@media (max-width: 720px) {
+  .page {
+    gap: 16px;
+  }
+
+  .app-modal-backdrop,
+  .filter-panel-backdrop {
+    padding: 10px;
+  }
+
+  .app-modal-card,
+  .filter-panel-card {
+    max-height: calc(100dvh - 20px);
+    border-radius: 16px;
+  }
+
+  .app-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .app-modal-actions .button {
+    width: 100%;
+  }
+}
