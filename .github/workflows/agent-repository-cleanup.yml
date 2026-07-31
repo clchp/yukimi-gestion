@@ -1,0 +1,82 @@
+name: Agent repository cleanup
+
+on:
+  push:
+    branches: [version-1-1]
+    paths:
+      - .github/workflows/agent-repository-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: version-1-1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Limpiar archivos temporales o duplicados
+        run: |
+          rm -f supabase/migrations/038_import_receipt_and_cancellation_integrity.sql
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Asegura una única migración 041 que no depende de tablas secundarias.
+          Path('supabase/migrations/041_partial_sale_drafts.sql').write_text("""-- Yukimi Gestión
+          -- Migración 041: los borradores pueden guardarse sin cliente mientras no se confirmen.
+
+          begin;
+
+          alter table public.sale_drafts
+            alter column client_id drop not null;
+
+          comment on column public.sale_drafts.client_id is
+            'Cliente opcional mientras el registro sea un borrador. La venta final exige un cliente válido.';
+
+          notify pgrst, 'reload schema';
+
+          commit;
+          """.replace('          ', ''), encoding='utf-8')
+
+          # Elimina las reglas heredadas que deformaban la nueva etiqueta rectangular.
+          css = Path('apps/web/src/styles/global.css')
+          text = css.read_text(encoding='utf-8')
+          text = re.sub(r'\n\.qr-label-preview\s*\{.*?\.qr-label-payload\s*\{.*?\}\s*$', '\n', text, flags=re.S)
+          css.write_text(text, encoding='utf-8')
+
+          label = Path('apps/web/src/features/products/product-label.ts')
+          text = label.read_text(encoding='utf-8')
+          text = text.replace('const qr = qrSvg(payload, 1);', 'const qr = qrSvg(payload, 348);')
+          text = text.replace(r'<\/script>', '</script>')
+          label.write_text(text, encoding='utf-8')
+
+          migration = Path('supabase/migrations/037_product_maintenance_and_ux_integrity.sql')
+          text = migration.read_text(encoding='utf-8')
+          marker = '  v_old_product := to_jsonb(v_product);'
+          if marker in text and "app.audit_reason" not in text:
+              text = text.replace(marker, "  perform pg_catalog.set_config('app.audit_reason', v_reason, true);\n\n" + marker)
+          if "notify pgrst" not in text:
+              text = text.replace('\ncommit;\n', "\nnotify pgrst, 'reload schema';\n\ncommit;\n")
+          migration.write_text(text, encoding='utf-8')
+          PY
+      - name: Formatear archivos compatibles
+        run: |
+          git ls-files '*.ts' '*.tsx' '*.js' '*.mjs' '*.css' '*.md' '*.json' '*.yml' '*.yaml' | xargs npx prettier --write
+      - name: Publicar limpieza
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Sin cambios"
+            exit 0
+          fi
+          git commit -m "chore(ux): limpiar migraciones duplicadas y formato"
+          git push origin HEAD:version-1-1
