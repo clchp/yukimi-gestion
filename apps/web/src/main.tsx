@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { router } from './app/router';
+import { FeedbackProvider } from './components/ui/feedback-provider';
 import { AuthProvider } from './features/auth/auth-context';
 import './styles/global.css';
 
@@ -12,6 +13,9 @@ const queryClient = new QueryClient({
       staleTime: 30_000,
       retry: 1,
       refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 0,
     },
   },
 });
@@ -23,7 +27,9 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <FeedbackProvider>
+          <RouterProvider router={router} />
+        </FeedbackProvider>
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,
