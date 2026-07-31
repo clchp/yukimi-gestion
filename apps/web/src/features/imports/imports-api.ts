@@ -149,3 +149,15 @@ export function receiveImportBox(
     body: JSON.stringify(input),
   });
 }
+
+export function repairZeroReceivedImportBox(
+  boxId: string,
+  input: ReceiveImportBoxInput,
+  idempotencyKey: string,
+): Promise<ImportMutationResult> {
+  return apiRequest<ImportMutationResult>(`/imports/boxes/${boxId}/repair-zero-receipt`, {
+    method: 'POST',
+    headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
+}
