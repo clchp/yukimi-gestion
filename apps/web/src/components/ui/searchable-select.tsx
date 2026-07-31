@@ -1,12 +1,5 @@
 import { Check, ChevronDown, Search, X } from 'lucide-react';
-import {
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
 export interface SearchableOption {
   value: string;
@@ -130,9 +123,7 @@ export function SearchableSelect({
           disabled={disabled}
           onClick={() => setOpen((current) => !current)}
         >
-          <span className={selected ? '' : 'placeholder'}>
-            {selected?.label ?? placeholder}
-          </span>
+          <span className={selected ? '' : 'placeholder'}>{selected?.label ?? placeholder}</span>
           <ChevronDown size={17} aria-hidden="true" />
         </button>
         {allowClear && value && !disabled ? (
@@ -181,7 +172,9 @@ export function SearchableSelect({
                 {option.value === value ? <Check size={16} aria-hidden="true" /> : null}
               </button>
             ))}
-            {filtered.length === 0 ? <div className="searchable-select-empty">{emptyMessage}</div> : null}
+            {filtered.length === 0 ? (
+              <div className="searchable-select-empty">{emptyMessage}</div>
+            ) : null}
           </div>
         </div>
       ) : null}

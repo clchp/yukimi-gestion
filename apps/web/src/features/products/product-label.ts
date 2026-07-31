@@ -66,7 +66,8 @@ export async function downloadProductLabelPng(
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
-        (value) => (value ? resolve(value) : reject(new Error('No se pudo generar el archivo PNG.'))),
+        (value) =>
+          value ? resolve(value) : reject(new Error('No se pudo generar el archivo PNG.')),
         'image/png',
         1,
       );
@@ -79,8 +80,13 @@ export async function downloadProductLabelPng(
 
 export function printProductLabel(title: string, subtitle: string, payload: string) {
   const popup = window.open('', '_blank', 'width=620,height=760');
-  if (!popup) throw new Error('El navegador bloqueó la ventana de impresión. Habilita ventanas emergentes para este sitio.');
+  if (!popup)
+    throw new Error(
+      'El navegador bloqueó la ventana de impresión. Habilita ventanas emergentes para este sitio.',
+    );
   const svg = productLabelSvg(title, subtitle, payload);
-  popup.document.write(`<!doctype html><html lang="es"><head><title>Etiqueta ${escapeXml(subtitle)}</title><meta charset="utf-8"><style>html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:white}body{display:grid;place-items:center;padding:18px;box-sizing:border-box}svg{width:min(100%,480px);height:auto}@media print{body{padding:0}svg{width:100%;max-height:100vh}}</style></head><body>${svg}<script>window.addEventListener('load',()=>window.print())<\/script></body></html>`);
+  popup.document.write(
+    `<!doctype html><html lang="es"><head><title>Etiqueta ${escapeXml(subtitle)}</title><meta charset="utf-8"><style>html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:white}body{display:grid;place-items:center;padding:18px;box-sizing:border-box}svg{width:min(100%,480px);height:auto}@media print{body{padding:0}svg{width:100%;max-height:100vh}}</style></head><body>${svg}<script>window.addEventListener('load',()=>window.print())</script></body></html>`,
+  );
   popup.document.close();
 }

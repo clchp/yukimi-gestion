@@ -60,9 +60,12 @@ export function FilterPanel({
   if (!open) return null;
 
   return (
-    <div className="filter-panel-backdrop" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
+    <div
+      className="filter-panel-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <div
         ref={panelRef}
         className="filter-panel"
@@ -72,17 +75,29 @@ export function FilterPanel({
       >
         <header className="filter-panel-header">
           <div>
-            <span className="eyebrow"><SlidersHorizontal size={14} /> Filtros</span>
+            <span className="eyebrow">
+              <SlidersHorizontal size={14} /> Filtros
+            </span>
             <h2 id={titleId}>{title}</h2>
             <p>{description}</p>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Cerrar filtros">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onClose}
+            aria-label="Cerrar filtros"
+          >
             <X size={20} />
           </button>
         </header>
         <div className="filter-panel-body">{children}</div>
         <footer className="filter-panel-actions">
-          <button type="button" className="button button-secondary" onClick={onClear} disabled={activeCount === 0}>
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={onClear}
+            disabled={activeCount === 0}
+          >
             <RotateCcw size={16} /> Limpiar filtros
           </button>
           <button type="button" className="button button-primary" onClick={onApply}>

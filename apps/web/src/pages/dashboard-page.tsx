@@ -30,9 +30,11 @@ function shortDate(value: string) {
 }
 
 function longDate(value: string) {
-  return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }).format(
-    new Date(`${value.slice(0, 10)}T12:00:00`),
-  );
+  return new Intl.DateTimeFormat('es-PE', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(`${value.slice(0, 10)}T12:00:00`));
 }
 
 function inputDate(date: Date) {
@@ -147,7 +149,8 @@ export function DashboardPage() {
 
   const performanceRange = useMemo(() => {
     if (period === 'TODAY') return { startDate: businessDate, endDate: businessDate };
-    if (period === 'MONTH') return { startDate: firstDayOfMonth(businessDate), endDate: businessDate };
+    if (period === 'MONTH')
+      return { startDate: firstDayOfMonth(businessDate), endDate: businessDate };
     if (period === 'CUSTOM') {
       return {
         startDate: customStart || businessDate,
@@ -179,7 +182,12 @@ export function DashboardPage() {
         : period === 'CUSTOM'
           ? 'Rendimiento del periodo'
           : 'Rendimiento de los últimos 7 días';
-  const totalLabel = period === 'TODAY' ? 'Total de hoy' : period === 'MONTH' ? 'Total del mes' : 'Total del periodo';
+  const totalLabel =
+    period === 'TODAY'
+      ? 'Total de hoy'
+      : period === 'MONTH'
+        ? 'Total del mes'
+        : 'Total del periodo';
 
   return (
     <main className="page dashboard-page">
@@ -257,12 +265,14 @@ export function DashboardPage() {
           }
         >
           <div className="chart-periods" aria-label="Periodo del gráfico">
-            {([
-              ['TODAY', 'Hoy'],
-              ['7D', '7 días'],
-              ['MONTH', 'Mes'],
-              ['CUSTOM', 'Personalizado'],
-            ] as Array<[PeriodCode, string]>).map(([code, label]) => (
+            {(
+              [
+                ['TODAY', 'Hoy'],
+                ['7D', '7 días'],
+                ['MONTH', 'Mes'],
+                ['CUSTOM', 'Personalizado'],
+              ] as Array<[PeriodCode, string]>
+            ).map(([code, label]) => (
               <button
                 type="button"
                 className={`chart-period-button ${period === code ? 'active' : ''}`}
@@ -320,14 +330,22 @@ export function DashboardPage() {
             className={`bar-chart dashboard-real-chart chart-columns-${Math.min(Math.max(chartData.length, 1), 31)}`}
             role="group"
             aria-label={`Gráfico de ventas y cobros desde ${longDate(performanceRange.startDate)} hasta ${longDate(performanceRange.endDate)}`}
-            style={{ gridTemplateColumns: `repeat(${Math.max(chartData.length, 1)}, minmax(30px, 1fr))` }}
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(chartData.length, 1)}, minmax(30px, 1fr))`,
+            }}
           >
             {chartData.map((item) => {
               const description = `${longDate(item.date)}. Ventas: ${money(item.salesAmount)}. Cobros: ${money(item.collectionsAmount)}.`;
               return (
                 <div className="bar-column" key={item.date}>
-                  <span className="chart-tooltip" role="tooltip">{description}</span>
-                  <button className="bar-track dual-bar-track chart-bar-button" type="button" aria-label={description}>
+                  <span className="chart-tooltip" role="tooltip">
+                    {description}
+                  </span>
+                  <button
+                    className="bar-track dual-bar-track chart-bar-button"
+                    type="button"
+                    aria-label={description}
+                  >
                     <span
                       className="sales-bar"
                       aria-hidden="true"
@@ -347,7 +365,9 @@ export function DashboardPage() {
                 </div>
               );
             })}
-            {performance.isLoading || !data ? <div className="empty-state">Cargando gráfico…</div> : null}
+            {performance.isLoading || !data ? (
+              <div className="empty-state">Cargando gráfico…</div>
+            ) : null}
             {!performance.isLoading && data && chartData.length === 0 ? (
               <div className="empty-state chart-empty-state">
                 No hay ventas ni cobros confirmados en este periodo.
@@ -355,7 +375,9 @@ export function DashboardPage() {
             ) : null}
           </div>
           {period === 'CUSTOM' && (!customStart || !customEnd) ? (
-            <ContextNote>Selecciona una fecha de inicio y una fecha final para consultar el periodo.</ContextNote>
+            <ContextNote>
+              Selecciona una fecha de inicio y una fecha final para consultar el periodo.
+            </ContextNote>
           ) : null}
         </Panel>
 
@@ -457,7 +479,11 @@ export function DashboardPage() {
                 type="button"
                 className="activity-row activity-row-button"
                 key={item.id}
-                onClick={() => navigate(`/auditoria?search=${encodeURIComponent(item.entityId ?? item.actorName)}`)}
+                onClick={() =>
+                  navigate(
+                    `/auditoria?search=${encodeURIComponent(item.entityId ?? item.actorName)}`,
+                  )
+                }
               >
                 <span className="activity-marker activity-info" />
                 <div>

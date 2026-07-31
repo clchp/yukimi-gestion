@@ -13,11 +13,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { webEnv } from '../app/env';
-import {
-  BusyLabel,
-  friendlyError,
-  useFeedback,
-} from '../components/ui/feedback-provider';
+import { BusyLabel, friendlyError, useFeedback } from '../components/ui/feedback-provider';
 import { ContextNote } from '../components/ui/info-tip';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
@@ -132,8 +128,7 @@ export function SettingsPage() {
         name: name.trim(),
         description: description.trim() || null,
         brandId: kind === 'product-lines' ? brandId || null : undefined,
-        releasePenaltyAmount:
-          kind === 'categories' && penalty.trim() ? Number(penalty) : undefined,
+        releasePenaltyAmount: kind === 'categories' && penalty.trim() ? Number(penalty) : undefined,
         releasePenaltyCurrency: kind === 'categories' ? 'PEN' : undefined,
       }),
     onSuccess: async () => {
@@ -195,7 +190,8 @@ export function SettingsPage() {
     if (kind === 'product-lines' && !brandId) errors.brandId = 'Selecciona una marca.';
     if (kind === 'categories' && penalty.trim()) {
       const value = Number(penalty);
-      if (!Number.isFinite(value) || value < 0) errors.penalty = 'Ingresa una penalidad válida igual o mayor que cero.';
+      if (!Number.isFinite(value) || value < 0)
+        errors.penalty = 'Ingresa una penalidad válida igual o mayor que cero.';
     }
     setCreateErrors(errors);
     return Object.keys(errors).length === 0;
@@ -210,7 +206,8 @@ export function SettingsPage() {
   async function requestReason(action: string, detail?: string) {
     const values = await prompt({
       title: 'Motivo de la modificación',
-      message: detail ?? `Indica por qué deseas ${action}. El motivo quedará registrado en auditoría.`,
+      message:
+        detail ?? `Indica por qué deseas ${action}. El motivo quedará registrado en auditoría.`,
       fields: [
         {
           name: 'reason',
@@ -236,7 +233,8 @@ export function SettingsPage() {
   async function editCatalog(item: CatalogItem) {
     const values = await prompt({
       title: `Editar ${item.name}`,
-      message: 'Modifica los datos necesarios en una sola ventana. Los campos marcados con * son obligatorios.',
+      message:
+        'Modifica los datos necesarios en una sola ventana. Los campos marcados con * son obligatorios.',
       fields: [
         { name: 'name', label: 'Nombre', initialValue: item.name, required: true },
         {
@@ -290,8 +288,7 @@ export function SettingsPage() {
       patch: {
         name: values.name.trim(),
         description: values.description.trim() || null,
-        releasePenaltyAmount:
-          kind === 'categories' ? Number(values.penalty || 0) : undefined,
+        releasePenaltyAmount: kind === 'categories' ? Number(values.penalty || 0) : undefined,
       },
       reason: values.reason.trim(),
     });
@@ -339,7 +336,8 @@ export function SettingsPage() {
     const accepted = await confirm({
       title: 'Confirmar regla',
       message: `Se actualizará ${key}.`,
-      detail: 'Una regla incorrecta puede afectar operaciones futuras. Revisa el valor antes de confirmar.',
+      detail:
+        'Una regla incorrecta puede afectar operaciones futuras. Revisa el valor antes de confirmar.',
       confirmLabel: 'Actualizar regla',
     });
     if (!accepted) return;
@@ -491,7 +489,12 @@ export function SettingsPage() {
     const values = await prompt({
       title: `Editar a ${profile.displayName}`,
       fields: [
-        { name: 'displayName', label: 'Nombre visible', initialValue: profile.displayName, required: true },
+        {
+          name: 'displayName',
+          label: 'Nombre visible',
+          initialValue: profile.displayName,
+          required: true,
+        },
         { name: 'phone', label: 'Teléfono', initialValue: profile.phone ?? '' },
         { name: 'reason', label: 'Motivo', type: 'textarea', required: true, minLength: 5 },
       ],
@@ -547,7 +550,8 @@ export function SettingsPage() {
       ) {
         notify({
           title: 'Notificaciones push no disponibles',
-          message: 'Configura la clave pública de push y utiliza HTTPS antes de activar este canal.',
+          message:
+            'Configura la clave pública de push y utiliza HTTPS antes de activar este canal.',
           tone: 'warning',
         });
         return;
@@ -576,7 +580,11 @@ export function SettingsPage() {
         authKey: payload.keys.auth,
         deviceName: navigator.userAgent.slice(0, 120),
       });
-      notify({ title: 'Dispositivo registrado', message: 'Las notificaciones push quedaron activadas.', tone: 'success' });
+      notify({
+        title: 'Dispositivo registrado',
+        message: 'Las notificaciones push quedaron activadas.',
+        tone: 'success',
+      });
       await refreshAll();
     } catch (error) {
       notifyError(error, 'No se pudo activar las notificaciones push.');
@@ -622,7 +630,8 @@ export function SettingsPage() {
               subtitle="Completa únicamente información legal confirmada. Cada cambio queda auditado."
             >
               <ContextNote tone="warning">
-                No inventes RUC, razón social ni dirección. Déjalos pendientes hasta contar con los datos reales.
+                No inventes RUC, razón social ni dirección. Déjalos pendientes hasta contar con los
+                datos reales.
               </ContextNote>
               <div className="setting-list">
                 {(admin.data?.settings ?? [])
@@ -634,12 +643,16 @@ export function SettingsPage() {
                     <div key={setting.key}>
                       <div>
                         <strong>{setting.description ?? setting.key}</strong>
-                        <small>{setting.key} · {jsonPreview(setting.value)}</small>
+                        <small>
+                          {setting.key} · {jsonPreview(setting.value)}
+                        </small>
                       </div>
                       <button
                         type="button"
                         className="button button-secondary button-compact"
-                        onClick={() => void editSetting(setting.key, setting.value, setting.version)}
+                        onClick={() =>
+                          void editSetting(setting.key, setting.value, setting.version)
+                        }
                       >
                         Editar
                       </button>
@@ -659,16 +672,26 @@ export function SettingsPage() {
                   <div className="catalog-list-row" key={profile.id}>
                     <div>
                       <strong>{profile.displayName}</strong>
-                      <small>{profile.email ?? 'Sin correo'} · {profile.phone ?? 'Sin teléfono'}</small>
+                      <small>
+                        {profile.email ?? 'Sin correo'} · {profile.phone ?? 'Sin teléfono'}
+                      </small>
                     </div>
                     <StatusBadge tone={profile.isActive ? 'success' : 'neutral'}>
                       {profile.isActive ? 'Activa' : 'Inactiva'}
                     </StatusBadge>
                     <div className="row-actions">
-                      <button type="button" className="button button-secondary button-compact" onClick={() => void editProfile(profile)}>
+                      <button
+                        type="button"
+                        className="button button-secondary button-compact"
+                        onClick={() => void editProfile(profile)}
+                      >
                         Editar
                       </button>
-                      <button type="button" className="button button-compact button-danger" onClick={() => void toggleProfile(profile)}>
+                      <button
+                        type="button"
+                        className="button button-compact button-danger"
+                        onClick={() => void toggleProfile(profile)}
+                      >
                         {profile.isActive ? 'Desactivar' : 'Reactivar'}
                       </button>
                     </div>
@@ -683,7 +706,11 @@ export function SettingsPage() {
               title="Almacenes"
               subtitle="Ubicaciones operativas, virtuales, internacionales y de tránsito."
             >
-              <button type="button" className="button button-primary" onClick={() => void createWarehouse()}>
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={() => void createWarehouse()}
+              >
                 <Plus size={17} /> Nuevo almacén
               </button>
               <div className="catalog-list">
@@ -692,14 +719,19 @@ export function SettingsPage() {
                     <div>
                       <strong>{warehouse.name}</strong>
                       <small>
-                        {warehouse.code} · {warehouseTypeLabels[warehouse.warehouseType] ?? warehouse.warehouseType}
+                        {warehouse.code} ·{' '}
+                        {warehouseTypeLabels[warehouse.warehouseType] ?? warehouse.warehouseType}
                         {warehouse.isVirtual ? ' · virtual' : ''}
                       </small>
                     </div>
                     <StatusBadge tone={warehouse.isActive ? 'success' : 'neutral'}>
                       {warehouse.isActive ? 'Activo' : 'Inactivo'}
                     </StatusBadge>
-                    <button type="button" className="button button-secondary button-compact" onClick={() => void editWarehouse(warehouse)}>
+                    <button
+                      type="button"
+                      className="button button-secondary button-compact"
+                      onClick={() => void editWarehouse(warehouse)}
+                    >
                       Editar
                     </button>
                   </div>
@@ -710,7 +742,10 @@ export function SettingsPage() {
 
           {activeSection === 'Catálogos' ? (
             <>
-              <Panel title="Catálogos de productos" subtitle="Crea y edita categorías, franquicias, marcas y líneas.">
+              <Panel
+                title="Catálogos de productos"
+                subtitle="Crea y edita categorías, franquicias, marcas y líneas."
+              >
                 <div className="catalog-kind-tabs">
                   {(Object.keys(catalogLabels) as CatalogKind[]).map((catalogKind) => (
                     <button
@@ -743,7 +778,9 @@ export function SettingsPage() {
                         setCreateErrors((current) => ({ ...current, name: '' }));
                       }}
                     />
-                    {createErrors.name ? <small className="field-error">{createErrors.name}</small> : null}
+                    {createErrors.name ? (
+                      <small className="field-error">{createErrors.name}</small>
+                    ) : null}
                   </label>
                   {kind === 'product-lines' ? (
                     <SearchableSelect
@@ -776,20 +813,38 @@ export function SettingsPage() {
                           setCreateErrors((current) => ({ ...current, penalty: '' }));
                         }}
                       />
-                      {createErrors.penalty ? <small className="field-error">{createErrors.penalty}</small> : null}
+                      {createErrors.penalty ? (
+                        <small className="field-error">{createErrors.penalty}</small>
+                      ) : null}
                     </label>
                   ) : null}
                   <label className="field catalog-description">
                     <span>Descripción</span>
-                    <input value={description} onChange={(event) => setDescription(event.target.value)} />
+                    <input
+                      value={description}
+                      onChange={(event) => setDescription(event.target.value)}
+                    />
                   </label>
-                  <button className="button button-primary" type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? <BusyLabel label="Creando…" /> : <><Plus size={17} /> Crear</>}
+                  <button
+                    className="button button-primary"
+                    type="submit"
+                    disabled={createMutation.isPending}
+                  >
+                    {createMutation.isPending ? (
+                      <BusyLabel label="Creando…" />
+                    ) : (
+                      <>
+                        <Plus size={17} /> Crear
+                      </>
+                    )}
                   </button>
                 </form>
                 <small className="required-note">* Campo obligatorio</small>
               </Panel>
-              <Panel title={catalogLabels[kind]} subtitle={`${items.length} registros configurados.`}>
+              <Panel
+                title={catalogLabels[kind]}
+                subtitle={`${items.length} registros configurados.`}
+              >
                 <div className="catalog-list">
                   {items.map((item) => (
                     <div className="catalog-list-row" key={item.id}>
@@ -797,17 +852,27 @@ export function SettingsPage() {
                         <strong>{item.name}</strong>
                         <small>
                           {item.code}
-                          {item.releasePenaltyAmount != null ? ` · Penalidad S/ ${item.releasePenaltyAmount}` : ''}
+                          {item.releasePenaltyAmount != null
+                            ? ` · Penalidad S/ ${item.releasePenaltyAmount}`
+                            : ''}
                         </small>
                       </div>
                       <StatusBadge tone={item.isActive ? 'success' : 'neutral'}>
                         {item.isActive ? 'Activo' : 'Inactivo'}
                       </StatusBadge>
                       <div className="row-actions">
-                        <button type="button" className="button button-secondary button-compact" onClick={() => void editCatalog(item)}>
+                        <button
+                          type="button"
+                          className="button button-secondary button-compact"
+                          onClick={() => void editCatalog(item)}
+                        >
                           Editar
                         </button>
-                        <button type="button" className="button button-compact button-danger" onClick={() => void toggleCatalog(item)}>
+                        <button
+                          type="button"
+                          className="button button-compact button-danger"
+                          onClick={() => void toggleCatalog(item)}
+                        >
                           {item.isActive ? 'Desactivar' : 'Reactivar'}
                         </button>
                       </div>
@@ -819,15 +884,24 @@ export function SettingsPage() {
           ) : null}
 
           {activeSection === 'Penalidades y plazos' ? (
-            <Panel title="Penalidades y plazos" subtitle="Reglas editables sin modificar código; cada cambio exige motivo.">
+            <Panel
+              title="Penalidades y plazos"
+              subtitle="Reglas editables sin modificar código; cada cambio exige motivo."
+            >
               <div className="setting-list">
                 {penaltySettings.map((setting) => (
                   <div key={setting.key}>
                     <div>
                       <strong>{setting.description ?? setting.key}</strong>
-                      <small>{setting.key} · {jsonPreview(setting.value)}</small>
+                      <small>
+                        {setting.key} · {jsonPreview(setting.value)}
+                      </small>
                     </div>
-                    <button type="button" className="button button-secondary button-compact" onClick={() => void editSetting(setting.key, setting.value, setting.version)}>
+                    <button
+                      type="button"
+                      className="button button-secondary button-compact"
+                      onClick={() => void editSetting(setting.key, setting.value, setting.version)}
+                    >
                       Editar
                     </button>
                   </div>
@@ -841,7 +915,11 @@ export function SettingsPage() {
               title="Cuentas financieras"
               subtitle="Registra bancos, billeteras, efectivo y tarjetas sin exponer números completos."
             >
-              <button type="button" className="button button-primary" onClick={() => void createAccount()}>
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={() => void createAccount()}
+              >
                 <Plus size={17} /> Nueva cuenta
               </button>
               <div className="catalog-list">
@@ -850,14 +928,20 @@ export function SettingsPage() {
                     <div>
                       <strong>{account.name}</strong>
                       <small>
-                        {account.code} · {accountTypeLabels[account.accountTypeCode] ?? account.accountTypeCode} ·{' '}
-                        {account.ownerName ?? 'Titular pendiente'} · {account.maskedAccountNumber ?? 'Número pendiente'}
+                        {account.code} ·{' '}
+                        {accountTypeLabels[account.accountTypeCode] ?? account.accountTypeCode} ·{' '}
+                        {account.ownerName ?? 'Titular pendiente'} ·{' '}
+                        {account.maskedAccountNumber ?? 'Número pendiente'}
                       </small>
                     </div>
                     <StatusBadge tone={account.isActive ? 'success' : 'neutral'}>
                       {account.isActive ? 'Activa' : 'Inactiva'}
                     </StatusBadge>
-                    <button type="button" className="button button-secondary button-compact" onClick={() => void editAccount(account)}>
+                    <button
+                      type="button"
+                      className="button button-secondary button-compact"
+                      onClick={() => void editAccount(account)}
+                    >
                       Editar
                     </button>
                   </div>
@@ -868,8 +952,15 @@ export function SettingsPage() {
 
           {activeSection === 'Notificaciones' ? (
             <>
-              <Panel title="Canales de notificación" subtitle="Configura alertas internas, push y correo por tipo de evento.">
-                <button className="button button-primary" type="button" onClick={() => void enablePush()}>
+              <Panel
+                title="Canales de notificación"
+                subtitle="Configura alertas internas, push y correo por tipo de evento."
+              >
+                <button
+                  className="button button-primary"
+                  type="button"
+                  onClick={() => void enablePush()}
+                >
                   <Bell size={17} /> Activar push en este dispositivo
                 </button>
                 <div className="setting-list">
@@ -881,14 +972,18 @@ export function SettingsPage() {
                       <div key={type.code}>
                         <div>
                           <strong>{type.name}</strong>
-                          <small>{type.description ?? type.code} · horario silencioso 21:00–08:00</small>
+                          <small>
+                            {type.description ?? type.code} · horario silencioso 21:00–08:00
+                          </small>
                         </div>
                         <div className="settings-status">
                           <label>
                             <input
                               type="checkbox"
                               checked={preference?.inAppEnabled ?? true}
-                              onChange={(event) => updatePreference(type.code, { inAppEnabled: event.target.checked })}
+                              onChange={(event) =>
+                                updatePreference(type.code, { inAppEnabled: event.target.checked })
+                              }
                             />{' '}
                             Interna
                           </label>
@@ -896,7 +991,9 @@ export function SettingsPage() {
                             <input
                               type="checkbox"
                               checked={preference?.pushEnabled ?? false}
-                              onChange={(event) => updatePreference(type.code, { pushEnabled: event.target.checked })}
+                              onChange={(event) =>
+                                updatePreference(type.code, { pushEnabled: event.target.checked })
+                              }
                             />{' '}
                             Push
                           </label>
@@ -904,7 +1001,9 @@ export function SettingsPage() {
                             <input
                               type="checkbox"
                               checked={preference?.emailEnabled ?? false}
-                              onChange={(event) => updatePreference(type.code, { emailEnabled: event.target.checked })}
+                              onChange={(event) =>
+                                updatePreference(type.code, { emailEnabled: event.target.checked })
+                              }
                             />{' '}
                             Correo
                           </label>
@@ -914,12 +1013,27 @@ export function SettingsPage() {
                   })}
                 </div>
               </Panel>
-              <Panel title="Monitoreo de capacidad" subtitle="Indicadores para anticipar límites de base de datos, archivos y cola de entrega.">
+              <Panel
+                title="Monitoreo de capacidad"
+                subtitle="Indicadores para anticipar límites de base de datos, archivos y cola de entrega."
+              >
                 <div className="info-grid">
-                  <div><span>Eventos pendientes</span><strong>{capacity.data?.pendingOutbox ?? '—'}</strong></div>
-                  <div><span>Eventos fallidos</span><strong>{capacity.data?.failedOutbox ?? '—'}</strong></div>
-                  <div><span>Dispositivos push</span><strong>{capacity.data?.activePushSubscriptions ?? '—'}</strong></div>
-                  <div><span>Tablas controladas</span><strong>{capacity.data?.tables.length ?? '—'}</strong></div>
+                  <div>
+                    <span>Eventos pendientes</span>
+                    <strong>{capacity.data?.pendingOutbox ?? '—'}</strong>
+                  </div>
+                  <div>
+                    <span>Eventos fallidos</span>
+                    <strong>{capacity.data?.failedOutbox ?? '—'}</strong>
+                  </div>
+                  <div>
+                    <span>Dispositivos push</span>
+                    <strong>{capacity.data?.activePushSubscriptions ?? '—'}</strong>
+                  </div>
+                  <div>
+                    <span>Tablas controladas</span>
+                    <strong>{capacity.data?.tables.length ?? '—'}</strong>
+                  </div>
                 </div>
               </Panel>
             </>

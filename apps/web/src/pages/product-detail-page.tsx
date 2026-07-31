@@ -36,14 +36,14 @@ export function ProductDetailPage() {
   });
   const selectedVariant =
     product.data?.variants.find((variant) => variant.id === variantId) ?? product.data?.variants[0];
-  const payload = product.data && selectedVariant
-    ? `YUKIMI:${product.data.code}:${selectedVariant.sku}`
-    : '';
+  const payload =
+    product.data && selectedVariant ? `YUKIMI:${product.data.code}:${selectedVariant.sku}` : '';
   const images = product.data?.imagePaths ?? [];
   const selectedImagePath = images[Math.min(imageIndex, Math.max(images.length - 1, 0))] ?? null;
   const subtitle = selectedVariant ? `${selectedVariant.variantName} · ${selectedVariant.sku}` : '';
   const labelMarkup = useMemo(
-    () => product.data && selectedVariant ? productLabelSvg(product.data.name, subtitle, payload) : '',
+    () =>
+      product.data && selectedVariant ? productLabelSvg(product.data.name, subtitle, payload) : '',
     [payload, product.data, selectedVariant, subtitle],
   );
 
@@ -71,7 +71,12 @@ export function ProductDetailPage() {
     }
   }
 
-  if (product.isLoading) return <main className="page"><div className="empty-state">Cargando producto…</div></main>;
+  if (product.isLoading)
+    return (
+      <main className="page">
+        <div className="empty-state">Cargando producto…</div>
+      </main>
+    );
   if (product.isError || !product.data) {
     return (
       <main className="page">
@@ -124,7 +129,11 @@ export function ProductDetailPage() {
                     aria-label={`Ver imagen ${index + 1}`}
                     onClick={() => setImageIndex(index)}
                   >
-                    <ProductImage path={path} alt={`${product.data.name} ${index + 1}`} className="product-gallery-thumb" />
+                    <ProductImage
+                      path={path}
+                      alt={`${product.data.name} ${index + 1}`}
+                      className="product-gallery-thumb"
+                    />
                   </button>
                 ))}
               </div>
@@ -134,28 +143,67 @@ export function ProductDetailPage() {
 
         <Panel title="Información general" subtitle="Identificación y asociaciones del catálogo.">
           <dl className="detail-list">
-            <div><dt>Estado</dt><dd><StatusBadge tone={product.data.isActive ? 'success' : 'neutral'}>{product.data.isActive ? 'Activo' : 'Inactivo'}</StatusBadge></dd></div>
-            <div><dt>Personaje</dt><dd>{product.data.characterName ?? 'No indicado'}</dd></div>
-            <div><dt>Franquicia o anime</dt><dd>{product.data.franchiseName ?? 'Sin franquicia'}</dd></div>
-            <div><dt>Marca</dt><dd>{product.data.brandName ?? 'Sin marca'}</dd></div>
-            <div><dt>Línea o colección</dt><dd>{product.data.productLineName ?? 'Sin línea'}</dd></div>
-            <div><dt>Descripción</dt><dd>{product.data.description ?? 'Sin descripción'}</dd></div>
+            <div>
+              <dt>Estado</dt>
+              <dd>
+                <StatusBadge tone={product.data.isActive ? 'success' : 'neutral'}>
+                  {product.data.isActive ? 'Activo' : 'Inactivo'}
+                </StatusBadge>
+              </dd>
+            </div>
+            <div>
+              <dt>Personaje</dt>
+              <dd>{product.data.characterName ?? 'No indicado'}</dd>
+            </div>
+            <div>
+              <dt>Franquicia o anime</dt>
+              <dd>{product.data.franchiseName ?? 'Sin franquicia'}</dd>
+            </div>
+            <div>
+              <dt>Marca</dt>
+              <dd>{product.data.brandName ?? 'Sin marca'}</dd>
+            </div>
+            <div>
+              <dt>Línea o colección</dt>
+              <dd>{product.data.productLineName ?? 'Sin línea'}</dd>
+            </div>
+            <div>
+              <dt>Descripción</dt>
+              <dd>{product.data.description ?? 'Sin descripción'}</dd>
+            </div>
           </dl>
         </Panel>
       </section>
 
-      <Panel title="Variantes" subtitle="Precio, stock mínimo, SKU y disponibilidad administrativa.">
+      <Panel
+        title="Variantes"
+        subtitle="Precio, stock mínimo, SKU y disponibilidad administrativa."
+      >
         <div className="responsive-table-wrap">
           <table className="data-table">
-            <thead><tr><th>Variante</th><th>SKU</th><th>Precio</th><th>Stock mínimo</th><th>Estado</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Variante</th>
+                <th>SKU</th>
+                <th>Precio</th>
+                <th>Stock mínimo</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
             <tbody>
               {product.data.variants.map((variant) => (
                 <tr key={variant.id}>
-                  <td><strong>{variant.variantName}</strong></td>
+                  <td>
+                    <strong>{variant.variantName}</strong>
+                  </td>
                   <td>{variant.sku}</td>
                   <td>{money(variant.salePrice, variant.currencyCode)}</td>
                   <td>{variant.minimumStock}</td>
-                  <td><StatusBadge tone={variant.isActive ? 'success' : 'neutral'}>{variant.isActive ? 'Activa' : 'Inactiva'}</StatusBadge></td>
+                  <td>
+                    <StatusBadge tone={variant.isActive ? 'success' : 'neutral'}>
+                      {variant.isActive ? 'Activa' : 'Inactiva'}
+                    </StatusBadge>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -177,18 +225,28 @@ export function ProductDetailPage() {
             />
             <div className="context-note context-note-info">
               <QrCode size={18} />
-              <span>Comprueba que el QR sea legible desde la pantalla antes de imprimir varias etiquetas.</span>
+              <span>
+                Comprueba que el QR sea legible desde la pantalla antes de imprimir varias
+                etiquetas.
+              </span>
             </div>
             <div className="row-actions">
               <button className="button button-secondary" type="button" onClick={printLabel}>
                 <Printer size={17} /> Imprimir
               </button>
-              <button className="button button-primary" type="button" onClick={() => void downloadLabel()}>
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() => void downloadLabel()}
+              >
                 <Download size={17} /> Descargar etiqueta
               </button>
             </div>
           </div>
-          <div className="product-label-preview" dangerouslySetInnerHTML={{ __html: labelMarkup }} />
+          <div
+            className="product-label-preview"
+            dangerouslySetInnerHTML={{ __html: labelMarkup }}
+          />
         </div>
       </Panel>
     </main>

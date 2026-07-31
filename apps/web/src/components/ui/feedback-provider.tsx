@@ -1,11 +1,4 @@
-import {
-  AlertCircle,
-  CheckCircle2,
-  Info,
-  LoaderCircle,
-  TriangleAlert,
-  X,
-} from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, LoaderCircle, TriangleAlert, X } from 'lucide-react';
 import {
   createContext,
   useCallback,
@@ -130,7 +123,8 @@ export function friendlyError(error: unknown, fallback = 'No se pudo completar l
     return {
       title: generic ? 'Revisa la información ingresada' : 'No se pudo completar la operación',
       message: generic
-        ? technicalDetail ?? 'Corrige los campos obligatorios o marcados en rojo y vuelve a intentarlo.'
+        ? (technicalDetail ??
+          'Corrige los campos obligatorios o marcados en rojo y vuelve a intentarlo.')
         : technicalDetail && technicalDetail !== error.message
           ? `${error.message} ${technicalDetail}`
           : error.message,
@@ -214,9 +208,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 
   const hasPromptChanges = useMemo(() => {
     if (dialog?.kind !== 'prompt') return false;
-    return dialog.options.fields.some(
-      (field) => values[field.name] !== (field.initialValue ?? ''),
-    );
+    return dialog.options.fields.some((field) => values[field.name] !== (field.initialValue ?? ''));
   }, [dialog, values]);
 
   const requestClose = useCallback(() => {
@@ -249,7 +241,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       const value = values[field.name]?.trim() ?? '';
       if (field.required && !value) nextErrors[field.name] = `${field.label} es obligatorio.`;
       else if (field.minLength && value.length < field.minLength) {
-        nextErrors[field.name] = `${field.label} debe tener al menos ${field.minLength} caracteres.`;
+        nextErrors[field.name] =
+          `${field.label} debe tener al menos ${field.minLength} caracteres.`;
       } else if (field.type === 'number' && value) {
         const numberValue = Number(value);
         if (!Number.isFinite(numberValue)) nextErrors[field.name] = 'Ingresa un número válido.';
@@ -301,7 +294,9 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       <div className="toast-viewport" aria-live="polite" aria-label="Mensajes del sistema">
         {toasts.map((toast) => (
           <div className={`app-toast app-toast-${toast.tone}`} key={toast.id} role="status">
-            <span className="app-toast-icon"><ToneIcon tone={toast.tone} /></span>
+            <span className="app-toast-icon">
+              <ToneIcon tone={toast.tone} />
+            </span>
             <div>
               <strong>{toast.title}</strong>
               {toast.message ? <p>{toast.message}</p> : null}
@@ -343,7 +338,12 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                   <p id={descriptionId}>{dialog.options.message}</p>
                 ) : null}
               </div>
-              <button type="button" className="icon-button" aria-label="Cerrar" onClick={requestClose}>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Cerrar"
+                onClick={requestClose}
+              >
                 <X size={20} />
               </button>
             </header>
@@ -362,14 +362,19 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                     <AlertCircle size={18} />
                     <span>
                       No se pudo continuar. Corrige {Object.keys(errors).length}{' '}
-                      {Object.keys(errors).length === 1 ? 'campo marcado' : 'campos marcados'} en rojo.
+                      {Object.keys(errors).length === 1 ? 'campo marcado' : 'campos marcados'} en
+                      rojo.
                     </span>
                   </div>
                 ) : null}
                 {dialog.options.fields.map((field, index) => {
-                  const describedBy = [field.help ? `${field.name}-help` : '', errors[field.name] ? `${field.name}-error` : '']
-                    .filter(Boolean)
-                    .join(' ') || undefined;
+                  const describedBy =
+                    [
+                      field.help ? `${field.name}-help` : '',
+                      errors[field.name] ? `${field.name}-error` : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ') || undefined;
                   const common = {
                     id: `dialog-${field.name}`,
                     name: field.name,
@@ -383,7 +388,10 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                     },
                   };
                   return (
-                    <label className={`form-field ${errors[field.name] ? 'field-invalid' : ''}`} key={field.name}>
+                    <label
+                      className={`form-field ${errors[field.name] ? 'field-invalid' : ''}`}
+                      key={field.name}
+                    >
                       <span>
                         {field.label} {field.required ? <b aria-hidden="true">*</b> : null}
                       </span>
@@ -392,7 +400,9 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                       ) : field.type === 'select' ? (
                         <select {...common}>
                           {field.options?.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
                           ))}
                         </select>
                       ) : (
@@ -425,10 +435,18 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                   <span>¿Deseas descartarlos?</span>
                 </div>
                 <div>
-                  <button type="button" className="button button-secondary" onClick={() => setDiscardWarning(false)}>
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => setDiscardWarning(false)}
+                  >
                     Seguir editando
                   </button>
-                  <button type="button" className="button button-danger" onClick={() => close(null)}>
+                  <button
+                    type="button"
+                    className="button button-danger"
+                    onClick={() => close(null)}
+                  >
                     Descartar cambios
                   </button>
                 </div>
@@ -461,5 +479,9 @@ export function useFeedback() {
 }
 
 export function BusyLabel({ label }: { label: string }) {
-  return <span className="busy-label"><LoaderCircle size={16} className="spin" /> {label}</span>;
+  return (
+    <span className="busy-label">
+      <LoaderCircle size={16} className="spin" /> {label}
+    </span>
+  );
 }

@@ -226,10 +226,7 @@ export class SupabaseImportsRepository implements ImportsRepository {
       p_idempotency_key: idempotencyKey,
     });
     if (error)
-      throw mapSupabaseError(
-        error,
-        'No se pudo corregir la recepción histórica de la caja.',
-      );
+      throw mapSupabaseError(error, 'No se pudo corregir la recepción histórica de la caja.');
     return importMutationResultSchema.parse(data);
   }
 }

@@ -28,9 +28,7 @@ function normalizeWarehouseInput(input: WarehouseFormInput): UpsertWarehouseInpu
       ? 'FOREIGN'
       : requestedType === 'VIRTUAL'
         ? 'OTHER'
-        : requestedType === 'FOREIGN' ||
-            requestedType === 'TRANSIT' ||
-            requestedType === 'OTHER'
+        : requestedType === 'FOREIGN' || requestedType === 'TRANSIT' || requestedType === 'OTHER'
           ? requestedType
           : 'OPERATIONAL';
   return {

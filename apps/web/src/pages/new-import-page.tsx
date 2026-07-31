@@ -7,10 +7,7 @@ import type {
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  BusyLabel,
-  useFeedback,
-} from '../components/ui/feedback-provider';
+import { BusyLabel, useFeedback } from '../components/ui/feedback-provider';
 import { ContextNote } from '../components/ui/info-tip';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
@@ -165,10 +162,7 @@ export function NewImportPage() {
   }
 
   function addBox() {
-    setBoxes((current) => [
-      ...current,
-      emptyBox(purchaseCurrencyCode, estimatedArrivalDate),
-    ]);
+    setBoxes((current) => [...current, emptyBox(purchaseCurrencyCode, estimatedArrivalDate)]);
   }
 
   function removeBox(index: number) {
@@ -236,7 +230,8 @@ export function NewImportPage() {
   async function createSupplier() {
     const values = await prompt({
       title: 'Nuevo proveedor',
-      message: 'Registra únicamente los datos confirmados. Los campos no obligatorios pueden completarse después.',
+      message:
+        'Registra únicamente los datos confirmados. Los campos no obligatorios pueden completarse después.',
       fields: [
         { name: 'name', label: 'Nombre', required: true, minLength: 2 },
         { name: 'countryCode', label: 'País', initialValue: 'PE', required: true },
@@ -386,7 +381,9 @@ export function NewImportPage() {
       />
 
       {support.isError ? (
-        <div className="alert alert-error">No se pudieron cargar los proveedores, productos o almacenes.</div>
+        <div className="alert alert-error">
+          No se pudieron cargar los proveedores, productos o almacenes.
+        </div>
       ) : null}
       {Object.keys(errors).length > 0 ? (
         <div className="form-error-summary" role="alert">
@@ -415,7 +412,11 @@ export function NewImportPage() {
                     setErrors((current) => ({ ...current, supplierId: '' }));
                   }}
                 />
-                <button className="button button-secondary button-compact" type="button" onClick={() => void createSupplier()}>
+                <button
+                  className="button button-secondary button-compact"
+                  type="button"
+                  onClick={() => void createSupplier()}
+                >
                   <Plus size={15} /> Crear
                 </button>
               </div>
@@ -462,8 +463,14 @@ export function NewImportPage() {
               </label>
               <label className={`field ${errors.purchaseDate ? 'field-invalid' : ''}`}>
                 <span>Fecha de compra *</span>
-                <input type="date" value={purchaseDate} onChange={(event) => setPurchaseDate(event.target.value)} />
-                {errors.purchaseDate ? <small className="field-error">{errors.purchaseDate}</small> : null}
+                <input
+                  type="date"
+                  value={purchaseDate}
+                  onChange={(event) => setPurchaseDate(event.target.value)}
+                />
+                {errors.purchaseDate ? (
+                  <small className="field-error">{errors.purchaseDate}</small>
+                ) : null}
               </label>
               <label className={`field ${errors.estimatedArrivalDate ? 'field-invalid' : ''}`}>
                 <span>Llegada estimada *</span>
@@ -473,47 +480,118 @@ export function NewImportPage() {
                   min={purchaseDate}
                   onChange={(event) => setEstimatedArrivalDate(event.target.value)}
                 />
-                {errors.estimatedArrivalDate ? <small className="field-error">{errors.estimatedArrivalDate}</small> : null}
+                {errors.estimatedArrivalDate ? (
+                  <small className="field-error">{errors.estimatedArrivalDate}</small>
+                ) : null}
               </label>
               <label className="field">
                 <span>Tracking maestro</span>
-                <input value={masterTrackingNumber} onChange={(event) => setMasterTrackingNumber(event.target.value)} placeholder="Opcional" />
+                <input
+                  value={masterTrackingNumber}
+                  onChange={(event) => setMasterTrackingNumber(event.target.value)}
+                  placeholder="Opcional"
+                />
               </label>
               <label className="field field-span-2">
                 <span>Notas</span>
-                <textarea rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} />
+                <textarea
+                  rows={3}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                />
               </label>
             </div>
             <small className="required-note">* Campo obligatorio</small>
           </Panel>
 
-          <Panel title="Cajas" subtitle="Cada caja mantiene su propio tracking, productos, destino y estado.">
+          <Panel
+            title="Cajas"
+            subtitle="Cada caja mantiene su propio tracking, productos, destino y estado."
+          >
             <div className="new-import-boxes">
               {boxes.map((box, boxIndex) => (
                 <article className="new-import-box-card" key={box.key}>
                   <header>
-                    <div><strong>Caja {boxIndex + 1}</strong><small>{box.items.length} {box.items.length === 1 ? 'producto' : 'productos'}</small></div>
-                    <button className="icon-button" type="button" aria-label={`Eliminar caja ${boxIndex + 1}`} onClick={() => removeBox(boxIndex)}><Trash2 size={17} /></button>
+                    <div>
+                      <strong>Caja {boxIndex + 1}</strong>
+                      <small>
+                        {box.items.length} {box.items.length === 1 ? 'producto' : 'productos'}
+                      </small>
+                    </div>
+                    <button
+                      className="icon-button"
+                      type="button"
+                      aria-label={`Eliminar caja ${boxIndex + 1}`}
+                      onClick={() => removeBox(boxIndex)}
+                    >
+                      <Trash2 size={17} />
+                    </button>
                   </header>
                   <div className="form-grid form-grid-2">
                     <SearchableSelect
                       label="Operador internacional"
                       value={box.internationalOperatorId}
                       allowClear
-                      options={(support.data?.internationalOperators ?? []).map((partner) => ({ value: partner.id, label: partner.name }))}
+                      options={(support.data?.internationalOperators ?? []).map((partner) => ({
+                        value: partner.id,
+                        label: partner.name,
+                      }))}
                       onChange={(value) => updateBox(boxIndex, { internationalOperatorId: value })}
                     />
                     <SearchableSelect
                       label="Operador local"
                       value={box.localOperatorId}
                       allowClear
-                      options={(support.data?.localOperators ?? []).map((partner) => ({ value: partner.id, label: partner.name }))}
+                      options={(support.data?.localOperators ?? []).map((partner) => ({
+                        value: partner.id,
+                        label: partner.name,
+                      }))}
                       onChange={(value) => updateBox(boxIndex, { localOperatorId: value })}
                     />
-                    <label className="field"><span>Tracking de caja</span><input value={box.trackingNumber} onChange={(event) => updateBox(boxIndex, { trackingNumber: event.target.value })} /></label>
-                    <label className="field"><span>Llegada estimada</span><input type="date" min={purchaseDate} value={box.estimatedArrivalDate} onChange={(event) => updateBox(boxIndex, { estimatedArrivalDate: event.target.value })} /></label>
-                    <label className={`field ${errors[`box-${boxIndex}-weight`] ? 'field-invalid' : ''}`}><span>Peso en gramos</span><input type="number" min="0" step="0.001" value={box.weightGrams} onChange={(event) => updateBox(boxIndex, { weightGrams: sanitizeDecimal(event.target.value) })} />{errors[`box-${boxIndex}-weight`] ? <small className="field-error">{errors[`box-${boxIndex}-weight`]}</small> : null}</label>
-                    <label className="field"><span>Notas de caja</span><input value={box.notes} onChange={(event) => updateBox(boxIndex, { notes: event.target.value })} /></label>
+                    <label className="field">
+                      <span>Tracking de caja</span>
+                      <input
+                        value={box.trackingNumber}
+                        onChange={(event) =>
+                          updateBox(boxIndex, { trackingNumber: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Llegada estimada</span>
+                      <input
+                        type="date"
+                        min={purchaseDate}
+                        value={box.estimatedArrivalDate}
+                        onChange={(event) =>
+                          updateBox(boxIndex, { estimatedArrivalDate: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label
+                      className={`field ${errors[`box-${boxIndex}-weight`] ? 'field-invalid' : ''}`}
+                    >
+                      <span>Peso en gramos</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        value={box.weightGrams}
+                        onChange={(event) =>
+                          updateBox(boxIndex, { weightGrams: sanitizeDecimal(event.target.value) })
+                        }
+                      />
+                      {errors[`box-${boxIndex}-weight`] ? (
+                        <small className="field-error">{errors[`box-${boxIndex}-weight`]}</small>
+                      ) : null}
+                    </label>
+                    <label className="field">
+                      <span>Notas de caja</span>
+                      <input
+                        value={box.notes}
+                        onChange={(event) => updateBox(boxIndex, { notes: event.target.value })}
+                      />
+                    </label>
                   </div>
 
                   <div className="new-import-items">
@@ -521,39 +599,204 @@ export function NewImportPage() {
                       const prefix = `box-${boxIndex}-item-${itemIndex}`;
                       return (
                         <section className="new-import-item-card" key={item.key}>
-                          <header><strong>Producto {itemIndex + 1}</strong><button className="icon-button" type="button" aria-label="Eliminar producto" onClick={() => removeItem(boxIndex, itemIndex)}><Trash2 size={15} /></button></header>
+                          <header>
+                            <strong>Producto {itemIndex + 1}</strong>
+                            <button
+                              className="icon-button"
+                              type="button"
+                              aria-label="Eliminar producto"
+                              onClick={() => removeItem(boxIndex, itemIndex)}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </header>
                           <div className="form-grid new-import-item-grid">
-                            <SearchableSelect label="Producto o variante" required value={item.variantId} error={errors[`${prefix}-variant`]} searchPlaceholder="Buscar por nombre, variante o SKU…" options={variantOptions} onChange={(value) => updateItem(boxIndex, itemIndex, { variantId: value })} />
-                            <SearchableSelect label="Almacén de destino" required value={item.destinationWarehouseId} error={errors[`${prefix}-warehouse`]} options={(support.data?.warehouses ?? []).filter((warehouse) => warehouse.isActive && warehouse.isVisibleInOperations).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} onChange={(value) => updateItem(boxIndex, itemIndex, { destinationWarehouseId: value })} />
-                            <label className={`field ${errors[`${prefix}-quantity`] ? 'field-invalid' : ''}`}><span>Cantidad *</span><input type="number" min="1" step="1" value={item.expectedQuantity} onChange={(event) => updateItem(boxIndex, itemIndex, { expectedQuantity: sanitizePositiveInteger(event.target.value) })} />{errors[`${prefix}-quantity`] ? <small className="field-error">{errors[`${prefix}-quantity`]}</small> : null}</label>
-                            <label className={`field ${errors[`${prefix}-cost`] ? 'field-invalid' : ''}`}><span>Costo unitario *</span><input type="number" min="0" step="0.01" value={item.originalUnitCost} onChange={(event) => updateItem(boxIndex, itemIndex, { originalUnitCost: sanitizeDecimal(event.target.value) })} />{errors[`${prefix}-cost`] ? <small className="field-error">{errors[`${prefix}-cost`]}</small> : null}</label>
-                            <SearchableSelect label="Moneda" required value={item.originalCurrencyCode} options={(support.data?.currencies ?? []).map((currency) => ({ value: currency.code, label: currency.code }))} onChange={(value) => updateItem(boxIndex, itemIndex, { originalCurrencyCode: value, exchangeRateToPen: value === 'PEN' ? '1' : '' })} />
-                            <label className={`field ${errors[`${prefix}-rate`] ? 'field-invalid' : ''}`}><span>Tipo de cambio a PEN *</span><input type="number" min="0.000001" step="0.000001" disabled={item.originalCurrencyCode === 'PEN'} value={item.originalCurrencyCode === 'PEN' ? '1' : item.exchangeRateToPen} onChange={(event) => updateItem(boxIndex, itemIndex, { exchangeRateToPen: sanitizeDecimal(event.target.value) })} />{item.originalCurrencyCode === 'PEN' ? <small>En soles siempre es 1.</small> : null}{errors[`${prefix}-rate`] ? <small className="field-error">{errors[`${prefix}-rate`]}</small> : null}</label>
-                            <label className="field new-import-item-notes"><span>Notas</span><input value={item.notes} onChange={(event) => updateItem(boxIndex, itemIndex, { notes: event.target.value })} /></label>
+                            <SearchableSelect
+                              label="Producto o variante"
+                              required
+                              value={item.variantId}
+                              error={errors[`${prefix}-variant`]}
+                              searchPlaceholder="Buscar por nombre, variante o SKU…"
+                              options={variantOptions}
+                              onChange={(value) =>
+                                updateItem(boxIndex, itemIndex, { variantId: value })
+                              }
+                            />
+                            <SearchableSelect
+                              label="Almacén de destino"
+                              required
+                              value={item.destinationWarehouseId}
+                              error={errors[`${prefix}-warehouse`]}
+                              options={(support.data?.warehouses ?? [])
+                                .filter(
+                                  (warehouse) =>
+                                    warehouse.isActive && warehouse.isVisibleInOperations,
+                                )
+                                .map((warehouse) => ({
+                                  value: warehouse.id,
+                                  label: warehouse.name,
+                                }))}
+                              onChange={(value) =>
+                                updateItem(boxIndex, itemIndex, { destinationWarehouseId: value })
+                              }
+                            />
+                            <label
+                              className={`field ${errors[`${prefix}-quantity`] ? 'field-invalid' : ''}`}
+                            >
+                              <span>Cantidad *</span>
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={item.expectedQuantity}
+                                onChange={(event) =>
+                                  updateItem(boxIndex, itemIndex, {
+                                    expectedQuantity: sanitizePositiveInteger(event.target.value),
+                                  })
+                                }
+                              />
+                              {errors[`${prefix}-quantity`] ? (
+                                <small className="field-error">
+                                  {errors[`${prefix}-quantity`]}
+                                </small>
+                              ) : null}
+                            </label>
+                            <label
+                              className={`field ${errors[`${prefix}-cost`] ? 'field-invalid' : ''}`}
+                            >
+                              <span>Costo unitario *</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.originalUnitCost}
+                                onChange={(event) =>
+                                  updateItem(boxIndex, itemIndex, {
+                                    originalUnitCost: sanitizeDecimal(event.target.value),
+                                  })
+                                }
+                              />
+                              {errors[`${prefix}-cost`] ? (
+                                <small className="field-error">{errors[`${prefix}-cost`]}</small>
+                              ) : null}
+                            </label>
+                            <SearchableSelect
+                              label="Moneda"
+                              required
+                              value={item.originalCurrencyCode}
+                              options={(support.data?.currencies ?? []).map((currency) => ({
+                                value: currency.code,
+                                label: currency.code,
+                              }))}
+                              onChange={(value) =>
+                                updateItem(boxIndex, itemIndex, {
+                                  originalCurrencyCode: value,
+                                  exchangeRateToPen: value === 'PEN' ? '1' : '',
+                                })
+                              }
+                            />
+                            <label
+                              className={`field ${errors[`${prefix}-rate`] ? 'field-invalid' : ''}`}
+                            >
+                              <span>Tipo de cambio a PEN *</span>
+                              <input
+                                type="number"
+                                min="0.000001"
+                                step="0.000001"
+                                disabled={item.originalCurrencyCode === 'PEN'}
+                                value={
+                                  item.originalCurrencyCode === 'PEN' ? '1' : item.exchangeRateToPen
+                                }
+                                onChange={(event) =>
+                                  updateItem(boxIndex, itemIndex, {
+                                    exchangeRateToPen: sanitizeDecimal(event.target.value),
+                                  })
+                                }
+                              />
+                              {item.originalCurrencyCode === 'PEN' ? (
+                                <small>En soles siempre es 1.</small>
+                              ) : null}
+                              {errors[`${prefix}-rate`] ? (
+                                <small className="field-error">{errors[`${prefix}-rate`]}</small>
+                              ) : null}
+                            </label>
+                            <label className="field new-import-item-notes">
+                              <span>Notas</span>
+                              <input
+                                value={item.notes}
+                                onChange={(event) =>
+                                  updateItem(boxIndex, itemIndex, { notes: event.target.value })
+                                }
+                              />
+                            </label>
                           </div>
                         </section>
                       );
                     })}
                   </div>
-                  <button className="button button-secondary button-full" type="button" onClick={() => addItem(boxIndex)}><Plus size={16} /> Agregar producto a esta caja</button>
+                  <button
+                    className="button button-secondary button-full"
+                    type="button"
+                    onClick={() => addItem(boxIndex)}
+                  >
+                    <Plus size={16} /> Agregar producto a esta caja
+                  </button>
                 </article>
               ))}
             </div>
-            <button className="button button-secondary" type="button" onClick={addBox}><Plus size={17} /> Agregar otra caja</button>
+            <button className="button button-secondary" type="button" onClick={addBox}>
+              <Plus size={17} /> Agregar otra caja
+            </button>
           </Panel>
         </div>
 
         <aside className="new-import-summary">
           <Panel title="Resumen" subtitle="Antes de guardar, revisa cantidades, costos y destinos.">
             <div className="summary-list">
-              <div className="summary-row"><span>Cajas</span><strong>{boxes.length}</strong></div>
-              <div className="summary-row"><span>Productos</span><strong>{summary.products}</strong></div>
-              <div className="summary-row"><span>Unidades esperadas</span><strong>{summary.units}</strong></div>
-              <div className="summary-row"><span>Compra estimada en soles</span><strong>{money(summary.estimatedPen)}</strong></div>
-              <div className="summary-row"><span>Transporte</span><strong>{transportMode === 'AIR' ? 'Aéreo' : transportMode === 'SEA' ? 'Marítimo' : 'Otro'}</strong></div>
+              <div className="summary-row">
+                <span>Cajas</span>
+                <strong>{boxes.length}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Productos</span>
+                <strong>{summary.products}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Unidades esperadas</span>
+                <strong>{summary.units}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Compra estimada en soles</span>
+                <strong>{money(summary.estimatedPen)}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Transporte</span>
+                <strong>
+                  {transportMode === 'AIR'
+                    ? 'Aéreo'
+                    : transportMode === 'SEA'
+                      ? 'Marítimo'
+                      : 'Otro'}
+                </strong>
+              </div>
             </div>
-            <ContextNote tone="info">Crear la importación no agrega stock. Las unidades se registran únicamente al confirmar físicamente cada caja.</ContextNote>
-            <button className="button button-primary button-full" type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? <BusyLabel label="Creando…" /> : <><Save size={17} /> Crear importación</>}</button>
+            <ContextNote tone="info">
+              Crear la importación no agrega stock. Las unidades se registran únicamente al
+              confirmar físicamente cada caja.
+            </ContextNote>
+            <button
+              className="button button-primary button-full"
+              type="submit"
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? (
+                <BusyLabel label="Creando…" />
+              ) : (
+                <>
+                  <Save size={17} /> Crear importación
+                </>
+              )}
+            </button>
           </Panel>
         </aside>
       </form>

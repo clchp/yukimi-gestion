@@ -21,8 +21,16 @@ const checks = [
   { id: 'native-prompt', re: /\b(?:window\.)?prompt\s*\(/g, label: 'Diálogo nativo prompt' },
   { id: 'native-confirm', re: /\b(?:window\.)?confirm\s*\(/g, label: 'Diálogo nativo confirm' },
   { id: 'native-alert', re: /\b(?:window\.)?alert\s*\(/g, label: 'Diálogo nativo alert' },
-  { id: 'generic-invalid', re: /Los datos enviados no son v[aá]lidos/gi, label: 'Mensaje genérico de validación' },
-  { id: 'english-state', re: /\b(?:ACCUMULATED|DELIVERED|PENDING|IN_TRANSIT|RECEIVED|STOCKED|CANCELLED|OTHER|INSERT|UPDATE|DELETE)\b/g, label: 'Código técnico visible potencial' },
+  {
+    id: 'generic-invalid',
+    re: /Los datos enviados no son v[aá]lidos/gi,
+    label: 'Mensaje genérico de validación',
+  },
+  {
+    id: 'english-state',
+    re: /\b(?:ACCUMULATED|DELIVERED|PENDING|IN_TRANSIT|RECEIVED|STOCKED|CANCELLED|OTHER|INSERT|UPDATE|DELETE)\b/g,
+    label: 'Código técnico visible potencial',
+  },
   { id: 'filter-button', re: />\s*Filtros\s*</g, label: 'Botón Filtros a revisar' },
 ];
 
@@ -60,4 +68,6 @@ for (const [label, items] of grouped) {
 
 const report = `# Auditoría automática del frontend\n\nGenerado: ${new Date().toISOString()}\n\nTotal de hallazgos: **${findings.length}**.\n\n${sections.join('\n')}\n`;
 await writeFile(outputPath, report, 'utf8');
-console.log(`Auditoría generada con ${findings.length} hallazgos en ${relative(root, outputPath)}.`);
+console.log(
+  `Auditoría generada con ${findings.length} hallazgos en ${relative(root, outputPath)}.`,
+);
