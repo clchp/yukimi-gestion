@@ -6,13 +6,18 @@ on:
     paths:
       - scripts/apply-sales-validation-fixes.py
       - .github/workflows/apply-sales-validation-fixes.yml
+  pull_request:
+    branches: [version-1-1]
+    paths:
+      - scripts/apply-sales-validation-fixes.py
+      - .github/workflows/apply-sales-validation-fixes.yml
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: ${{ !contains(github.event.head_commit.message, '[sales-validation-applied]') }}
+    if: ${{ !contains(github.event.head_commit.message || github.event.pull_request.head.sha, '[sales-validation-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
