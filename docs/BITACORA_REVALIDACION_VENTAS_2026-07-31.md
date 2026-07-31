@@ -18,21 +18,41 @@
 4. Cada valor debe conservar el color de su serie.
 5. El recuadro debe aparecer tanto cuando una de las series sea cero como cuando ambas tengan valor.
 
+## Ayudas explicativas mediante icono `(i)`
+
+- Las explicaciones de conceptos de negocio no deben ocupar espacio permanente como párrafos visibles dentro del formulario o listado.
+- Colocar un icono pequeño `(i)` junto al rótulo correspondiente.
+- Al pasar el cursor por computadora o tocar el icono en celular, debe aparecer un recuadro breve con la explicación.
+- Aplicar este patrón, como mínimo, a:
+  - `Reservadas`.
+  - `Adelanto mínimo requerido para esta reserva`.
+  - `Acumula almacén`.
+  - `Entrega por coordinar`.
+  - Cualquier otro término que pueda ser ambiguo para una administradora.
+- El recuadro debe poder cerrarse al retirar el cursor, tocar fuera o presionar Escape, según el dispositivo.
+- No debe tapar campos importantes ni salirse del contenedor.
+
 ## Aclaración del filtro `Reservadas`
 
 - En el listado de ventas, `Reservadas` significa ventas ya confirmadas cuyas unidades fueron separadas del stock disponible para un cliente.
 - Una venta reservada no equivale necesariamente a una venta pagada. Puede estar sin pago, con pago parcial o pagada.
 - `Todas` muestra las ventas sin limitar por esa condición.
 - La opción `Total` del gráfico del dashboard corresponde a todo el periodo histórico y no reemplaza ni significa lo mismo que `Reservadas`.
-- Evaluar añadir una ayuda breve o tooltip junto al filtro para evitar confusión.
+- Mostrar esta explicación únicamente mediante el icono `(i)` junto al filtro `Reservadas`.
 
 ## Adelanto mínimo acordado para clientes VIP
 
-- El adelanto mínimo acordado es el importe mínimo que se pacta para permitir la separación o reserva de la mercadería.
-- No representa por sí mismo un pago ya registrado; el pago real se registra después en el módulo de pagos.
-- La regla especial aparece para clientes VIP porque su perfil permite configurar límites, plazos y la posibilidad de reservar sin adelanto.
-- Cambiar la etiqueta por una más clara: `Adelanto mínimo requerido para esta reserva`.
-- Añadir una ayuda visible: `Este monto es la condición acordada; no registra un pago automáticamente.`
+- Cambiar la etiqueta por `Adelanto mínimo requerido para esta reserva`.
+- El adelanto mínimo es una condición de la reserva y no un importe adicional.
+- No se suma al total de la venta.
+- Ejemplo: si la venta total es S/ 155 y el adelanto mínimo es S/ 10, el total continúa siendo S/ 155.
+- Mientras no exista un pago confirmado, el saldo continúa siendo S/ 155.
+- Cuando se registra y confirma un pago de S/ 10, el total pagado pasa a S/ 10 y el saldo queda en S/ 145.
+- Registrar el valor del adelanto mínimo no debe crear automáticamente un pago ni un ingreso financiero.
+- La venta solo debe considerarse que cumplió la condición de adelanto cuando la suma de pagos confirmados alcance o supere el monto mínimo acordado.
+- Si el perfil VIP permite reservar sin adelanto, el valor puede ser S/ 0.
+- Si el perfil VIP no permite reservar sin adelanto, el sistema debe exigir un valor mayor que cero y verificar el pago correspondiente según la regla definida para confirmar o mantener la reserva.
+- La explicación debe aparecer mediante un icono `(i)` junto al campo, con un texto breve como: `Es el pago mínimo requerido para separar la mercadería. No se suma al total ni registra un pago automáticamente.`
 - Para ventas regulares, los pagos parciales continúan registrándose en Pagos. La especificación actual no define un adelanto mínimo configurable por cliente regular.
 
 ## Listado de ventas y clientes — presentación visual
@@ -90,7 +110,7 @@ Los estados de pago y de entrega deben permanecer en columnas separadas para no 
 - **Defecto funcional prioritario:** QR ausente en la etiqueta.
 - **Defectos visuales:** etiqueta descentrada, buscadores pegados al borde, información de cliente amontonada.
 - **Internacionalización pendiente:** estados técnicos en inglés.
-- **Aclaraciones de negocio y UX:** significado de Reservadas y del adelanto VIP.
+- **Aclaraciones de negocio y UX:** ayudas mediante `(i)`, significado de Reservadas y funcionamiento del adelanto VIP.
 - **Cambio pendiente ya confirmado:** periodo `Total` y tooltip del gráfico.
 
 ## Estado
