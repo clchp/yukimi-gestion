@@ -9,13 +9,15 @@ import {
   Truck,
   WalletCards,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Panel } from '../components/ui/panel';
 import { PageHeader } from '../components/ui/page-header';
 import { StatCard } from '../components/ui/stat-card';
 import { StatusBadge } from '../components/ui/status-badge';
+import { ContextNote } from '../components/ui/info-tip';
 import { useAuth } from '../features/auth/auth-context';
-import { getDashboard } from '../features/insights/insights-api';
+import { getDashboard, getReports } from '../features/insights/insights-api';
 
 function money(value: number, currency = 'PEN') {
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(value);
@@ -25,6 +27,34 @@ function shortDate(value: string) {
   return new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: '2-digit' }).format(
     new Date(`${value.slice(0, 10)}T12:00:00`),
   );
+}
+
+function longDate(value: string) {
+  return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }).format(
+    new Date(`${value.slice(0, 10)}T12:00:00`),
+  );
+}
+
+function inputDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dateFrom(value: string) {
+  return new Date(`${value.slice(0, 10)}T12:00:00`);
+}
+
+function shiftDays(value: string, days: number) {
+  const date = dateFrom(value);
+  date.setDate(date.getDate() + days);
+  return inputDate(date);
+}
+
+function firstDayOfMonth(value: string) {
+  const date = dateFrom(value);
+  return inputDate(new Date(date.getFullYear(), date.getMonth(), 1, 12));
 }
 
 function timeAgo(value: string) {
@@ -46,9 +76,66 @@ const paymentLabels: Record<string, string> = {
   REFUNDED: 'Reembolsada',
 };
 
+const deliveryLabels: Record<string, string> = {
+  ACCUMULATED: 'Acumula en almacén',
+  PENDING: 'Entrega pendiente',
+  READY: 'Lista para despacho',
+  DISPATCHED: 'Despachada',
+  IN_TRANSIT: 'En camino',
+  DELIVERED: 'Entregada',
+  CANCELLED: 'Cancelada',
+};
+
+const actionLabels: Record<string, string> = {
+  INSERT: 'registró',
+  UPDATE: 'actualizó',
+  DELETE: 'eliminó',
+  OTHER: 'realizó una acción en',
+  CREATE: 'creó',
+  CANCEL: 'canceló',
+  REVERSE: 'revirtió',
+};
+
+const moduleLabels: Record<string, string> = {
+  SYSTEM: 'el sistema',
+  SISTEMA: 'el sistema',
+  INVENTORY: 'el inventario',
+  INVENTARIO: 'el inventario',
+  SALES: 'una venta',
+  VENTAS: 'una venta',
+  IMPORTS: 'una importación',
+  IMPORTACIONES: 'una importación',
+  FINANCE: 'finanzas',
+  FINANZAS: 'finanzas',
+  CATALOG: 'el catálogo',
+  CATALOGO: 'el catálogo',
+  CLIENTS: 'un cliente',
+  CLIENTES: 'un cliente',
+  DELIVERIES: 'una entrega',
+  ENTREGAS: 'una entrega',
+};
+
+type PeriodCode = 'TODAY' | '7D' | 'MONTH' | 'CUSTOM';
+
+function activityText(item: {
+  actorName: string;
+  module: string;
+  action: string;
+  reason: string | null;
+}) {
+  const action = actionLabels[item.action.toLocaleUpperCase('es-PE')] ?? 'actualizó';
+  const moduleName =
+    moduleLabels[item.module.toLocaleUpperCase('es-PE')] ?? item.module.toLocaleLowerCase('es-PE');
+  const reason = item.reason ? ` Motivo: ${item.reason}.` : '';
+  return `${item.actorName} ${action} ${moduleName}.${reason}`;
+}
+
 export function DashboardPage() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const [period, setPeriod] = useState<PeriodCode>('7D');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const dashboard = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboard,
@@ -56,10 +143,43 @@ export function DashboardPage() {
   });
   const firstName = auth.currentUser?.profile.display_name.split(' ')[0] ?? 'Administradora';
   const data = dashboard.data;
+  const businessDate = data?.businessDate.slice(0, 10) ?? inputDate(new Date());
+
+  const performanceRange = useMemo(() => {
+    if (period === 'TODAY') return { startDate: businessDate, endDate: businessDate };
+    if (period === 'MONTH') return { startDate: firstDayOfMonth(businessDate), endDate: businessDate };
+    if (period === 'CUSTOM') {
+      return {
+        startDate: customStart || businessDate,
+        endDate: customEnd || customStart || businessDate,
+      };
+    }
+    return { startDate: shiftDays(businessDate, -6), endDate: businessDate };
+  }, [businessDate, customEnd, customStart, period]);
+
+  const performance = useQuery({
+    queryKey: ['dashboard-performance', performanceRange.startDate, performanceRange.endDate],
+    queryFn: () => getReports(performanceRange),
+    enabled:
+      Boolean(data) &&
+      performanceRange.startDate <= performanceRange.endDate &&
+      (period !== 'CUSTOM' || Boolean(customStart && customEnd)),
+  });
+
+  const chartData = performance.data?.daily ?? data?.weekly ?? [];
   const maxWeekly = Math.max(
     1,
-    ...(data?.weekly.map((item) => Math.max(item.salesAmount, item.collectionsAmount)) ?? [1]),
+    ...chartData.map((item) => Math.max(item.salesAmount, item.collectionsAmount)),
   );
+  const periodTitle =
+    period === 'TODAY'
+      ? 'Rendimiento de hoy'
+      : period === 'MONTH'
+        ? 'Rendimiento del mes'
+        : period === 'CUSTOM'
+          ? 'Rendimiento del periodo'
+          : 'Rendimiento de los últimos 7 días';
+  const totalLabel = period === 'TODAY' ? 'Total de hoy' : period === 'MONTH' ? 'Total del mes' : 'Total del periodo';
 
   return (
     <main className="page dashboard-page">
@@ -128,23 +248,66 @@ export function DashboardPage() {
 
       <section className="dashboard-grid dashboard-grid-primary">
         <Panel
-          title="Rendimiento semanal"
-          subtitle="Ventas y cobros confirmados de los últimos 7 días"
+          title={periodTitle}
+          subtitle={`${longDate(performanceRange.startDate)} — ${longDate(performanceRange.endDate)}`}
           action={
             <button className="link-button" type="button" onClick={() => navigate('/reportes')}>
               Ver reporte <ArrowRight size={15} />
             </button>
           }
         >
+          <div className="chart-periods" aria-label="Periodo del gráfico">
+            {([
+              ['TODAY', 'Hoy'],
+              ['7D', '7 días'],
+              ['MONTH', 'Mes'],
+              ['CUSTOM', 'Personalizado'],
+            ] as Array<[PeriodCode, string]>).map(([code, label]) => (
+              <button
+                type="button"
+                className={`chart-period-button ${period === code ? 'active' : ''}`}
+                key={code}
+                aria-pressed={period === code}
+                onClick={() => setPeriod(code)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {period === 'CUSTOM' ? (
+            <div className="chart-custom-range">
+              <label>
+                <span>Desde *</span>
+                <input
+                  type="date"
+                  value={customStart}
+                  max={customEnd || businessDate}
+                  onChange={(event) => setCustomStart(event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Hasta *</span>
+                <input
+                  type="date"
+                  value={customEnd}
+                  min={customStart}
+                  max={businessDate}
+                  onChange={(event) => setCustomEnd(event.target.value)}
+                />
+              </label>
+            </div>
+          ) : null}
           <div className="chart-summary">
             <div>
-              <span>Total semanal</span>
+              <span>{totalLabel}</span>
               <strong>
-                {data ? money(data.weekly.reduce((sum, item) => sum + item.salesAmount, 0)) : '—'}
+                {performance.isFetching
+                  ? 'Actualizando…'
+                  : money(chartData.reduce((sum, item) => sum + item.salesAmount, 0))}
               </strong>
-              <small>Las barras claras representan cobros.</small>
+              <small>Valores confirmados dentro del periodo seleccionado.</small>
             </div>
-            <div className="chart-legend">
+            <div className="chart-legend" aria-label="Leyenda del gráfico">
               <span>
                 <i className="legend-dot primary-dot" /> Ventas
               </span>
@@ -154,35 +317,46 @@ export function DashboardPage() {
             </div>
           </div>
           <div
-            className="bar-chart dashboard-real-chart"
-            role="img"
-            aria-label="Gráfico real de ventas y cobros de los últimos siete días"
+            className={`bar-chart dashboard-real-chart chart-columns-${Math.min(Math.max(chartData.length, 1), 31)}`}
+            role="group"
+            aria-label={`Gráfico de ventas y cobros desde ${longDate(performanceRange.startDate)} hasta ${longDate(performanceRange.endDate)}`}
+            style={{ gridTemplateColumns: `repeat(${Math.max(chartData.length, 1)}, minmax(30px, 1fr))` }}
           >
-            {(data?.weekly ?? []).map((item) => (
-              <div
-                className="bar-column"
-                key={item.date}
-                title={`${shortDate(item.date)} · Ventas ${money(item.salesAmount)} · Cobros ${money(item.collectionsAmount)}`}
-              >
-                <div className="bar-track dual-bar-track">
-                  <span
-                    className="sales-bar"
-                    style={{
-                      height: `${Math.max(item.salesAmount > 0 ? 5 : 0, (item.salesAmount / maxWeekly) * 100)}%`,
-                    }}
-                  />
-                  <span
-                    className="collections-bar"
-                    style={{
-                      height: `${Math.max(item.collectionsAmount > 0 ? 5 : 0, (item.collectionsAmount / maxWeekly) * 100)}%`,
-                    }}
-                  />
+            {chartData.map((item) => {
+              const description = `${longDate(item.date)}. Ventas: ${money(item.salesAmount)}. Cobros: ${money(item.collectionsAmount)}.`;
+              return (
+                <div className="bar-column" key={item.date}>
+                  <span className="chart-tooltip" role="tooltip">{description}</span>
+                  <button className="bar-track dual-bar-track chart-bar-button" type="button" aria-label={description}>
+                    <span
+                      className="sales-bar"
+                      aria-hidden="true"
+                      style={{
+                        height: `${Math.max(item.salesAmount > 0 ? 5 : 0, (item.salesAmount / maxWeekly) * 100)}%`,
+                      }}
+                    />
+                    <span
+                      className="collections-bar"
+                      aria-hidden="true"
+                      style={{
+                        height: `${Math.max(item.collectionsAmount > 0 ? 5 : 0, (item.collectionsAmount / maxWeekly) * 100)}%`,
+                      }}
+                    />
+                  </button>
+                  <small>{shortDate(item.date)}</small>
                 </div>
-                <small>{shortDate(item.date)}</small>
+              );
+            })}
+            {performance.isLoading || !data ? <div className="empty-state">Cargando gráfico…</div> : null}
+            {!performance.isLoading && data && chartData.length === 0 ? (
+              <div className="empty-state chart-empty-state">
+                No hay ventas ni cobros confirmados en este periodo.
               </div>
-            ))}
-            {!data ? <div className="empty-state">Cargando gráfico…</div> : null}
+            ) : null}
           </div>
+          {period === 'CUSTOM' && (!customStart || !customEnd) ? (
+            <ContextNote>Selecciona una fecha de inicio y una fecha final para consultar el periodo.</ContextNote>
+          ) : null}
         </Panel>
 
         <Panel
@@ -227,6 +401,7 @@ export function DashboardPage() {
                 type="button"
                 key={item.id}
                 onClick={() => item.actionUrl && navigate(item.actionUrl)}
+                disabled={!item.actionUrl}
               >
                 <span
                   className={`priority-icon ${item.priority === 'CRITICAL' ? 'danger' : item.priority === 'HIGH' ? 'warning' : 'info'}`}
@@ -269,29 +444,28 @@ export function DashboardPage() {
 
         <Panel
           title="Actividad reciente"
-          subtitle="Últimos cambios auditados"
+          subtitle="Cambios importantes explicados en lenguaje sencillo"
           action={
-            <button className="link-button" onClick={() => navigate('/auditoria')}>
+            <button className="link-button" type="button" onClick={() => navigate('/auditoria')}>
               Ver todo <ArrowRight size={15} />
             </button>
           }
         >
           <div className="activity-list">
             {(data?.recentActivity ?? []).map((item) => (
-              <div className="activity-row" key={item.id}>
+              <button
+                type="button"
+                className="activity-row activity-row-button"
+                key={item.id}
+                onClick={() => navigate(`/auditoria?search=${encodeURIComponent(item.entityId ?? item.actorName)}`)}
+              >
                 <span className="activity-marker activity-info" />
                 <div>
-                  <strong>
-                    {item.actorName} · {item.module}
-                  </strong>
-                  <p>
-                    {item.action}
-                    {item.entityId ? ` · ${item.entityId}` : ''}
-                    {item.reason ? ` · ${item.reason}` : ''}
-                  </p>
+                  <strong>{activityText(item)}</strong>
+                  {item.entityId ? <p>Código de referencia: {item.entityId}</p> : null}
                 </div>
                 <time>{timeAgo(item.occurredAt)}</time>
-              </div>
+              </button>
             ))}
             {data?.recentActivity.length === 0 ? (
               <div className="empty-state">Aún no hay actividad registrada.</div>
@@ -304,7 +478,7 @@ export function DashboardPage() {
         title="Ventas recientes"
         subtitle="Últimas operaciones registradas"
         action={
-          <button className="link-button" onClick={() => navigate('/ventas')}>
+          <button className="link-button" type="button" onClick={() => navigate('/ventas')}>
             Ver todas <ArrowRight size={15} />
           </button>
         }
@@ -324,7 +498,15 @@ export function DashboardPage() {
             </thead>
             <tbody>
               {(data?.recentSales ?? []).map((sale) => (
-                <tr key={sale.id} onClick={() => navigate(`/ventas/${sale.id}`)}>
+                <tr
+                  key={sale.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/ventas/${sale.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') navigate(`/ventas/${sale.id}`);
+                  }}
+                >
                   <td>
                     <strong>{sale.code}</strong>
                     <small>
@@ -351,7 +533,7 @@ export function DashboardPage() {
                       {paymentLabels[sale.paymentStateCode] ?? sale.paymentStateCode}
                     </StatusBadge>
                   </td>
-                  <td>{sale.deliveryStateCode}</td>
+                  <td>{deliveryLabels[sale.deliveryStateCode] ?? 'Pendiente de definir'}</td>
                 </tr>
               ))}
               {data?.recentSales.length === 0 ? (
