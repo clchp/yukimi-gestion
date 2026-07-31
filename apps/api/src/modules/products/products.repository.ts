@@ -5,7 +5,10 @@ import type {
   CreateInventoryMovementInput,
   InventoryMovementResult,
   InventoryResponse,
+  ProductDetail,
   ProductListResponse,
+  UpdateProductInput,
+  UpdateProductResult,
 } from '@yukimi/shared';
 
 export interface ProductListQuery {
@@ -24,7 +27,9 @@ export interface InventoryQuery {
 
 export interface ProductRepository {
   list(query: ProductListQuery): Promise<ProductListResponse>;
+  get(productId: string): Promise<ProductDetail>;
   create(input: CreateProductInput, idempotencyKey: string): Promise<CreateProductResult>;
+  update(productId: string, input: UpdateProductInput): Promise<UpdateProductResult>;
   registerAttachment(
     productId: string,
     input: AttachmentRegistrationInput,
