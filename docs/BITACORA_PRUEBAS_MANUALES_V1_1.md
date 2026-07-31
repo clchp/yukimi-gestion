@@ -187,3 +187,29 @@ Primer recorrido manual en computadora por creación de cliente, nueva venta, bo
 ### Estado
 
 **Paquete de correcciones implementado y validado técnicamente. Pendiente de nueva comprobación manual con datos reales.**
+
+---
+
+## 31 de julio de 2026 — Nuevo pendiente durante la revalidación de Ventas
+
+### Configuración del pedido personalizado mediante ventana emergente
+
+- Al seleccionar `Pedido personalizado` en `Tipo de venta`, debe habilitarse junto al selector un botón visible como `Configurar pedido`.
+- El botón debe abrir una ventana emergente sin abandonar ni reiniciar el formulario de venta.
+- La ventana debe permitir registrar como mínimo:
+  - **Fecha acordada de entrega**.
+  - **Detalle o condiciones del pedido personalizado**, por ejemplo diseño, color, tamaño, modificaciones o indicaciones del cliente.
+- La ventana debe incluir las acciones `Cancelar` y `Aceptar`.
+- Al aceptar, la información debe guardarse dentro de la venta y mostrarse de forma resumida cerca de `Tipo de venta`.
+- Después de guardar la configuración, el mismo botón debe cambiar a `Editar pedido` y permitir volver a abrir la ventana para modificar los datos antes de confirmar la venta.
+- La fecha acordada de entrega es distinta de la `Fecha de vencimiento` de la reserva: una indica cuándo se entregará el pedido y la otra hasta cuándo se mantiene el acuerdo o la reserva.
+- Los datos deben conservarse al guardar como borrador y mostrarse en la revisión final, en el detalle de la venta y en la identificación o reporte de pedidos personalizados.
+- Si se intenta confirmar un pedido personalizado sin completar la fecha de entrega o el detalle, el sistema debe mostrar el error dentro de la ventana y conservar la información ya ingresada.
+
+### Clasificación
+
+- **Nuevo cambio funcional y de experiencia de usuario.** No forma parte del paquete de correcciones ya implementado en esta ronda.
+
+### Estado
+
+**Pendiente de diseño, implementación y prueba manual en la rama `version-1-1`.**
