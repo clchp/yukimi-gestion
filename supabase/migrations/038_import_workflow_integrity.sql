@@ -27,6 +27,14 @@ begin
     if v_received <= 0 then
       raise exception 'Registra al menos una unidad recibida antes de ingresar la caja a stock.';
     end if;
+    if exists (
+      select 1
+      from public.import_box_items
+      where import_box_id = new.id
+        and inventory_lot_id is null
+    ) then
+      raise exception 'Confirma la cantidad recibida de todos los productos de la caja antes de finalizar.';
+    end if;
   end if;
 
   if new.state_code = 'CANCELLED' and old.state_code <> 'CANCELLED' then
@@ -76,17 +84,25 @@ begin
     from public.import_boxes ib
     where ib.import_shipment_id = new.id
       and ib.state_code = 'STOCKED'
-      and coalesce((
-        select sum(ibi.received_quantity)
-        from public.import_box_items ibi
-        where ibi.import_box_id = ib.id
-      ), 0) <= 0;
+      and (
+        coalesce((
+          select sum(ibi.received_quantity)
+          from public.import_box_items ibi
+          where ibi.import_box_id = ib.id
+        ), 0) <= 0
+        or exists (
+          select 1
+          from public.import_box_items ibi
+          where ibi.import_box_id = ib.id
+            and ibi.inventory_lot_id is null
+        )
+      );
 
     if v_pending_boxes > 0 then
       raise exception 'La importación no puede finalizar mientras existan cajas pendientes de recepción.';
     end if;
     if v_invalid_boxes > 0 then
-      raise exception 'Existen cajas marcadas como ingresadas a stock sin cantidades recibidas.';
+      raise exception 'Existen cajas ingresadas a stock sin cantidades o líneas completamente confirmadas.';
     end if;
   end if;
 
