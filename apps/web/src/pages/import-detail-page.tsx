@@ -841,7 +841,7 @@ export function ImportDetailPage() {
             const repair = isZeroReceiptBox(box);
             return (
               <article
-                className={`import-box-card ${repair ? 'import-box-card-error' : ''}`}
+                className={`import-box-card import-box-detail ${repair ? 'import-box-card-error' : ''}`}
                 key={box.id}
               >
                 <header>
