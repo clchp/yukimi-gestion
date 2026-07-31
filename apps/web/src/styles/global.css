@@ -5,6 +5,7 @@
 @import './modules.css';
 @import './responsive.css';
 @import './ux.css';
+@import './ux-dashboard.css';
 
 .qr-label-preview {
   display: grid;
