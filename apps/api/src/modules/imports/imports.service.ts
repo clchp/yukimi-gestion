@@ -57,4 +57,11 @@ export class ImportsService {
   public receiveBox(boxId: string, input: ReceiveImportBoxInput, idempotencyKey: string) {
     return this.repository.receiveBox(boxId, input, idempotencyKey);
   }
+  public repairZeroReceivedBox(
+    boxId: string,
+    input: ReceiveImportBoxInput,
+    idempotencyKey: string,
+  ) {
+    return this.repository.repairZeroReceivedBox(boxId, input, idempotencyKey);
+  }
 }
