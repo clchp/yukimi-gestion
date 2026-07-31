@@ -1,0 +1,37 @@
+name: UX source audit
+
+on:
+  push:
+    branches:
+      - version-1-1
+    paths:
+      - scripts/audit-ux-source.mjs
+      - .github/workflows/ux-source-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: version-1-1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Generar auditoría
+        run: node scripts/audit-ux-source.mjs
+      - name: Publicar reporte
+        run: |
+          if git diff --quiet -- docs/UX_SOURCE_AUDIT.md; then
+            echo "Sin cambios en el reporte"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/UX_SOURCE_AUDIT.md
+          git commit -m "docs(ux): actualizar auditoría automática del frontend"
+          git push origin HEAD:version-1-1
