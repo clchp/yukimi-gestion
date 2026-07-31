@@ -171,7 +171,7 @@ export function ImportDetailPage() {
   const { importId = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { confirm, notify, notifyError, prompt } = useFeedback();
+  const { confirm: confirmDialog, notify, notifyError, prompt: promptDialog } = useFeedback();
   const [receiveDialog, setReceiveDialog] = useState<ReceiveDialogState | null>(null);
   const [costType, setCostType] = useState<CreateImportCostInput['costType']>('FREIGHT');
   const [costBoxId, setCostBoxId] = useState('');
@@ -336,7 +336,7 @@ export function ImportDetailPage() {
   }, [allocationItemId, allItems, support.data?.preorderCandidates]);
 
   async function changeShipmentState(stateCode: ImportStateCode, label: string) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: stateCode === 'CANCELLED' ? 'Cancelar importación completa' : `Avanzar a ${label}`,
       message:
         stateCode === 'CANCELLED'
@@ -365,7 +365,7 @@ export function ImportDetailPage() {
       tone: stateCode === 'CANCELLED' ? 'danger' : 'default',
     });
     if (!values) return;
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title: stateCode === 'CANCELLED' ? 'Confirmar cancelación' : 'Confirmar cambio de estado',
       message:
         stateCode === 'CANCELLED'
@@ -399,7 +399,7 @@ export function ImportDetailPage() {
     stateCode: ImportBoxStateCode,
     label: string,
   ) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: stateCode === 'CANCELLED' ? `Cancelar ${box.code}` : `Actualizar ${box.code}`,
       message:
         stateCode === 'CANCELLED'
@@ -427,7 +427,7 @@ export function ImportDetailPage() {
       tone: stateCode === 'CANCELLED' ? 'danger' : 'default',
     });
     if (!values) return;
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title:
         stateCode === 'CANCELLED' ? 'Confirmar cancelación de caja' : 'Confirmar estado de caja',
       message:
@@ -488,7 +488,7 @@ export function ImportDetailPage() {
       setReceiveDialog({ ...receiveDialog, errors });
       return;
     }
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title: receiveDialog.repair
         ? 'Confirmar corrección histórica'
         : 'Confirmar recepción e ingreso a stock',
@@ -563,7 +563,7 @@ export function ImportDetailPage() {
   }
 
   async function addClaim(incident: ImportDetail['incidents'][number]) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: 'Registrar reclamo al seguro',
       message: `Incidencia: ${incident.description}`,
       fields: [
@@ -609,7 +609,7 @@ export function ImportDetailPage() {
   }
 
   async function resolveClaim(claimId: string, currentStatus: string) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: 'Actualizar reclamo al seguro',
       fields: [
         {

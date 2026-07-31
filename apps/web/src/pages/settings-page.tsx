@@ -82,7 +82,7 @@ function jsonPreview(value: unknown): string {
 
 export function SettingsPage() {
   const queryClient = useQueryClient();
-  const { confirm, notify, notifyError, prompt } = useFeedback();
+  const { confirm: confirmDialog, notify, notifyError, prompt: promptDialog } = useFeedback();
   const [activeSection, setActiveSection] = useState('Catálogos');
   const [kind, setKind] = useState<CatalogKind>('franchises');
   const [name, setName] = useState('');
@@ -204,7 +204,7 @@ export function SettingsPage() {
   }
 
   async function requestReason(action: string, detail?: string) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: 'Motivo de la modificación',
       message:
         detail ?? `Indica por qué deseas ${action}. El motivo quedará registrado en auditoría.`,
@@ -221,7 +221,7 @@ export function SettingsPage() {
       confirmLabel: 'Continuar',
     });
     if (!values) return null;
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title: 'Confirmar modificación',
       message: `¿Confirmas ${action}?`,
       detail: 'Esta acción quedará registrada con tu usuario, fecha y motivo.',
@@ -231,7 +231,7 @@ export function SettingsPage() {
   }
 
   async function editCatalog(item: CatalogItem) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: `Editar ${item.name}`,
       message:
         'Modifica los datos necesarios en una sola ventana. Los campos marcados con * son obligatorios.',
@@ -274,7 +274,7 @@ export function SettingsPage() {
       },
     });
     if (!values) return;
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title: 'Confirmar edición',
       message: `Se actualizará “${item.name}” y el cambio quedará auditado.`,
       confirmLabel: 'Guardar cambios',
@@ -303,7 +303,7 @@ export function SettingsPage() {
   }
 
   async function editSetting(key: string, value: unknown, version: number) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: 'Editar regla del negocio',
       message: `Actualiza el valor de ${key}. Debe mantenerse en formato JSON válido.`,
       fields: [
@@ -334,7 +334,7 @@ export function SettingsPage() {
       },
     });
     if (!values) return;
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title: 'Confirmar regla',
       message: `Se actualizará ${key}.`,
       detail:
@@ -352,7 +352,7 @@ export function SettingsPage() {
   }
 
   async function createWarehouse() {
-    const values = await prompt({
+    const values = await promptDialog({
       title: 'Nuevo almacén',
       message: 'Registra la ubicación que se utilizará en movimientos e inventario.',
       fields: [
@@ -398,7 +398,7 @@ export function SettingsPage() {
   }
 
   async function editWarehouse(warehouse: NonNullable<typeof admin.data>['warehouses'][number]) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: `Editar ${warehouse.name}`,
       fields: [
         { name: 'name', label: 'Nombre', initialValue: warehouse.name, required: true },
@@ -423,7 +423,7 @@ export function SettingsPage() {
   }
 
   async function createAccount() {
-    const values = await prompt({
+    const values = await promptDialog({
       title: 'Nueva cuenta financiera',
       message: 'No ingreses números completos sensibles; utiliza una versión enmascarada.',
       fields: [
@@ -466,7 +466,7 @@ export function SettingsPage() {
   }
 
   async function editAccount(account: NonNullable<typeof admin.data>['financialAccounts'][number]) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: `Editar ${account.name}`,
       fields: [
         { name: 'ownerName', label: 'Titular', initialValue: account.ownerName ?? '' },
@@ -491,7 +491,7 @@ export function SettingsPage() {
   }
 
   async function editProfile(profile: NonNullable<typeof admin.data>['profiles'][number]) {
-    const values = await prompt({
+    const values = await promptDialog({
       title: `Editar a ${profile.displayName}`,
       fields: [
         {

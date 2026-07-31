@@ -29,7 +29,7 @@ export function EditProductPage() {
   const { productId = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { confirm, notify, notifyError } = useFeedback();
+  const { confirm: confirmDialog, notify, notifyError } = useFeedback();
   const product = useQuery({
     queryKey: ['product', productId],
     queryFn: () => getProduct(productId),
@@ -145,7 +145,7 @@ export function EditProductPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!product.data || !validate()) return;
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title: 'Confirmar edición del producto',
       message: `Se actualizará ${product.data.name}.`,
       detail:

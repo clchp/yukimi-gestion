@@ -96,7 +96,7 @@ function money(value: number) {
 export function NewImportPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { confirm, notify, notifyError, prompt } = useFeedback();
+  const { confirm: confirmDialog, notify, notifyError, prompt: promptDialog } = useFeedback();
   const [supplierId, setSupplierId] = useState('');
   const [transportMode, setTransportMode] = useState<ImportTransportMode>('OTHER');
   const [purchaseCurrencyCode, setPurchaseCurrencyCode] = useState('PEN');
@@ -228,7 +228,7 @@ export function NewImportPage() {
   }
 
   async function createSupplier() {
-    const values = await prompt({
+    const values = await promptDialog({
       title: 'Nuevo proveedor',
       message:
         'Registra únicamente los datos confirmados. Los campos no obligatorios pueden completarse después.',
@@ -322,7 +322,7 @@ export function NewImportPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!validate()) return;
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title: 'Confirmar nueva importación',
       message: `Se registrarán ${boxes.length} ${boxes.length === 1 ? 'caja' : 'cajas'} y ${summary.units} unidades esperadas.`,
       detail: 'La importación iniciará en Cotización. Todavía no modificará el inventario.',

@@ -64,7 +64,7 @@ function isLow(row: InventoryRow) {
 export function InventoryPage() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const { confirm, notify, notifyError } = useFeedback();
+  const { confirm: confirmDialog, notify, notifyError } = useFeedback();
   const [warehouseId, setWarehouseId] = useState<string>('ALL');
   const [search, setSearch] = useState(() => searchParams.get('search')?.trim() ?? '');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -220,7 +220,7 @@ export function InventoryPage() {
   async function submitMovement(event: FormEvent) {
     event.preventDefault();
     if (!validateMovement()) return;
-    const accepted = await confirm({
+    const accepted = await confirmDialog({
       title: 'Confirmar movimiento de inventario',
       message: `${actionLabels[action]} por ${Number(quantity)} unidades.`,
       detail: actionHelp[action],
