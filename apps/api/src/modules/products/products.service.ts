@@ -2,6 +2,7 @@ import type {
   AttachmentRegistrationInput,
   CreateInventoryMovementInput,
   CreateProductInput,
+  UpdateProductInput,
 } from '@yukimi/shared';
 import type { InventoryQuery, ProductListQuery, ProductRepository } from './products.repository.js';
 
@@ -12,8 +13,16 @@ export class ProductService {
     return this.repository.list(query);
   }
 
+  public get(productId: string) {
+    return this.repository.get(productId);
+  }
+
   public create(input: CreateProductInput, idempotencyKey: string) {
     return this.repository.create(input, idempotencyKey);
+  }
+
+  public update(productId: string, input: UpdateProductInput) {
+    return this.repository.update(productId, input);
   }
 
   public registerAttachment(productId: string, input: AttachmentRegistrationInput) {
