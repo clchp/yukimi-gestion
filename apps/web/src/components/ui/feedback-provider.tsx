@@ -15,6 +15,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
   type ReactNode,
 } from 'react';
@@ -71,11 +72,7 @@ export interface PromptOptions {
 }
 
 type DialogState =
-  | {
-      kind: 'confirm';
-      options: ConfirmOptions;
-      resolve: (value: boolean) => void;
-    }
+  | { kind: 'confirm'; options: ConfirmOptions; resolve: (value: boolean) => void }
   | {
       kind: 'prompt';
       options: PromptOptions;
@@ -96,6 +93,8 @@ interface FeedbackContextValue {
 }
 
 const FeedbackContext = createContext<FeedbackContextValue | null>(null);
+
+type DialogControl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 function detailMessage(details: unknown): string | null {
   if (!details) return null;
@@ -158,7 +157,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [discardWarning, setDiscardWarning] = useState(false);
   const nextId = useRef(1);
-  const firstControlRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(null);
+  const firstControlRef = useRef<DialogControl | null>(null);
   const titleId = useId();
   const descriptionId = useId();
 
@@ -208,6 +207,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       setValues({});
       setErrors({});
       setDiscardWarning(false);
+      firstControlRef.current = null;
     },
     [dialog],
   );
@@ -276,6 +276,20 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     if (validValues) close(validValues);
   }
 
+  function updateField(
+    fieldName: string,
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) {
+    setValues((current) => ({ ...current, [fieldName]: event.target.value }));
+    setErrors((current) => {
+      if (!current[fieldName]) return current;
+      const next = { ...current };
+      delete next[fieldName];
+      return next;
+    });
+    setDiscardWarning(false);
+  }
+
   const contextValue = useMemo(
     () => ({ notify, notifyError, confirm, prompt }),
     [confirm, notify, notifyError, prompt],
@@ -306,9 +320,13 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       </div>
 
       {dialog ? (
-        <div className="app-modal-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) requestClose();
-        }}>
+        <div
+          className="app-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) requestClose();
+          }}
+        >
           <form
             className={`app-modal-card ${dialog.options.tone === 'danger' ? 'app-modal-danger' : ''}`}
             role="dialog"
@@ -349,24 +367,19 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                   </div>
                 ) : null}
                 {dialog.options.fields.map((field, index) => {
+                  const describedBy = [field.help ? `${field.name}-help` : '', errors[field.name] ? `${field.name}-error` : '']
+                    .filter(Boolean)
+                    .join(' ') || undefined;
                   const common = {
                     id: `dialog-${field.name}`,
                     name: field.name,
                     value: values[field.name] ?? '',
                     disabled: field.disabled,
                     'aria-invalid': Boolean(errors[field.name]),
-                    'aria-describedby': `${field.name}-help ${field.name}-error`,
-                    onChange: (
-                      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-                    ) => {
-                      setValues((current) => ({ ...current, [field.name]: event.target.value }));
-                      setErrors((current) => {
-                        if (!current[field.name]) return current;
-                        const next = { ...current };
-                        delete next[field.name];
-                        return next;
-                      });
-                      setDiscardWarning(false);
+                    'aria-describedby': describedBy,
+                    onChange: (event: ChangeEvent<DialogControl>) => updateField(field.name, event),
+                    ref: (node: DialogControl | null) => {
+                      if (index === 0) firstControlRef.current = node;
                     },
                   };
                   return (
@@ -375,17 +388,9 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                         {field.label} {field.required ? <b aria-hidden="true">*</b> : null}
                       </span>
                       {field.type === 'textarea' ? (
-                        <textarea
-                          {...common}
-                          ref={index === 0 ? (firstControlRef as React.RefObject<HTMLTextAreaElement>) : undefined}
-                          placeholder={field.placeholder}
-                          rows={5}
-                        />
+                        <textarea {...common} placeholder={field.placeholder} rows={5} />
                       ) : field.type === 'select' ? (
-                        <select
-                          {...common}
-                          ref={index === 0 ? (firstControlRef as React.RefObject<HTMLSelectElement>) : undefined}
-                        >
+                        <select {...common}>
                           {field.options?.map((option) => (
                             <option key={option.value} value={option.value}>{option.label}</option>
                           ))}
@@ -393,7 +398,6 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                       ) : (
                         <input
                           {...common}
-                          ref={index === 0 ? (firstControlRef as React.RefObject<HTMLInputElement>) : undefined}
                           type={field.type ?? 'text'}
                           placeholder={field.placeholder}
                           min={field.min}
