@@ -104,6 +104,8 @@ begin
     raise exception 'Debes enviar todas las variantes existentes para evitar una edición incompleta.';
   end if;
 
+  perform pg_catalog.set_config('app.audit_reason', v_reason, true);
+
   v_old_product := to_jsonb(v_product);
 
   update public.products
@@ -227,5 +229,7 @@ $$;
 
 revoke execute on function public.update_product_bundle_v1(uuid, jsonb) from public, anon;
 grant execute on function public.update_product_bundle_v1(uuid, jsonb) to authenticated, service_role;
+
+notify pgrst, 'reload schema';
 
 commit;

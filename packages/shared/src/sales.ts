@@ -283,7 +283,10 @@ export type ReviewSaleReleaseInput = z.infer<typeof reviewSaleReleaseSchema>;
 export const saleDraftSummarySchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
-  clientId: z.string().uuid(),
+  clientId: z.preprocess(
+    (value) => (value === '' ? null : value),
+    z.string().uuid().nullable().optional(),
+  ),
   clientName: z.string(),
   status: z.enum(['DRAFT', 'CONFIRMED', 'CANCELLED']),
   totalAmount: z.number().nonnegative(),
