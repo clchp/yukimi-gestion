@@ -16,10 +16,34 @@ export const updateBusinessSetting = (key: string, input: UpdateBusinessSettingI
     method: 'PATCH',
     body: JSON.stringify(input),
   });
-export const upsertWarehouse = (input: UpsertWarehouseInput) =>
+
+type WarehouseFormInput = Omit<UpsertWarehouseInput, 'warehouseType'> & {
+  warehouseType: UpsertWarehouseInput['warehouseType'] | 'VIRTUAL' | 'INTERNATIONAL' | string;
+};
+
+function normalizeWarehouseInput(input: WarehouseFormInput): UpsertWarehouseInput {
+  const requestedType = input.warehouseType.toUpperCase();
+  const warehouseType: UpsertWarehouseInput['warehouseType'] =
+    requestedType === 'INTERNATIONAL'
+      ? 'FOREIGN'
+      : requestedType === 'VIRTUAL'
+        ? 'OTHER'
+        : requestedType === 'FOREIGN' ||
+            requestedType === 'TRANSIT' ||
+            requestedType === 'OTHER'
+          ? requestedType
+          : 'OPERATIONAL';
+  return {
+    ...input,
+    warehouseType,
+    isVirtual: requestedType === 'VIRTUAL' ? true : input.isVirtual,
+  };
+}
+
+export const upsertWarehouse = (input: WarehouseFormInput) =>
   apiRequest<{ id: string; version: number }>('/admin/warehouses', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(normalizeWarehouseInput(input)),
   });
 export const upsertFinancialAccount = (input: UpsertFinancialAccountInput) =>
   apiRequest<{ id: string; version: number }>('/admin/financial-accounts', {
