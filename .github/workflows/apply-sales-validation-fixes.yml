@@ -6,23 +6,23 @@ on:
     paths:
       - scripts/apply-sales-validation-fixes.py
       - .github/workflows/apply-sales-validation-fixes.yml
-  pull_request:
-    branches: [version-1-1]
-    paths:
-      - scripts/apply-sales-validation-fixes.py
-      - .github/workflows/apply-sales-validation-fixes.yml
 
 permissions:
   contents: write
 
+concurrency:
+  group: apply-sales-validation-fixes
+  cancel-in-progress: true
+
 jobs:
   apply:
-    if: ${{ !contains(github.event.head_commit.message || github.event.pull_request.head.sha, '[sales-validation-applied]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[sales-validation-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fix/ventas-validation-final
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -39,6 +39,16 @@ jobs:
           py_compile.compile(str(path), doraise=True)
           PY
       - run: python3 scripts/apply-sales-validation-fixes.py
+      - name: Keep document validation in the API contract
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('supabase/migrations/044_sales_validation_fixes.sql')
+          text = path.read_text(encoding='utf-8')
+          start = text.index('create or replace function private.require_client_document_v1()')
+          end = text.index('create or replace view public.v_sales_overview')
+          path.write_text(text[:start] + text[end:], encoding='utf-8')
+          PY
       - run: npm ci
       - run: npx prettier --write apps/web/src packages/shared/src apps/api/src
       - name: Commit generated fixes
@@ -47,4 +57,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add apps/web/src packages/shared/src apps/api/src supabase/migrations/044_sales_validation_fixes.sql supabase/tests/database/013_sales_validation_fixes.test.sql scripts/apply-sales-validation-fixes.py
           git commit -m "Apply sales validation fixes [sales-validation-applied]"
+          git fetch origin fix/ventas-validation-final
+          git rebase origin/fix/ventas-validation-final
           git push origin HEAD:fix/ventas-validation-final
