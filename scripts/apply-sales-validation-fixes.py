@@ -228,10 +228,8 @@ replace_once(
 )
 replace_once(
     "apps/api/src/modules/products/supabase-products.repository.ts",
-    "          `code.ilike.%${search}%,name.ilike.%${search}%,character_name.ilike.%${search}%${franchiseFilter}`,
-",
-    "          `code.ilike.%${search}%,search_name_normalized.ilike.%${search.toLocaleLowerCase('es')}%,search_character_normalized.ilike.%${search.toLocaleLowerCase('es')}%${franchiseFilter}`,
-",
+    "          `code.ilike.%${search}%,name.ilike.%${search}%,character_name.ilike.%${search}%${franchiseFilter}`,\n",
+    "          `code.ilike.%${search}%,search_name_normalized.ilike.%${search.toLocaleLowerCase('es')}%,search_character_normalized.ilike.%${search.toLocaleLowerCase('es')}%${franchiseFilter}`,\n",
 )
 old_inventory_search = """    if (query.search) {
       const search = normalizeSearch(query.search);

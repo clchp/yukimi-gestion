@@ -352,7 +352,11 @@ export function ClientDetailPage() {
               </div>
               <div>
                 <span>Separación</span>
-                <strong>Se negocia en cada venta</strong>
+                <strong>
+                  {data.vipProfile?.canReserveWithoutDeposit
+                    ? 'Puede acordarse desde S/ 0'
+                    : 'Requiere adelanto mayor que S/ 0'}
+                </strong>
               </div>
               <div>
                 <span>Plazo especial</span>
@@ -673,49 +677,42 @@ export function ClientDetailPage() {
             onSubmit={(event) => {
               event.preventDefault();
               setError(null);
-              vipMutation.mutate(!data.isVip);
+              vipMutation.mutate(true);
             }}
           >
             <div className="modal-header">
               <div>
                 <small>Condición especial</small>
-                <h2>{data.isVip ? 'Retirar condición VIP' : 'Convertir en cliente VIP'}</h2>
+                <h2>{data.isVip ? 'Editar condición VIP' : 'Convertir en cliente VIP'}</h2>
               </div>
               <button className="icon-button" type="button" onClick={() => setVipOpen(false)}>
                 <X />
               </button>
             </div>
-            {!data.isVip ? (
-              <div className="form-grid form-grid-2">
-                <div className="alert alert-info field-span-2">
-                  El adelanto mínimo no usa un límite fijo: se acordará según los productos de cada
-                  venta.
-                </div>
-                <label className="field field-span-2 checkbox-field">
-                  <input
-                    type="checkbox"
-                    checked={vipCanReserve}
-                    onChange={(event) => setVipCanReserve(event.target.checked)}
-                  />
-                  <span>Puede negociarse una separación sin adelanto</span>
-                </label>
-                <label className="field">
-                  <span>Plazo especial (días)</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={vipTerm}
-                    onChange={(event) => setVipTerm(event.target.value)}
-                  />
-                </label>
+            <div className="form-grid form-grid-2">
+              <div className="alert alert-info field-span-2">
+                El adelanto mínimo se acuerda en cada venta. Aquí defines si puede ser S/ 0 y el
+                plazo especial que se propondrá automáticamente.
               </div>
-            ) : (
-              <div className="alert alert-warning">
-                <AlertTriangle size={17} /> El historial VIP se conservará aunque retires el
-                beneficio.
-              </div>
-            )}
+              <label className="field field-span-2 checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={vipCanReserve}
+                  onChange={(event) => setVipCanReserve(event.target.checked)}
+                />
+                <span>Puede negociarse una separación sin adelanto</span>
+              </label>
+              <label className="field">
+                <span>Plazo especial (días)</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={vipTerm}
+                  onChange={(event) => setVipTerm(event.target.value)}
+                />
+              </label>
+            </div>
             <label className="field">
               <span>Motivo *</span>
               <textarea
@@ -733,12 +730,26 @@ export function ClientDetailPage() {
               >
                 Cancelar
               </button>
+              {data.isVip ? (
+                <button
+                  className="button button-danger-soft"
+                  type="button"
+                  disabled={vipMutation.isPending}
+                  onClick={() => vipMutation.mutate(false)}
+                >
+                  <AlertTriangle size={16} /> Retirar condición VIP
+                </button>
+              ) : null}
               <button
                 className="button button-primary"
                 type="submit"
                 disabled={vipMutation.isPending}
               >
-                {vipMutation.isPending ? 'Guardando…' : 'Confirmar'}
+                {vipMutation.isPending
+                  ? 'Guardando…'
+                  : data.isVip
+                    ? 'Guardar cambios VIP'
+                    : 'Confirmar condición VIP'}
               </button>
             </div>
           </form>

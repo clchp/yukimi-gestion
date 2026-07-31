@@ -86,6 +86,12 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
   const [creditNoteNumber, setCreditNoteNumber] = useState('');
   const [creditNoteAmount, setCreditNoteAmount] = useState('');
   const [creditNoteReason, setCreditNoteReason] = useState('');
+  const [proofTargetId, setProofTargetId] = useState<string | null>(null);
+  const [proofEditFile, setProofEditFile] = useState<File | null>(null);
+  const [paymentActionError, setPaymentActionError] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
 
   const financials = useQuery({
     queryKey: ['sale-financials', saleId],
@@ -160,7 +166,17 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
       id: string;
       reason?: string;
     }) => {
-      if (type === 'CONFIRM') return confirmPayment(id);
+      if (type === 'CONFIRM') {
+        const payment = financials.data?.payments.find((item) => item.id === id);
+        const requiresProof = payment?.parts.some((part) => part.requiresProof) ?? false;
+        if (requiresProof && payment?.proofs.length === 0) {
+          setProofTargetId(id);
+          throw new Error(
+            'Este pago requiere constancia. Usa Editar para adjuntarla antes de confirmar.',
+          );
+        }
+        return confirmPayment(id);
+      }
       const normalizedReason = reason?.trim();
       if (!normalizedReason) throw new Error('El motivo es obligatorio.');
       if (type === 'REJECT') return rejectPayment(id, normalizedReason);
@@ -172,6 +188,36 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
       await invalidate();
       setSensitiveAction(null);
       setActionReason('');
+      setPaymentActionError(null);
+    },
+    onError: (error, variables) => {
+      if (variables.type === 'CONFIRM') {
+        setPaymentActionError({
+          id: variables.id,
+          message: error instanceof Error ? error.message : 'No se pudo confirmar el pago.',
+        });
+      }
+    },
+  });
+
+  const proofUploadMutation = useMutation({
+    mutationFn: async () => {
+      if (!proofTargetId || !proofEditFile) throw new Error('Selecciona una constancia.');
+      await uploadPaymentProof(proofTargetId, proofEditFile);
+    },
+    onSuccess: async () => {
+      await invalidate();
+      setProofTargetId(null);
+      setProofEditFile(null);
+      setPaymentActionError(null);
+    },
+    onError: (error) => {
+      if (proofTargetId) {
+        setPaymentActionError({
+          id: proofTargetId,
+          message: error instanceof Error ? error.message : 'No se pudo adjuntar la constancia.',
+        });
+      }
     },
   });
 
@@ -243,7 +289,6 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
 
   const mutationError =
     paymentMutation.error ??
-    actionMutation.error ??
     penaltyMutation.error ??
     receiptMutation.error ??
     creditNoteMutation.error;
@@ -509,6 +554,55 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
                       <Upload size={14} /> {file.originalFilename}
                     </a>
                   ))}
+                  {payment.stateCode === 'PENDING' &&
+                  payment.parts.some((part) => part.requiresProof) &&
+                  payment.proofs.length === 0 ? (
+                    <div className="payment-proof-warning">
+                      <span>Este pago requiere una constancia antes de confirmarse.</span>
+                      <button
+                        type="button"
+                        className="button button-secondary button-compact"
+                        onClick={() => {
+                          setProofTargetId(payment.id);
+                          setPaymentActionError(null);
+                        }}
+                      >
+                        <Upload size={14} /> Editar / adjuntar constancia
+                      </button>
+                    </div>
+                  ) : null}
+                  {proofTargetId === payment.id ? (
+                    <div className="payment-proof-editor">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={(event) => setProofEditFile(event.target.files?.[0] ?? null)}
+                      />
+                      <div className="inline-actions">
+                        <button
+                          type="button"
+                          className="button button-secondary button-compact"
+                          onClick={() => {
+                            setProofTargetId(null);
+                            setProofEditFile(null);
+                          }}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          className="button button-primary button-compact"
+                          disabled={!proofEditFile || proofUploadMutation.isPending}
+                          onClick={() => proofUploadMutation.mutate()}
+                        >
+                          {proofUploadMutation.isPending ? 'Subiendo…' : 'Guardar constancia'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                  {paymentActionError?.id === payment.id ? (
+                    <p className="field-error">{paymentActionError.message}</p>
+                  ) : null}
                   {payment.rejectionReason ? (
                     <p className="text-danger">Rechazo: {payment.rejectionReason}</p>
                   ) : null}

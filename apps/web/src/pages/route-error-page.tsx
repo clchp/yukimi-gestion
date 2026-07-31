@@ -4,7 +4,7 @@ import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router';
 export function RouteErrorPage() {
   const navigate = useNavigate();
   const error = useRouteError();
-  const notFound = isRouteErrorResponse(error) && error.status === 404;
+  const notFound = !error || (isRouteErrorResponse(error) && error.status === 404);
 
   return (
     <main className="route-error-page">

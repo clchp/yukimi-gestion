@@ -351,23 +351,27 @@ export function NewSalePage() {
       if (!Number.isInteger(line.quantity) || line.quantity < 1) {
         errors[`line-${index}-quantity`] = 'La cantidad debe ser de al menos 1 unidad.';
       } else if (line.quantity > line.group.totalAvailable) {
-        errors[`line-${index}-quantity`] = `Solo hay ${line.group.totalAvailable} unidades disponibles en total.`;
+        errors[`line-${index}-quantity`] =
+          `Solo hay ${line.group.totalAvailable} unidades disponibles en total.`;
       }
       let allocated = 0;
       for (const row of line.group.rows) {
         const amount = line.allocations[row.warehouseId] ?? 0;
         if (!Number.isInteger(amount) || amount < 0) {
-          errors[`line-${index}-allocation`] = 'Las cantidades por almacén deben ser enteros desde 0.';
+          errors[`line-${index}-allocation`] =
+            'Las cantidades por almacén deben ser enteros desde 0.';
           break;
         }
         if (amount > row.availableQuantity) {
-          errors[`line-${index}-allocation`] = `${row.warehouseName} solo tiene ${row.availableQuantity} unidades disponibles.`;
+          errors[`line-${index}-allocation`] =
+            `${row.warehouseName} solo tiene ${row.availableQuantity} unidades disponibles.`;
           break;
         }
         allocated += amount;
       }
       if (!errors[`line-${index}-allocation`] && allocated !== line.quantity) {
-        errors[`line-${index}-allocation`] = `Distribuye exactamente ${line.quantity} unidad(es). Actualmente asignaste ${allocated}.`;
+        errors[`line-${index}-allocation`] =
+          `Distribuye exactamente ${line.quantity} unidad(es). Actualmente asignaste ${allocated}.`;
       }
       if (!Number.isFinite(line.finalUnitPrice) || line.finalUnitPrice < 0) {
         errors[`line-${index}-price`] = 'El precio final no puede ser negativo.';
@@ -430,7 +434,8 @@ export function NewSalePage() {
 
   function next() {
     setActionError(null);
-    const valid = step === 1 ? validateClient() : step === 2 ? validateProducts() : validateConditions();
+    const valid =
+      step === 1 ? validateClient() : step === 2 ? validateProducts() : validateConditions();
     if (valid) setStep((value) => Math.min(4, value + 1));
   }
 
@@ -463,7 +468,9 @@ export function NewSalePage() {
         })}
       </div>
 
-      {draft.isError ? <div className="alert alert-error">No se pudo cargar el borrador.</div> : null}
+      {draft.isError ? (
+        <div className="alert alert-error">No se pudo cargar el borrador.</div>
+      ) : null}
 
       <section className="wizard-layout">
         <div className="wizard-main">
@@ -487,7 +494,9 @@ export function NewSalePage() {
                   <UserPlus size={17} /> Crear cliente
                 </button>
               </div>
-              {fieldErrors.client ? <p className="field-error-inline">{fieldErrors.client}</p> : null}
+              {fieldErrors.client ? (
+                <p className="field-error-inline">{fieldErrors.client}</p>
+              ) : null}
               <div className="selection-list">
                 {clients.data?.items.map((client) => (
                   <button
@@ -589,7 +598,10 @@ export function NewSalePage() {
                     ...line.group.rows.map((row) => row.currentUnitCostPen ?? 0),
                   );
                   return (
-                    <div className="selected-product-row sale-line-editor" key={line.group.variantId}>
+                    <div
+                      className="selected-product-row sale-line-editor"
+                      key={line.group.variantId}
+                    >
                       <div className="selected-product-copy">
                         <strong>{line.group.productName}</strong>
                         <small>
@@ -628,7 +640,9 @@ export function NewSalePage() {
                         className="icon-button danger-icon"
                         aria-label={`Quitar ${line.group.productName}`}
                         onClick={() => {
-                          setLines((current) => current.filter((_, itemIndex) => itemIndex !== index));
+                          setLines((current) =>
+                            current.filter((_, itemIndex) => itemIndex !== index),
+                          );
                           setFieldErrors({});
                         }}
                       >
@@ -664,7 +678,9 @@ export function NewSalePage() {
                         ))}
                       </div>
                       {fieldErrors[`line-${index}-allocation`] ? (
-                        <p className="sale-inline-error">{fieldErrors[`line-${index}-allocation`]}</p>
+                        <p className="sale-inline-error">
+                          {fieldErrors[`line-${index}-allocation`]}
+                        </p>
                       ) : null}
 
                       {line.finalUnitPrice < line.group.salePrice ? (
@@ -702,8 +718,8 @@ export function NewSalePage() {
                       ) : null}
                       {highestCost > 0 && line.finalUnitPrice < highestCost ? (
                         <div className="below-cost-warning">
-                          El precio queda por debajo del costo vigente de {money(highestCost)}. Puedes
-                          continuar, pero el motivo del descuento quedará auditado.
+                          El precio queda por debajo del costo vigente de {money(highestCost)}.
+                          Puedes continuar, pero el motivo del descuento quedará auditado.
                         </div>
                       ) : null}
                     </div>
@@ -734,7 +750,9 @@ export function NewSalePage() {
                       </option>
                     ))}
                   </SearchableNativeSelect>
-                  {fieldErrors.channel ? <small className="field-error">{fieldErrors.channel}</small> : null}
+                  {fieldErrors.channel ? (
+                    <small className="field-error">{fieldErrors.channel}</small>
+                  ) : null}
                 </label>
                 <label className="field">
                   <span>Tipo de venta</span>
@@ -748,7 +766,9 @@ export function NewSalePage() {
                     <option value="CUSTOM_ORDER">Pedido personalizado</option>
                   </SearchableNativeSelect>
                   {saleTypeCode === 'CUSTOM_ORDER' ? (
-                    <small>Se identificará y reportará por separado; requiere stock disponible.</small>
+                    <small>
+                      Se identificará y reportará por separado; requiere stock disponible.
+                    </small>
                   ) : null}
                 </label>
                 <label className="field sale-due-field">
@@ -767,7 +787,9 @@ export function NewSalePage() {
                   </small>
                 </label>
                 <label className="field sale-due-reason-field">
-                  <span>Motivo del vencimiento {dueDate ? '*' : '(se habilita al cambiar la fecha)'}</span>
+                  <span>
+                    Motivo del vencimiento {dueDate ? '*' : '(se habilita al cambiar la fecha)'}
+                  </span>
                   <input
                     disabled={!dueDate}
                     minLength={5}
@@ -845,7 +867,9 @@ export function NewSalePage() {
                   />
                   <span>
                     <strong>Acumula almacén</strong>
-                    <small>La mercadería queda reservada mientras el cliente sigue comprando.</small>
+                    <small>
+                      La mercadería queda reservada mientras el cliente sigue comprando.
+                    </small>
                   </span>
                 </label>
                 <label className={`choice-card ${deliveryMode === 'PENDING' ? 'selected' : ''}`}>
@@ -888,13 +912,15 @@ export function NewSalePage() {
                   <span>Productos</span>
                   <strong>
                     {lines.reduce((sum, line) => sum + line.quantity, 0)} unidades en{' '}
-                    {new Set(
-                      lines.flatMap((line) =>
-                        line.group.rows
-                          .filter((row) => (line.allocations[row.warehouseId] ?? 0) > 0)
-                          .map((row) => row.warehouseId),
-                      ),
-                    ).size}{' '}
+                    {
+                      new Set(
+                        lines.flatMap((line) =>
+                          line.group.rows
+                            .filter((row) => (line.allocations[row.warehouseId] ?? 0) > 0)
+                            .map((row) => row.warehouseId),
+                        ),
+                      ).size
+                    }{' '}
                     almacén(es)
                   </strong>
                 </div>
@@ -950,7 +976,8 @@ export function NewSalePage() {
                     {line.group.rows
                       .filter((row) => (line.allocations[row.warehouseId] ?? 0) > 0)
                       .map(
-                        (row) => `${row.warehouseName} ${line.allocations[row.warehouseId]} unidad(es)`,
+                        (row) =>
+                          `${row.warehouseName} ${line.allocations[row.warehouseId]} unidad(es)`,
                       )
                       .join(' · ')}
                   </div>
