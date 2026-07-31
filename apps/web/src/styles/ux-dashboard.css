@@ -1,0 +1,74 @@
+.chart-custom-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 190px));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.chart-custom-range label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  font-weight: 720;
+}
+
+.chart-custom-range input {
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0 10px;
+  color: var(--text);
+  background: white;
+  font: inherit;
+}
+
+.dashboard-real-chart {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.dashboard-real-chart .bar-column {
+  min-width: 30px;
+}
+
+.chart-empty-state {
+  grid-column: 1 / -1;
+  align-self: center;
+}
+
+.activity-row-button {
+  width: 100%;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.activity-row-button:hover {
+  border-radius: 10px;
+  background: var(--primary-soft);
+}
+
+.activity-row-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 22%, transparent);
+  outline-offset: 2px;
+}
+
+.priority-item:disabled {
+  cursor: default;
+  opacity: 0.86;
+}
+
+@media (max-width: 760px) {
+  .chart-custom-range {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-real-chart {
+    grid-auto-columns: minmax(42px, 1fr);
+    min-width: 100%;
+  }
+}
