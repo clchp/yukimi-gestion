@@ -4,6 +4,7 @@
 @import './components.css';
 @import './modules.css';
 @import './responsive.css';
+@import './ux.css';
 
 .qr-label-preview {
   display: grid;
