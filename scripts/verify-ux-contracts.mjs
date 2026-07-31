@@ -43,9 +43,7 @@ for (const file of webFiles) {
 }
 
 const migrationDirectory = path.join(root, 'supabase/migrations');
-const migrationFiles = (await readdir(migrationDirectory)).filter((file) =>
-  file.endsWith('.sql'),
-);
+const migrationFiles = (await readdir(migrationDirectory)).filter((file) => file.endsWith('.sql'));
 const versions = new Map();
 for (const file of migrationFiles) {
   const version = file.split('_')[0];
@@ -112,10 +110,7 @@ if (!importPage.includes('Corregir recepción')) {
   fail('Importaciones no permite corregir recepciones históricas con cero unidades.');
 }
 
-const productPage = await readFile(
-  path.join(root, 'apps/web/src/pages/products-page.tsx'),
-  'utf8',
-);
+const productPage = await readFile(path.join(root, 'apps/web/src/pages/products-page.tsx'), 'utf8');
 if (!productPage.includes('Descargar etiqueta')) {
   fail('Productos no muestra la descarga de etiqueta completa.');
 }
