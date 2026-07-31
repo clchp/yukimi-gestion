@@ -21,6 +21,7 @@ import type { ClientAddress, ClientIncident } from '@yukimi/shared';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
 import { StatusBadge } from '../components/ui/status-badge';
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 import {
   createClientAddress,
   createClientIncident,
@@ -773,7 +774,7 @@ export function ClientDetailPage() {
               </label>
               <label className="field">
                 <span>Agencia preferida</span>
-                <select
+                <SearchableNativeSelect
                   value={addressPartner}
                   onChange={(event) => setAddressPartner(event.target.value)}
                 >
@@ -783,7 +784,7 @@ export function ClientDetailPage() {
                       {partner.name}
                     </option>
                   ))}
-                </select>
+                </SearchableNativeSelect>
               </label>
               <label className="field field-span-2">
                 <span>Dirección *</span>
@@ -874,7 +875,7 @@ export function ClientDetailPage() {
             <div className="form-grid form-grid-2">
               <label className="field">
                 <span>Tipo</span>
-                <select
+                <SearchableNativeSelect
                   value={incidentType}
                   onChange={(event) =>
                     setIncidentType(event.target.value as ClientIncident['incidentType'])
@@ -885,11 +886,11 @@ export function ClientDetailPage() {
                       {label}
                     </option>
                   ))}
-                </select>
+                </SearchableNativeSelect>
               </label>
               <label className="field">
                 <span>Severidad</span>
-                <select
+                <SearchableNativeSelect
                   value={incidentSeverity}
                   onChange={(event) =>
                     setIncidentSeverity(event.target.value as ClientIncident['severity'])
@@ -898,7 +899,7 @@ export function ClientDetailPage() {
                   <option value="LOW">Baja</option>
                   <option value="MEDIUM">Media</option>
                   <option value="HIGH">Alta</option>
-                </select>
+                </SearchableNativeSelect>
               </label>
               <label className="field field-span-2">
                 <span>Descripción *</span>

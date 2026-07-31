@@ -38,6 +38,7 @@ import {
 } from '../features/finance/finance-api';
 import { uploadFinanceProof } from '../features/finance/upload-finance-file';
 
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 const money = (value: number, currency = 'PEN') =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(value);
 const date = (value: string) =>
@@ -859,7 +860,7 @@ export function FinancePage() {
               <div className="form-grid form-grid-2">
                 <label className="field">
                   <span>Tipo</span>
-                  <select
+                  <SearchableNativeSelect
                     value={movementType}
                     onChange={(event) => {
                       const value = event.target.value as 'INCOME' | 'EXPENSE';
@@ -872,7 +873,7 @@ export function FinancePage() {
                   >
                     <option value="INCOME">Ingreso</option>
                     <option value="EXPENSE">Gasto</option>
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <AccountField accounts={accounts} value={accountId} onChange={setAccountId} />
                 <div className="field-with-action">
@@ -981,7 +982,7 @@ export function FinancePage() {
               <div className="form-grid form-grid-2">
                 <label className="field">
                   <span>Tipo</span>
-                  <select
+                  <SearchableNativeSelect
                     value={obligationType}
                     onChange={(event) => {
                       const value = event.target.value;
@@ -994,7 +995,7 @@ export function FinancePage() {
                         {item.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field">
                   <span>Vencimiento</span>
@@ -1019,7 +1020,7 @@ export function FinancePage() {
                 <MoneyField value={amount} onChange={setAmount} />
                 <label className="field">
                   <span>Moneda</span>
-                  <select
+                  <SearchableNativeSelect
                     value={obligationCurrency}
                     onChange={(event) => setObligationCurrency(event.target.value)}
                   >
@@ -1028,7 +1029,7 @@ export function FinancePage() {
                         {currency.code} · {currency.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 {obligationType === 'CREDIT_CARD' ? (
                   <>
@@ -1285,14 +1286,14 @@ function AccountField({
   return (
     <label className="field">
       <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+      <SearchableNativeSelect value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">Seleccionar</option>
         {accounts.map((item) => (
           <option key={item.id} value={item.id}>
             {item.name} · {money(item.currentBalance, item.currencyCode)}
           </option>
         ))}
-      </select>
+      </SearchableNativeSelect>
     </label>
   );
 }
@@ -1308,14 +1309,14 @@ function CategoryField({
   return (
     <label className="field">
       <span>Categoría</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+      <SearchableNativeSelect value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">Seleccionar</option>
         {categories.map((item) => (
           <option key={item.id} value={item.id}>
             {item.name}
           </option>
         ))}
-      </select>
+      </SearchableNativeSelect>
     </label>
   );
 }

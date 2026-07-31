@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router';
 import type { CreateClientInput, UpdateClientInput } from '@yukimi/shared';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 import {
   createClient,
   getClient,
@@ -164,7 +165,7 @@ export function ClientFormPage() {
                 </label>
                 <label className="field">
                   <span>Tipo de documento</span>
-                  <select
+                  <SearchableNativeSelect
                     value={documentType}
                     onChange={(event) => setDocumentType(event.target.value)}
                   >
@@ -173,7 +174,7 @@ export function ClientFormPage() {
                     <option value="PASSPORT">Pasaporte</option>
                     <option value="RUC">RUC</option>
                     <option value="OTHER">Otro</option>
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field">
                   <span>Número de documento</span>
@@ -264,7 +265,7 @@ export function ClientFormPage() {
                   </label>
                   <label className="field">
                     <span>Agencia preferida</span>
-                    <select
+                    <SearchableNativeSelect
                       value={preferredPartnerId}
                       onChange={(event) => setPreferredPartnerId(event.target.value)}
                     >
@@ -274,7 +275,7 @@ export function ClientFormPage() {
                           {partner.name}
                         </option>
                       ))}
-                    </select>
+                    </SearchableNativeSelect>
                   </label>
                   <label className="field field-span-2">
                     <span>Referencia</span>

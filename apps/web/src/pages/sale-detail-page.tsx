@@ -26,6 +26,7 @@ import { getCatalogs } from '../features/catalog/catalog-api';
 import { getInventory } from '../features/products/products-api';
 import { SalePaymentsSection } from '../features/payments/sale-payments-section';
 
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 const money = (value: number) =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
 const dateTime = (value: string | null) =>
@@ -628,17 +629,17 @@ export function SaleDetailPage() {
             <div className="form-grid form-grid-2">
               <label className="field">
                 <span>Tipo *</span>
-                <select
+                <SearchableNativeSelect
                   value={returnType}
                   onChange={(event) => setReturnType(event.target.value as 'RETURN' | 'EXCHANGE')}
                 >
                   <option value="RETURN">Devolución</option>
                   <option value="EXCHANGE">Cambio</option>
-                </select>
+                </SearchableNativeSelect>
               </label>
               <label className="field">
                 <span>Condición recibida *</span>
-                <select
+                <SearchableNativeSelect
                   value={returnCondition}
                   onChange={(event) =>
                     setReturnCondition(event.target.value as typeof returnCondition)
@@ -649,11 +650,11 @@ export function SaleDetailPage() {
                   <option value="DAMAGED">Dañado</option>
                   <option value="DEFECTIVE">Defectuoso</option>
                   <option value="OTHER">Otro</option>
-                </select>
+                </SearchableNativeSelect>
               </label>
               <label className="field field-span-2">
                 <span>Producto de la venta *</span>
-                <select
+                <SearchableNativeSelect
                   value={returnItemId}
                   onChange={(event) => setReturnItemId(event.target.value)}
                   required
@@ -663,7 +664,7 @@ export function SaleDetailPage() {
                       {item.productName} · {item.variantName} · comprado {item.quantity}
                     </option>
                   ))}
-                </select>
+                </SearchableNativeSelect>
               </label>
               <label className="field">
                 <span>Cantidad *</span>
@@ -678,7 +679,7 @@ export function SaleDetailPage() {
               </label>
               <label className="field">
                 <span>Almacén receptor *</span>
-                <select
+                <SearchableNativeSelect
                   value={returnWarehouseId}
                   onChange={(event) => setReturnWarehouseId(event.target.value)}
                   required
@@ -694,12 +695,12 @@ export function SaleDetailPage() {
                         {warehouse.name}
                       </option>
                     ))}
-                </select>
+                </SearchableNativeSelect>
               </label>
               {returnType === 'EXCHANGE' ? (
                 <label className="field field-span-2">
                   <span>Variante de reemplazo *</span>
-                  <select
+                  <SearchableNativeSelect
                     value={replacementVariantId}
                     onChange={(event) => setReplacementVariantId(event.target.value)}
                     required
@@ -715,7 +716,7 @@ export function SaleDetailPage() {
                           disponibles
                         </option>
                       ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
               ) : null}
               <label className="field field-span-2">

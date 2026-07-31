@@ -228,7 +228,9 @@ export function SearchableNativeSelect({
                 {option.value === selectedValue ? <Check size={15} /> : null}
               </button>
             ))}
-            {filtered.length === 0 ? <div className="searchable-native-empty">Sin resultados</div> : null}
+            {filtered.length === 0 ? (
+              <div className="searchable-native-empty">Sin resultados</div>
+            ) : null}
           </div>
         </div>
       ) : null}

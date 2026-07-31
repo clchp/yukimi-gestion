@@ -9,6 +9,7 @@ import { Toolbar } from '../components/ui/toolbar';
 import { downloadCsv } from '../features/insights/csv-export';
 import { getAuditLog, registerReportExport } from '../features/insights/insights-api';
 
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 function inputDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -158,7 +159,7 @@ export function AuditPage() {
         <div className="audit-filter-grid">
           <label className="field">
             <span>Módulo</span>
-            <select
+            <SearchableNativeSelect
               value={module}
               onChange={(event) => {
                 setModule(event.target.value);
@@ -173,11 +174,11 @@ export function AuditPage() {
               <option value="IMPORTS">Importaciones</option>
               <option value="FINANCE">Finanzas</option>
               <option value="SYSTEM">Sistema y reportes</option>
-            </select>
+            </SearchableNativeSelect>
           </label>
           <label className="field">
             <span>Acción</span>
-            <select
+            <SearchableNativeSelect
               value={action}
               onChange={(event) => {
                 setAction(event.target.value);
@@ -192,7 +193,7 @@ export function AuditPage() {
               <option value="REVERSE">Reversión</option>
               <option value="DELETE">Eliminación lógica/física</option>
               <option value="OTHER">Otra</option>
-            </select>
+            </SearchableNativeSelect>
           </label>
           <label className="field">
             <span>Desde</span>

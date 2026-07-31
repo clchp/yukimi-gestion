@@ -8,6 +8,7 @@ import { downloadCsv } from '../features/insights/csv-export';
 import { downloadPdf, downloadXlsx } from '../features/insights/file-export';
 import { getReports, registerReportExport } from '../features/insights/insights-api';
 
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 function inputDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -256,14 +257,17 @@ export function ReportsPage() {
         </label>
         <label className="field">
           <span>Almacén</span>
-          <select value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
+          <SearchableNativeSelect
+            value={warehouseId}
+            onChange={(event) => setWarehouseId(event.target.value)}
+          >
             <option value="">Todos los almacenes</option>
             {data?.warehouses.map((warehouse) => (
               <option key={warehouse.id} value={warehouse.id}>
                 {warehouse.name}
               </option>
             ))}
-          </select>
+          </SearchableNativeSelect>
         </label>
       </div>
 

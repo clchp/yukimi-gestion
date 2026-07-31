@@ -8,6 +8,7 @@ import { Panel } from '../components/ui/panel';
 import { StatusBadge } from '../components/ui/status-badge';
 import { getClient, getClients } from '../features/clients/clients-api';
 import { getInventory } from '../features/products/products-api';
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 import {
   confirmSaleDraft,
   getSaleDraft,
@@ -457,7 +458,7 @@ export function NewSalePage() {
                       <>
                         <label>
                           Tipo
-                          <select
+                          <SearchableNativeSelect
                             value={line.discountTypeCode}
                             onChange={(event) =>
                               updateLine(index, { discountTypeCode: event.target.value })
@@ -468,7 +469,7 @@ export function NewSalePage() {
                                 {type.name}
                               </option>
                             ))}
-                          </select>
+                          </SearchableNativeSelect>
                         </label>
                         <label className="sale-discount-reason">
                           Motivo
@@ -511,7 +512,7 @@ export function NewSalePage() {
               <div className="form-grid form-grid-2">
                 <label className="field">
                   <span>Canal de venta</span>
-                  <select
+                  <SearchableNativeSelect
                     value={salesChannelCode}
                     onChange={(event) => setSalesChannelCode(event.target.value)}
                   >
@@ -520,11 +521,11 @@ export function NewSalePage() {
                         {channel.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field">
                   <span>Tipo de venta</span>
-                  <select
+                  <SearchableNativeSelect
                     value={saleTypeCode}
                     onChange={(event) =>
                       setSaleTypeCode(event.target.value as 'REGULAR' | 'CUSTOM_ORDER')
@@ -532,7 +533,7 @@ export function NewSalePage() {
                   >
                     <option value="REGULAR">Regular</option>
                     <option value="CUSTOM_ORDER">Pedido personalizado</option>
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field">
                   <span>Fecha de vencimiento opcional</span>

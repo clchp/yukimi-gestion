@@ -10,6 +10,7 @@ import { getCatalogs } from '../features/catalog/catalog-api';
 import { createProduct } from '../features/products/products-api';
 import { uploadProductImages } from '../features/products/upload-product-images';
 
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 interface VariantDraft {
   clientId: string;
   variantName: string;
@@ -328,7 +329,7 @@ export function NewProductPage() {
                 </label>
                 <label className="field">
                   <span>Anime o franquicia</span>
-                  <select
+                  <SearchableNativeSelect
                     value={franchiseId}
                     onChange={(event) => setFranchiseId(event.target.value)}
                   >
@@ -338,7 +339,7 @@ export function NewProductPage() {
                         {item.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field">
                   <span>Personaje</span>
@@ -351,7 +352,7 @@ export function NewProductPage() {
                 </label>
                 <label className="field">
                   <span>Categoría *</span>
-                  <select
+                  <SearchableNativeSelect
                     value={categoryId}
                     onChange={(event) => setCategoryId(event.target.value)}
                   >
@@ -361,11 +362,11 @@ export function NewProductPage() {
                         {item.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field">
                   <span>Marca</span>
-                  <select
+                  <SearchableNativeSelect
                     value={brandId}
                     onChange={(event) => {
                       setBrandId(event.target.value);
@@ -378,11 +379,11 @@ export function NewProductPage() {
                         {item.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field">
                   <span>Línea o colección</span>
-                  <select
+                  <SearchableNativeSelect
                     value={productLineId}
                     onChange={(event) => setProductLineId(event.target.value)}
                   >
@@ -392,17 +393,17 @@ export function NewProductPage() {
                         {item.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field">
                   <span>Estado inicial</span>
-                  <select
+                  <SearchableNativeSelect
                     value={isActive ? 'active' : 'inactive'}
                     onChange={(event) => setIsActive(event.target.value === 'active')}
                   >
                     <option value="active">Activo</option>
                     <option value="inactive">Inactivo</option>
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
                 <label className="field field-span-2">
                   <span>Descripción</span>
@@ -467,7 +468,7 @@ export function NewProductPage() {
                       </label>
                       <label className="field">
                         <span>Moneda</span>
-                        <select
+                        <SearchableNativeSelect
                           value={variant.currencyCode}
                           onChange={(event) =>
                             updateVariant(variant.clientId, { currencyCode: event.target.value })
@@ -480,7 +481,7 @@ export function NewProductPage() {
                                 {currency.symbol} — {currency.name}
                               </option>
                             ))}
-                        </select>
+                        </SearchableNativeSelect>
                       </label>
                       <label className="field">
                         <span>Stock mínimo</span>
@@ -513,7 +514,7 @@ export function NewProductPage() {
                             <label className="field" key={attribute.id}>
                               <span>{attribute.name}</span>
                               {attribute.dataType === 'BOOLEAN' ? (
-                                <select
+                                <SearchableNativeSelect
                                   value={variant.attributes[attribute.id] ?? ''}
                                   onChange={(event) =>
                                     updateAttribute(
@@ -526,7 +527,7 @@ export function NewProductPage() {
                                   <option value="">Sin especificar</option>
                                   <option value="true">Sí</option>
                                   <option value="false">No</option>
-                                </select>
+                                </SearchableNativeSelect>
                               ) : (
                                 <input
                                   type={
@@ -606,7 +607,7 @@ export function NewProductPage() {
                                 </label>
                                 <label className="field">
                                   <span>Moneda costo</span>
-                                  <select
+                                  <SearchableNativeSelect
                                     value={stock.originalCurrencyCode}
                                     onChange={(event) =>
                                       updateStock(
@@ -624,7 +625,7 @@ export function NewProductPage() {
                                           {currency.code}
                                         </option>
                                       ))}
-                                  </select>
+                                  </SearchableNativeSelect>
                                 </label>
                                 <label className="field">
                                   <span>Tipo de cambio</span>

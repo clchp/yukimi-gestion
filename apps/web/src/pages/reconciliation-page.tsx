@@ -15,6 +15,7 @@ import {
 } from '../features/finance/finance-api';
 import { parseBankFile } from '../features/finance/parse-bank-file';
 
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 const money = (value: number, currency = 'PEN') =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(value);
 const date = (value: string) =>
@@ -184,7 +185,7 @@ export function ReconciliationPage() {
       <section className="reconciliation-controls">
         <label className="field">
           <span>Cuenta bancaria o billetera</span>
-          <select
+          <SearchableNativeSelect
             value={accountId || data?.selectedAccountId || ''}
             onChange={(event) => {
               setAccountId(event.target.value);
@@ -197,11 +198,11 @@ export function ReconciliationPage() {
                 {item.name} · {money(item.currentBalance, item.currencyCode)}
               </option>
             ))}
-          </select>
+          </SearchableNativeSelect>
         </label>
         <label className="field">
           <span>Archivo importado</span>
-          <select
+          <SearchableNativeSelect
             value={batchId || data?.selectedBatchId || ''}
             onChange={(event) => setBatchId(event.target.value)}
           >
@@ -211,7 +212,7 @@ export function ReconciliationPage() {
                 {item.code} · {item.originalFilename}
               </option>
             ))}
-          </select>
+          </SearchableNativeSelect>
         </label>
       </section>
 

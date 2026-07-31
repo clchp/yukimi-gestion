@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
+import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
 import {
   getDelivery,
   getDeliverySupportData,
@@ -271,7 +272,7 @@ export function EditDeliveryPage() {
               {method === 'AGENCY' || method === 'MOTORBIKE' ? (
                 <label className="field">
                   <span>{method === 'AGENCY' ? 'Agencia' : 'Courier o motorizado'}</span>
-                  <select
+                  <SearchableNativeSelect
                     value={operatorId}
                     onChange={(event) => setOperatorId(event.target.value)}
                     required
@@ -282,12 +283,15 @@ export function EditDeliveryPage() {
                         {operator.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableNativeSelect>
                 </label>
               ) : null}
               <label className="field">
                 <span>Dirección o punto de referencia</span>
-                <select value={addressId} onChange={(event) => setAddressId(event.target.value)}>
+                <SearchableNativeSelect
+                  value={addressId}
+                  onChange={(event) => setAddressId(event.target.value)}
+                >
                   <option value="">Sin dirección registrada</option>
                   {selectedSale.addresses.map((address) => (
                     <option key={address.id} value={address.id}>
@@ -295,7 +299,7 @@ export function EditDeliveryPage() {
                       {address.isPrimary ? ' · Principal' : ''}
                     </option>
                   ))}
-                </select>
+                </SearchableNativeSelect>
               </label>
               <label className="field">
                 <span>Fecha planificada de despacho</span>
@@ -326,7 +330,7 @@ export function EditDeliveryPage() {
               </label>
               <label className="field">
                 <span>Quién asume el costo</span>
-                <select
+                <SearchableNativeSelect
                   value={costPayer}
                   onChange={(event) => setCostPayer(event.target.value as typeof costPayer)}
                 >
@@ -334,7 +338,7 @@ export function EditDeliveryPage() {
                   <option value="BUSINESS">Yukimi</option>
                   <option value="SHARED">Compartido</option>
                   <option value="NOT_APPLICABLE">No aplica</option>
-                </select>
+                </SearchableNativeSelect>
               </label>
               <label className="field field-span-2">
                 <span>Notas</span>
