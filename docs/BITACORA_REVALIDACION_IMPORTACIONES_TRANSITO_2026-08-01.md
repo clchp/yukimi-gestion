@@ -49,13 +49,55 @@ Se avanzó únicamente la caja `CJA-0000004` desde `Enviada` hasta `En tránsito
 - Las cajas siguen mostrando `Faltantes: 37` y `Faltantes: 25` antes de la recepción física.
 - Hasta la recepción debe mostrarse `Pendientes de recibir`.
 
-## Siguiente prueba recomendada
+## Segunda prueba ejecutada — ambas cajas en tránsito
 
-- Avanzar `CJA-0000005` a `En tránsito`.
-- Verificar si la importación general cambia automáticamente a `En tránsito` cuando ambas cajas alcanzan ese estado.
-- Si continúa en `Despacho confirmado`, quedará confirmado que el estado general no se consolida en ninguna etapa posterior al despacho.
-- Después se probará una recepción parcial de una sola caja antes de modificar el inventario.
+Se avanzó `CJA-0000005` desde `Enviada` hasta `En tránsito`.
+
+### Resultado observado
+
+- `CJA-0000004`: `En tránsito`.
+- `CJA-0000005`: `En tránsito`.
+- Ambas cajas ofrecen como siguiente acción `Avanzar a Recibida en Perú`.
+- La importación general `IMP-000003` continúa mostrando `Despacho confirmado`.
+- La línea de tiempo general continúa detenida en `Despacho confirmado`.
+- La acción general continúa mostrando `Avanzar a Embarcado`.
+- Las unidades recibidas permanecen en `0`.
+- No se generó ingreso de inventario, lo cual es correcto.
+- El historial registró por separado:
+  - `CJA-0000004: Enviada → En tránsito`.
+  - `CJA-0000005: Enviada → En tránsito`.
+
+## Hallazgo 20 — El estado general nunca se consolida después del despacho
+
+- La prueba confirma que el estado general no se recalcula ni siquiera cuando todas las cajas alcanzan la misma etapa posterior.
+- Cuando ambas cajas están en tránsito, la importación debe mostrar automáticamente `En tránsito`.
+- La acción general correcta debería ser `Marcar todas las cajas en tránsito como recibidas en Perú` únicamente si se mantiene una acción masiva; de lo contrario, debe desaparecer y dejar el avance por caja.
+- El botón `Avanzar a Embarcado` es incorrecto y debe desaparecer porque ninguna caja permanece en despacho confirmado.
+- La línea de tiempo general debe marcar `Enviada` como completada y `En tránsito` como etapa actual.
+
+## Regla de consolidación recomendada
+
+- El estado general debe calcularse desde los estados reales de las cajas.
+- Cuando todas las cajas comparten un estado, la importación muestra ese mismo estado.
+- Cuando existen estados diferentes, debe mostrar un resumen parcial, por ejemplo:
+  - `Embarque parcial — 1 de 2 cajas`.
+  - `Tránsito parcial — 1 de 2 cajas`.
+  - `Recepción parcial — 1 de 2 cajas`.
+- La acción superior debe ser una acción masiva explícita o no mostrarse.
+- Nunca debe permitir repetir una etapa ya completada por todas las cajas.
+
+## Siguiente prueba recomendada — recepción parcial en Perú
+
+- Avanzar únicamente `CJA-0000004` a `Recibida en Perú`.
+- No avanzar todavía `CJA-0000005`.
+- Abrir la ventana y revisar qué campos solicita antes de confirmar.
+- Debe permitir registrar la llegada física a Perú, pero todavía no necesariamente aumentar stock hasta confirmar las cantidades recibidas.
+- Después del cambio debe esperarse:
+  - `CJA-0000004`: `Recibida en Perú`.
+  - `CJA-0000005`: `En tránsito`.
+  - Estado general: `Recepción parcial — 1 de 2 cajas`.
+  - Inventario: sin incremento hasta confirmar la recepción física y cantidades por producto.
 
 ## Estado
 
-**Prueba de tránsito parcial completada. El seguimiento por caja funciona, pero el estado y la acción general permanecen incorrectos. Pendiente continuar con la segunda caja y la recepción parcial. `main` no debe modificarse.**
+**Las dos cajas se encuentran en `En tránsito`, pero la importación general continúa incorrectamente en `Despacho confirmado`. Queda confirmado el defecto de consolidación del estado general. Pendiente probar la recepción parcial de una caja. `main` no debe modificarse.**
