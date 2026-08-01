@@ -94,12 +94,13 @@ function normalizeAllowedTransitions(detail: DeliveryDetail): DeliveryDetail['al
     detail.allowedTransitions.map((transition) => [transition.stateCode, transition]),
   );
 
-  return allowedCodes.map((stateCode) =>
-    repositoryTransitions.get(stateCode) ?? {
-      stateCode,
-      name: stateNames[stateCode],
-      requiresReason: true,
-    },
+  return allowedCodes.map(
+    (stateCode) =>
+      repositoryTransitions.get(stateCode) ?? {
+        stateCode,
+        name: stateNames[stateCode],
+        requiresReason: true,
+      },
   );
 }
 

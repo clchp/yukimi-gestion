@@ -262,7 +262,8 @@ export function NewDeliveryPage() {
                   </small>
                 </div>
                 <StatusBadge tone="info">
-                  {deliveryStateLabels[selectedSale.deliveryStateCode] ?? selectedSale.deliveryStateCode}
+                  {deliveryStateLabels[selectedSale.deliveryStateCode] ??
+                    selectedSale.deliveryStateCode}
                 </StatusBadge>
               </div>
             ) : null}
@@ -459,7 +460,9 @@ export function NewDeliveryPage() {
                   }}
                   placeholder="Indicaciones de entrega, horario, persona que recibe…"
                 />
-                {fieldErrors.notes ? <small className="field-error">{fieldErrors.notes}</small> : null}
+                {fieldErrors.notes ? (
+                  <small className="field-error">{fieldErrors.notes}</small>
+                ) : null}
               </label>
             </div>
           </Panel>

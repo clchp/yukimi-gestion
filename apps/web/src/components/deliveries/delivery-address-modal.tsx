@@ -163,7 +163,12 @@ export function DeliveryAddressModal({
         {errorMessage ? <div className="alert alert-error">{errorMessage}</div> : null}
 
         <div className="modal-actions">
-          <button className="button button-secondary" type="button" disabled={isPending} onClick={onClose}>
+          <button
+            className="button button-secondary"
+            type="button"
+            disabled={isPending}
+            onClick={onClose}
+          >
             Cancelar
           </button>
           <button className="button button-primary" type="submit" disabled={isPending}>

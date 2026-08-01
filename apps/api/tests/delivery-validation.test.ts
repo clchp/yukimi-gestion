@@ -56,10 +56,10 @@ test('other delivery methods require destination and an explanatory note', () =>
 });
 
 test('agency delivery transitions are sequential', () => {
-  assert.deepEqual(
-    getAllowedDeliveryTransitionCodes('AGENCY', 'PENDING_AGENCY_DISPATCH'),
-    ['DELIVERED_TO_AGENCY', 'CANCELLED'],
-  );
+  assert.deepEqual(getAllowedDeliveryTransitionCodes('AGENCY', 'PENDING_AGENCY_DISPATCH'), [
+    'DELIVERED_TO_AGENCY',
+    'CANCELLED',
+  ]);
   assert.deepEqual(getAllowedDeliveryTransitionCodes('AGENCY', 'DELIVERED_TO_AGENCY'), [
     'OUT_FOR_DELIVERY',
     'CANCELLED',

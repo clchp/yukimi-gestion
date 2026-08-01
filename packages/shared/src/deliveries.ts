@@ -165,10 +165,7 @@ type DeliveryLogisticsValue = {
   items: Array<{ saleItemId: string; quantity: number }>;
 };
 
-function validateDeliveryLogistics(
-  value: DeliveryLogisticsValue,
-  context: z.RefinementCtx,
-): void {
+function validateDeliveryLogistics(value: DeliveryLogisticsValue, context: z.RefinementCtx): void {
   if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
     context.addIssue({
       code: 'custom',
@@ -203,10 +200,7 @@ function validateDeliveryLogistics(
     });
   }
 
-  if (
-    value.deliveryMethod === 'OTHER' &&
-    (!value.notes || value.notes.trim().length < 5)
-  ) {
+  if (value.deliveryMethod === 'OTHER' && (!value.notes || value.notes.trim().length < 5)) {
     context.addIssue({
       code: 'custom',
       path: ['notes'],

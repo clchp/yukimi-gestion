@@ -1,9 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type {
-  CreateClientAddressInput,
-  DeliveryMethod,
-  UpdateDeliveryInput,
-} from '@yukimi/shared';
+import type { CreateClientAddressInput, DeliveryMethod, UpdateDeliveryInput } from '@yukimi/shared';
 import { ArrowLeft, Check, PackageCheck, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -358,7 +354,10 @@ export function EditDeliveryPage() {
                     value={addressId}
                     onChange={(event) => {
                       setAddressId(event.target.value);
-                      setFieldErrors((current) => ({ ...current, destinationAddressId: undefined }));
+                      setFieldErrors((current) => ({
+                        ...current,
+                        destinationAddressId: undefined,
+                      }));
                     }}
                   >
                     <option value="">Selecciona una dirección o punto</option>
@@ -436,7 +435,9 @@ export function EditDeliveryPage() {
                   }}
                   placeholder="Indicaciones de entrega, horario, persona que recibe…"
                 />
-                {fieldErrors.notes ? <small className="field-error">{fieldErrors.notes}</small> : null}
+                {fieldErrors.notes ? (
+                  <small className="field-error">{fieldErrors.notes}</small>
+                ) : null}
               </label>
               <label className="field field-span-2">
                 <span>Motivo de la corrección *</span>

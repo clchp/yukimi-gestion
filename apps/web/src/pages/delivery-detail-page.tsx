@@ -199,7 +199,9 @@ export function DeliveryDetailPage() {
           <AlertTriangle size={18} />
           <div>
             <strong>La venta todavía tiene {money(pendingBalance)} de saldo pendiente.</strong>
-            <span>La preparación está permitida; verifica el pago antes de ejecutar el despacho.</span>
+            <span>
+              La preparación está permitida; verifica el pago antes de ejecutar el despacho.
+            </span>
           </div>
         </div>
       ) : null}
@@ -406,7 +408,9 @@ export function DeliveryDetailPage() {
                 <AlertTriangle size={18} />
                 <div>
                   <strong>Saldo pendiente: {money(pendingBalance)}</strong>
-                  <span>Confirma que revisaste el pago antes de continuar con el movimiento físico.</span>
+                  <span>
+                    Confirma que revisaste el pago antes de continuar con el movimiento físico.
+                  </span>
                 </div>
               </div>
             ) : null}
