@@ -93,6 +93,42 @@ Validar si el sistema permite crear una entrega por agencia sin dirección ni pu
 - Debe ofrecer la acción `Agregar dirección o punto de entrega` sin perder los datos del formulario.
 - El estado `Sin pago` debe seguir visible como advertencia, pero no necesariamente impedir la preparación logística.
 
+## Resultado real de la prueba — ENT-0000005
+
+- El sistema permitió crear la entrega por agencia con `Sin dirección registrada`.
+- La entrega quedó en estado `Pendiente de despacho a agencia`.
+- No se mostró una advertencia visible por tratarse de una venta `Sin pago`.
+- El resultado confirma dos defectos funcionales:
+  1. Falta validación de destino obligatorio para una entrega por agencia.
+  2. Falta una advertencia clara del saldo pendiente durante la preparación logística.
+- La operación creada conserva correctamente:
+  - Agencia `Olva`.
+  - Fecha planificada `2026-08-01`.
+  - Costo `S/ 15.00`.
+  - Responsable del costo: cliente.
+  - Notas de la prueba.
+
+## Hallazgo 4 — Presentación visual del detalle de entrega
+
+- En el resumen superior aparecen valores pegados a sus etiquetas, por ejemplo `VentaVTA-0000012`, `ClientePriscila`, `MétodoAgencia`, `Unidades1` y `CostoS/ 15.00`.
+- En la tarjeta de fechas también aparecen textos unidos, como `Planificado2026-08-01`, `DespachadoSin registrar` y `Entregado al clienteSin registrar`.
+- Debe existir separación visual suficiente entre etiqueta y valor, manteniendo columnas, márgenes y alineación uniforme.
+- Los códigos, nombres, importes y estados no deben verse amontonados al cambiar el ancho de pantalla.
+
+## Hallazgo 5 — Acción siguiente incoherente
+
+- La entrega ya está en estado `Pendiente de despacho a agencia`, pero la sección `Siguiente acción` muestra un botón llamado `Pendiente de indicaciones`.
+- Ese texto parece representar un estado anterior, por lo que podría hacer retroceder el flujo logístico de manera confusa.
+- La siguiente acción esperada para una entrega por agencia debería ser una opción como `Registrar despacho a agencia` o `Marcar como entregado a agencia`, según la secuencia definida.
+- No debe ofrecerse como acción principal un estado anterior sin una explicación y confirmación explícita.
+- Antes de continuar esta prueba, se debe revisar el resto de botones de la sección para confirmar si existen más transiciones disponibles.
+
+## Clasificación de esta ronda
+
+- **Defectos funcionales:** creación de entrega por agencia sin destino, ausencia de advertencia por saldo pendiente y posible transición logística regresiva.
+- **Defectos visuales:** etiquetas y valores pegados en resumen y fechas.
+- **Datos que sí se conservaron:** operador, fecha planificada, costo, responsable del costo y notas.
+
 ## Estado
 
-**Pendiente de continuar la prueba manual y definir la política final de despacho con saldo pendiente. `main` no debe modificarse.**
+**La primera prueba de creación de entrega falló en las validaciones esperadas. Pendiente revisar las transiciones de estado sin ejecutar una acción regresiva. `main` no debe modificarse.**
