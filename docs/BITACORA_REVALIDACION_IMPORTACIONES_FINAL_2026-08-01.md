@@ -80,13 +80,18 @@
 - Se añade acceso directo al detalle de lotes y costos en Inventario.
 - Se aclara que la valorización no representa un pago bancario automático.
 
-## Validación esperada
+## Validación automática
 
-- Formato, tipos, pruebas de API y compilación deben finalizar sin errores.
-- La rama `version-1-1` solo debe recibir estos cambios mediante pull request aprobado.
-- No se requiere reiniciar ni borrar la base de datos para estas correcciones de presentación y flujo.
+- Lint aprobado.
+- Formato aprobado.
+- Compilación del paquete compartido aprobada.
+- Verificación de tipos aprobada.
+- Pruebas de API aprobadas.
+- Validaciones estáticas de migraciones, base de datos, interfaz y cumplimiento aprobadas.
+- Compilación completa aprobada.
 
 ## Estado de integración
 
-- Correcciones consolidadas en el pull request de Importaciones.
-- Validación automática final en ejecución antes de integrar a `version-1-1`.
+- Correcciones consolidadas y validadas en el pull request de Importaciones.
+- Pendiente únicamente la comprobación final del flujo de CI antes de integrar a `version-1-1`.
+- No se requiere reiniciar ni borrar la base de datos para estas correcciones de presentación y flujo.
