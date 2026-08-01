@@ -7,47 +7,6 @@ on:
     branches: [main, version-1-1]
 
 jobs:
-  apply-import-lint-fix:
-    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'fix/importaciones-revalidacion-final' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - name: Aplicar corrección pendiente
-        run: python3 automation/fix-import-lint.py
-      - run: npm ci
-      - run: npm run format
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm run build:shared
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run test:migrations:static
-      - run: npm run test:db:static
-      - run: npm run test:ui:static
-      - run: npm run test:compliance:static
-      - run: npm run build
-      - name: Restaurar workflow y quitar parche temporal
-        run: |
-          git fetch origin version-1-1
-          git checkout origin/version-1-1 -- .github/workflows/ci.yml
-          rm -f automation/fix-import-lint.py
-      - name: Publicar corrección validada
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "fix(imports): pass final validation" || exit 0
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
-
   verify:
     runs-on: ubuntu-latest
     steps:

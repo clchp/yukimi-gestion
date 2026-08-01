@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ImportDetail, InventoryMovementAction, InventoryRow } from '@yukimi/shared';
+import type { InventoryMovementAction, InventoryRow } from '@yukimi/shared';
 import {
   AlertTriangle,
   Boxes,
