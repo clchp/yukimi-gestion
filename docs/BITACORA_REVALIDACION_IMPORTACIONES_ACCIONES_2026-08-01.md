@@ -89,19 +89,23 @@ Durante la validación de `IMP-000003`, en estado `Despacho confirmado`, se revi
 - La acción masiva debe mostrar cuántas cajas afectará y aplicar el cambio solo a las cajas que estén habilitadas para avanzar.
 - No debe existir una actualización general separada que deje las cajas atrás ni una actualización por caja que deje el resumen general incorrecto.
 
-## Prueba manual propuesta — embarque parcial
+## Resultado de la prueba manual — embarque parcial
 
-- No utilizar todavía el botón general.
-- Avanzar únicamente `CJA-0000004` a `Embarcada`.
-- Registrar como motivo: `Prueba manual de embarque parcial de la primera caja.`
-- Mantener o registrar su tracking `1104` si el sistema lo solicita.
-- Después del cambio, comprobar:
-  - `CJA-0000004`: Embarcada.
-  - `CJA-0000005`: Despacho confirmado.
-  - Importación general: `Embarque parcial`, `En proceso` o `1 de 2 cajas embarcadas`; no debe mostrar `Embarcada` completa.
-  - Inventario: sin incremento.
-  - Historial: cambio registrado únicamente para la caja avanzanda.
-- Si la importación general se marca completamente como `Embarcada` al avanzar una sola caja, registrar defecto funcional.
+- Se avanzó únicamente `CJA-0000004`.
+- Resultado observado:
+  - `CJA-0000004`: `Enviada`.
+  - `CJA-0000005`: `Despacho confirmado`.
+  - La importación general continuó mostrando `Despacho confirmado`.
+  - La acción general continuó mostrando `Avanzar a Embarcado`.
+  - El inventario permaneció con 0 unidades recibidas, lo cual es correcto.
+- La prueba confirma que el avance independiente por caja funciona.
+- Sin embargo, el resumen general no expresa que existe un embarque parcial.
+- Debe mostrarse una señal clara como:
+  - `Embarque parcial — 1 de 2 cajas`, o
+  - `En proceso de embarque`.
+- La acción general debe cambiar a una etiqueta explícita como `Embarcar 1 caja pendiente` o `Embarcar todas las cajas pendientes`, indicando cuántas cajas serán afectadas.
+- No debe decir simplemente `Avanzar a Embarcado`, porque puede interpretarse como cambiar solo el estado general sin actuar sobre la caja restante.
+- El historial debe registrar únicamente el avance de `CJA-0000004` en esta prueba.
 
 ## Hallazgo 14 — Etiqueta `Faltantes` todavía prematura
 
@@ -116,6 +120,15 @@ Durante la validación de `IMP-000003`, en estado `Despacho confirmado`, se revi
 - Renombrar el campo como `Tracking maestro (opcional)` para dejarlo claro.
 - Antes de permitir `Embarcado`, debe validarse la existencia de operador internacional y la coherencia de estados de todas las cajas.
 
+## Hallazgo 16 — Terminología inconsistente
+
+- La misma etapa aparece con tres textos distintos:
+  - `Embarcado` en la acción general.
+  - `Embarcada` en el botón de la caja.
+  - `Enviada` en el estado ya aplicado a la caja.
+- Debe elegirse una única terminología y aplicarse en línea de tiempo, botones, tarjetas, historial, filtros y reportes.
+- Propuesta: usar `Embarcada` para caja y `Embarcada` para importación, con una descripción secundaria `Enviada desde origen`.
+
 ## Estado
 
-**Hallazgos funcionales y de experiencia de usuario registrados. Pendiente ejecutar la prueba de embarque parcial e implementar las correcciones en `version-1-1`. `main` no debe modificarse.**
+**La prueba de embarque parcial fue ejecutada. El avance por caja funciona, pero el resumen general, la acción masiva y la terminología requieren corrección. Pendiente continuar con la segunda caja y las etapas En tránsito, Recibida en Perú e Ingresada a stock. `main` no debe modificarse.**
