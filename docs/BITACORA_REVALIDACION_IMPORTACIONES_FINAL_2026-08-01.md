@@ -89,9 +89,11 @@
 - Pruebas de API aprobadas.
 - Validaciones estáticas de migraciones, base de datos, interfaz y cumplimiento aprobadas.
 - Compilación completa aprobada.
+- Migraciones y pruebas de la base de datos local aprobadas.
 
 ## Estado de integración
 
-- Correcciones consolidadas y validadas en el pull request de Importaciones.
-- Pendiente únicamente la comprobación final del flujo de CI antes de integrar a `version-1-1`.
-- No se requiere reiniciar ni borrar la base de datos para estas correcciones de presentación y flujo.
+- Pull request `#7` integrado correctamente en `version-1-1`.
+- Commit de integración: `cc4e8071f1df2e005c8eecfae8022f8b7417021b`.
+- `main` permanece intacta.
+- No se requiere reiniciar, borrar ni volver a migrar la base de datos para estas correcciones de presentación y flujo.
