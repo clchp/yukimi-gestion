@@ -68,17 +68,40 @@ Durante la validación de `IMP-000003`, en estado `Despacho confirmado`, se revi
 - Cada panel debe poder expandirse cuando la administradora necesite revisar detalles.
 - Agregar iconos `(i)` para explicar brevemente el propósito de cada acción.
 
-## Hallazgo 13 — Estados generales y cajas siguen desincronizados
+## Hallazgo 13 — Estados generales y cajas
 
-- La importación general ya llegó a `Despacho confirmado`.
-- Las cajas `CJA-0000004` y `CJA-0000005` continúan como `Registrada` y todavía muestran `Avanzar a Almacén extranjero`.
-- Esto confirma una desincronización entre el estado general y el de las cajas.
-- La interfaz permite que el proceso general avance mientras las cajas permanecen varias etapas atrás.
-- Debe definirse una regla única:
-  - o el estado general se calcula según el avance de todas las cajas;
-  - o cada avance general actualiza automáticamente las cajas compatibles;
-  - o el sistema bloquea el avance general hasta que todas las cajas alcancen el estado requerido.
-- No debe ser posible marcar la importación como embarcada mientras una caja siga solamente registrada.
+- Después de actualizar la página, la importación general y las dos cajas aparecen correctamente en `Despacho confirmado`.
+- Esto confirma que el sistema sí puede sincronizar los estados, aunque la actualización visual no fue inmediata en una revisión anterior.
+- Aun así, la pantalla muestra simultáneamente:
+  - un botón general `Avanzar a Embarcado`;
+  - un botón `Avanzar a Embarcada` dentro de cada caja.
+- Tener ambas acciones sin explicar su alcance genera ambigüedad y riesgo de avanzar dos veces o no saber qué opción usar.
+
+## Regla propuesta — avance general y avance por caja
+
+- Las cajas deben poder avanzar de forma independiente, porque una importación puede contener varias cajas y no necesariamente todas se embarcan, transitan o llegan el mismo día.
+- El estado general de la importación debe ser un resumen calculado automáticamente a partir de los estados de las cajas; no debe ser un estado independiente que pueda contradecirlas.
+- Ejemplos:
+  - Si ambas cajas están en `Despacho confirmado`, la importación muestra `Despacho confirmado`.
+  - Si una caja está `Embarcada` y otra sigue en `Despacho confirmado`, la importación debe mostrar `Embarque parcial — 1 de 2 cajas` o `En proceso de embarque`.
+  - Cuando todas las cajas estén `Embarcadas`, la importación pasa automáticamente a `Embarcada`.
+- El botón general puede conservarse únicamente como acción masiva y debe llamarse claramente `Embarcar todas las cajas pendientes`.
+- La acción masiva debe mostrar cuántas cajas afectará y aplicar el cambio solo a las cajas que estén habilitadas para avanzar.
+- No debe existir una actualización general separada que deje las cajas atrás ni una actualización por caja que deje el resumen general incorrecto.
+
+## Prueba manual propuesta — embarque parcial
+
+- No utilizar todavía el botón general.
+- Avanzar únicamente `CJA-0000004` a `Embarcada`.
+- Registrar como motivo: `Prueba manual de embarque parcial de la primera caja.`
+- Mantener o registrar su tracking `1104` si el sistema lo solicita.
+- Después del cambio, comprobar:
+  - `CJA-0000004`: Embarcada.
+  - `CJA-0000005`: Despacho confirmado.
+  - Importación general: `Embarque parcial`, `En proceso` o `1 de 2 cajas embarcadas`; no debe mostrar `Embarcada` completa.
+  - Inventario: sin incremento.
+  - Historial: cambio registrado únicamente para la caja avanzanda.
+- Si la importación general se marca completamente como `Embarcada` al avanzar una sola caja, registrar defecto funcional.
 
 ## Hallazgo 14 — Etiqueta `Faltantes` todavía prematura
 
@@ -95,4 +118,4 @@ Durante la validación de `IMP-000003`, en estado `Despacho confirmado`, se revi
 
 ## Estado
 
-**Hallazgos funcionales y de experiencia de usuario registrados. Pendiente implementar en `version-1-1`. `main` no debe modificarse.**
+**Hallazgos funcionales y de experiencia de usuario registrados. Pendiente ejecutar la prueba de embarque parcial e implementar las correcciones en `version-1-1`. `main` no debe modificarse.**
