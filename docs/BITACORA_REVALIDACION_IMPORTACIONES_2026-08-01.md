@@ -141,20 +141,37 @@ Validación manual de creación de proveedor, creación de una importación con 
 - Relaciona una venta en preventa con unidades esperadas de la importación.
 - No debe permitir asignar más unidades de las esperadas o disponibles para preventa.
 
+## Resultado del avance a `Compra confirmada`
+
+- La importación `IMP-000003` avanzó correctamente desde `Cotización` hasta `Compra confirmada`.
+- La línea de tiempo marcó `Cotización` como completada y `Compra confirmada` como estado actual.
+- La acción principal cambió a `Avanzar a Almacén extranjero`, lo que corresponde al siguiente paso general esperado.
+- Las unidades recibidas continúan en cero y no se observa ingreso prematuro a stock.
+
+## Hallazgo 11 — Cambio de estado inmediato sin confirmación ni respaldo
+
+- Al pulsar `Avanzar a Compra confirmada`, el cambio se ejecutó inmediatamente.
+- No apareció una ventana de confirmación ni se solicitó fecha real, nota, motivo, número de orden, archivo o referencia que respalde la confirmación de compra.
+- La propia pantalla indica `Avanza solo cuando cuentes con una evidencia real`, pero el sistema no permite registrar esa evidencia en el momento del cambio.
+- Como mínimo debe existir una confirmación explícita que explique el efecto del cambio.
+- De preferencia, la ventana debe permitir registrar una nota o referencia opcional y adjuntar evidencia cuando exista.
+- El historial debe conservar automáticamente fecha, hora y administradora responsable, aunque la evidencia adicional sea opcional.
+- Antes de aprobar esta etapa debe verificarse que ambas cajas queden en un estado compatible y que ninguna haya avanzado automáticamente a una etapa superior.
+
 ## Siguiente prueba recomendada
 
-- No avanzar las cajas directamente.
-- Usar solamente la acción general `Avanzar a Compra confirmada`.
-- Capturar la ventana de confirmación o formulario que aparezca antes de aceptar.
-- Verificar si solicita fecha, evidencia, operador o motivo.
-- Después de confirmar, revisar que la importación y ambas cajas queden en estados compatibles y que el inventario continúe sin aumentar.
+- No pulsar todavía `Avanzar a Almacén extranjero`.
+- Revisar y capturar las dos cajas completas después del cambio general a `Compra confirmada`.
+- Confirmar el estado mostrado en `CJA-0000004` y `CJA-0000005` y los botones que ofrece cada una.
+- Revisar el historial para comprobar que registró fecha, hora y responsable del cambio.
+- Verificar nuevamente que el inventario no haya aumentado.
 
 ## Clasificación
 
-- **Defectos funcionales prioritarios:** validaciones sin campo identificado, imposibilidad visible de crear operador internacional y posible salto de estados entre importación y cajas.
+- **Defectos funcionales prioritarios:** validaciones sin campo identificado, imposibilidad visible de crear operador internacional, posible salto de estados entre importación y cajas y cambio de estado sin confirmación ni respaldo registrable.
 - **Defectos de experiencia de usuario:** resumen superpuesto, campo obligatorio sin asterisco, mensajes sin contexto, etiqueta `Faltantes` prematura y preventa deshabilitada sin explicación.
-- **Comportamientos aprobados:** importación creada en cotización, dos correlativos únicos, 62 unidades esperadas, cero recibidas y ausencia de ingreso prematuro a stock.
+- **Comportamientos aprobados:** importación creada en cotización, dos correlativos únicos, 62 unidades esperadas, cero recibidas, ausencia de ingreso prematuro a stock y avance general de Cotización a Compra confirmada.
 
 ## Estado
 
-**Primera etapa de Importaciones completada con hallazgos registrados. Pendiente continuar el avance a Compra confirmada y revisar la coherencia de estados. `main` no debe modificarse.**
+**La importación avanzó a Compra confirmada. Pendiente verificar la sincronización con ambas cajas y el historial antes de continuar a Almacén extranjero. `main` no debe modificarse.**
