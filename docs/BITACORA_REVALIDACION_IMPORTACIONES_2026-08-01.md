@@ -26,7 +26,7 @@ Validación manual de creación de proveedor, creación de una importación con 
 
 ## Resultado general aprobado hasta ahora
 
-- La importación se creó y quedó en estado `Cotización`.
+- La importación se creó y quedó inicialmente en estado `Cotización`.
 - Se generaron dos cajas con correlativos diferentes.
 - El sistema mostró 62 unidades esperadas y 0 unidades recibidas.
 - La creación no agregó stock al inventario, lo cual es correcto.
@@ -58,8 +58,8 @@ Validación manual de creación de proveedor, creación de una importación con 
   - Mostrar el mensaje debajo de cada campo inválido.
   - Resaltar su borde y etiqueta.
   - Desplazar la pantalla al primer error.
-  - Indicar el nombre del campo en el resumen general, por ejemplo: `Falta operador internacional` o `La fecha de llegada no puede ser anterior a la compra`.
-- No debe obligar a revisar manualmente un formulario largo para descubrir los dos errores.
+  - Indicar el nombre del campo en el resumen general.
+- No debe obligar a revisar manualmente un formulario largo para descubrir los errores.
 
 ## Hallazgo 4 — El resumen flotante tapa el formulario
 
@@ -77,13 +77,10 @@ Validación manual de creación de proveedor, creación de una importación con 
 - Agregar una acción `+ Crear operador` desde el mismo formulario, mediante ventana emergente, sin perder los datos de la importación.
 - La ventana debe permitir nombre, tipo, país, contacto y notas opcionales.
 - Al guardar, el operador nuevo debe quedar seleccionado automáticamente.
-- En estado `Cotización` el operador puede quedar como pendiente si todavía no fue elegido; antes de confirmar despacho o marcar la mercadería como enviada debe ser obligatorio.
+- En estado `Cotización` el operador puede quedar como pendiente si todavía no fue elegido; antes de confirmar el despacho o marcar la mercadería como enviada debe ser obligatorio.
 
-## Hallazgo 6 — Secuencia incoherente entre importación y cajas
+## Hallazgo 6 — Secuencia entre importación y cajas por validar
 
-- La importación está en `Cotización` y su acción principal es `Avanzar a Compra confirmada`.
-- Al mismo tiempo, cada caja muestra `Avanzar a Almacén extranjero`.
-- Esto podría permitir que una caja salte etapas mientras la importación continúa en cotización.
 - Debe existir una matriz clara de transiciones:
   1. Cotización.
   2. Compra confirmada.
@@ -98,8 +95,8 @@ Validación manual de creación de proveedor, creación de una importación con 
 
 ## Hallazgo 7 — `Faltantes` antes de realizar la recepción
 
-- En la caja `CJA-0000004` se muestran 37 esperadas, 0 recibidas y 37 faltantes cuando la importación todavía está en cotización.
-- Antes de la recepción física no se sabe que esas unidades sean faltantes.
+- En la caja `CJA-0000004` se muestran 37 esperadas, 0 recibidas y 37 faltantes antes de la recepción física.
+- Antes de la recepción no se sabe que esas unidades sean faltantes.
 - Cambiar la etiqueta por `Pendientes de recibir` durante cotización, compra, almacén internacional, despacho y tránsito.
 - Utilizar `Faltantes` solamente después de registrar la recepción física y comparar esperado contra recibido.
 
@@ -144,34 +141,41 @@ Validación manual de creación de proveedor, creación de una importación con 
 ## Resultado del avance a `Compra confirmada`
 
 - La importación `IMP-000003` avanzó correctamente desde `Cotización` hasta `Compra confirmada`.
+- Antes de ejecutar el cambio apareció una ventana de confirmación.
+- La ventana solicitó un motivo obligatorio, que quedó asociado al cambio de estado.
 - La línea de tiempo marcó `Cotización` como completada y `Compra confirmada` como estado actual.
-- La acción principal cambió a `Avanzar a Almacén extranjero`, lo que corresponde al siguiente paso general esperado.
-- Las unidades recibidas continúan en cero y no se observa ingreso prematuro a stock.
+- La acción principal cambió a `Avanzar a Almacén extranjero`.
+- Las unidades recibidas continuaron en cero y no se produjo ingreso prematuro a stock.
 
-## Hallazgo 11 — Cambio de estado inmediato sin confirmación ni respaldo
+## Corrección de observación anterior — Confirmación sí existente
 
-- Al pulsar `Avanzar a Compra confirmada`, el cambio se ejecutó inmediatamente.
-- No apareció una ventana de confirmación ni se solicitó fecha real, nota, motivo, número de orden, archivo o referencia que respalde la confirmación de compra.
-- La propia pantalla indica `Avanza solo cuando cuentes con una evidencia real`, pero el sistema no permite registrar esa evidencia en el momento del cambio.
-- Como mínimo debe existir una confirmación explícita que explique el efecto del cambio.
-- De preferencia, la ventana debe permitir registrar una nota o referencia opcional y adjuntar evidencia cuando exista.
-- El historial debe conservar automáticamente fecha, hora y administradora responsable, aunque la evidencia adicional sea opcional.
-- Antes de aprobar esta etapa debe verificarse que ambas cajas queden en un estado compatible y que ninguna haya avanzado automáticamente a una etapa superior.
+- Se elimina la observación anterior que afirmaba que el cambio a `Compra confirmada` se ejecutaba sin confirmación.
+- La confirmación y el motivo obligatorio son adecuados para conservar trazabilidad del cambio.
+- Debe mantenerse consistencia entre la etiqueta y la validación: si el campo es obligatorio debe mostrarse como `Motivo *`; no debe llamarse `Nota opcional` mientras el sistema lo exige.
+- La fecha, hora y administradora responsable deben seguir registrándose automáticamente en el historial.
+
+## Resultado del avance a `En almacén internacional`
+
+- La importación avanzó después a `En almacén internacional`.
+- En la captura, `Cotización` y `Compra confirmada` aparecen completadas y `En almacén internacional` aparece como estado actual.
+- La siguiente acción general mostrada es `Avanzar a Confirmación de despacho`, lo que respeta la secuencia esperada.
+- Las unidades recibidas continúan en cero y los costos adicionales permanecen en S/ 0.00.
+- Antes de confirmar el despacho debe verificarse que exista un operador internacional seleccionado y que los datos reales de seguimiento estén registrados o claramente pendientes.
 
 ## Siguiente prueba recomendada
 
-- No pulsar todavía `Avanzar a Almacén extranjero`.
-- Revisar y capturar las dos cajas completas después del cambio general a `Compra confirmada`.
-- Confirmar el estado mostrado en `CJA-0000004` y `CJA-0000005` y los botones que ofrece cada una.
-- Revisar el historial para comprobar que registró fecha, hora y responsable del cambio.
-- Verificar nuevamente que el inventario no haya aumentado.
+- No confirmar todavía el despacho.
+- Pulsar `Avanzar a Confirmación de despacho` únicamente para abrir la ventana de confirmación.
+- Capturar la ventana completa antes de aceptar.
+- Verificar si exige operador internacional, seguimiento, fecha real, motivo o evidencia.
+- Si permite confirmar sin operador internacional, registrarlo como defecto porque la importación no tendría responsable logístico internacional antes del despacho.
 
 ## Clasificación
 
-- **Defectos funcionales prioritarios:** validaciones sin campo identificado, imposibilidad visible de crear operador internacional, posible salto de estados entre importación y cajas y cambio de estado sin confirmación ni respaldo registrable.
+- **Defectos funcionales prioritarios:** validaciones sin campo identificado, imposibilidad visible de crear operador internacional y posible incompatibilidad entre estados generales y estados de cajas.
 - **Defectos de experiencia de usuario:** resumen superpuesto, campo obligatorio sin asterisco, mensajes sin contexto, etiqueta `Faltantes` prematura y preventa deshabilitada sin explicación.
-- **Comportamientos aprobados:** importación creada en cotización, dos correlativos únicos, 62 unidades esperadas, cero recibidas, ausencia de ingreso prematuro a stock y avance general de Cotización a Compra confirmada.
+- **Comportamientos aprobados:** importación creada en cotización, dos correlativos únicos, 62 unidades esperadas, cero recibidas, ausencia de ingreso prematuro a stock, confirmación con motivo para avanzar estados y secuencia general hasta `En almacén internacional`.
 
 ## Estado
 
-**La importación avanzó a Compra confirmada. Pendiente verificar la sincronización con ambas cajas y el historial antes de continuar a Almacén extranjero. `main` no debe modificarse.**
+**La importación se encuentra en `En almacén internacional`. Pendiente validar la confirmación de despacho y la obligatoriedad del operador internacional. `main` no debe modificarse.**
