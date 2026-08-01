@@ -107,6 +107,26 @@ Durante la validación de `IMP-000003`, en estado `Despacho confirmado`, se revi
 - No debe decir simplemente `Avanzar a Embarcado`, porque puede interpretarse como cambiar solo el estado general sin actuar sobre la caja restante.
 - El historial debe registrar únicamente el avance de `CJA-0000004` en esta prueba.
 
+## Resultado de la prueba manual — todas las cajas embarcadas
+
+- Se avanzó después `CJA-0000005`.
+- Resultado observado:
+  - `CJA-0000004`: `Enviada` y ofrece `Avanzar a En tránsito`.
+  - `CJA-0000005`: `Enviada` y ofrece `Avanzar a En tránsito`.
+  - Ambas cajas están por tanto en la misma etapa posterior al despacho.
+  - La importación general continúa mostrando `Despacho confirmado`.
+  - La línea de tiempo general sigue marcando `Despacho confirmado` como estado actual.
+  - El botón general continúa diciendo `Avanzar a Embarcado`.
+  - Las unidades recibidas continúan en 0, lo cual es correcto mientras la mercadería no haya llegado a Perú.
+- Este resultado confirma un defecto funcional de consolidación: el estado general no se recalcula cuando todas las cajas alcanzan la etapa de embarque.
+- Cuando todas las cajas estén `Embarcadas`, el sistema debe actualizar automáticamente:
+  - estado general: `Embarcada`;
+  - línea de tiempo: etapa de embarque como actual;
+  - siguiente acción general: `Avanzar todas a En tránsito` o una acción masiva equivalente;
+  - etiqueta superior de estado.
+- El botón `Avanzar a Embarcado` ya no debe mostrarse porque no queda ninguna caja pendiente de embarque.
+- La API y la vista deben usar la misma regla de consolidación para evitar que el resumen general contradiga a las cajas.
+
 ## Hallazgo 14 — Etiqueta `Faltantes` todavía prematura
 
 - Las cajas muestran 37 y 25 unidades como `Faltantes` aunque todavía no se ha realizado una recepción física.
@@ -127,8 +147,8 @@ Durante la validación de `IMP-000003`, en estado `Despacho confirmado`, se revi
   - `Embarcada` en el botón de la caja.
   - `Enviada` en el estado ya aplicado a la caja.
 - Debe elegirse una única terminología y aplicarse en línea de tiempo, botones, tarjetas, historial, filtros y reportes.
-- Propuesta: usar `Embarcada` para caja y `Embarcada` para importación, con una descripción secundaria `Enviada desde origen`.
+- Propuesta: usar `Embarcada` para caja e importación, con una descripción secundaria `Enviada desde origen`.
 
 ## Estado
 
-**La prueba de embarque parcial fue ejecutada. El avance por caja funciona, pero el resumen general, la acción masiva y la terminología requieren corrección. Pendiente continuar con la segunda caja y las etapas En tránsito, Recibida en Perú e Ingresada a stock. `main` no debe modificarse.**
+**Las dos cajas fueron embarcadas individualmente. El avance por caja funciona, pero la importación general no se consolidó y continúa incorrectamente en `Despacho confirmado`. Pendiente probar el avance parcial a `En tránsito` y corregir la consolidación, las acciones masivas y la terminología en `version-1-1`. `main` no debe modificarse.**
