@@ -424,7 +424,6 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                     </label>
                   );
                 })}
-                <small className="required-note">* Campo obligatorio</small>
               </div>
             ) : null}
 

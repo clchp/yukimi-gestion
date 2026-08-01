@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import type { ImportFilter } from '@yukimi/shared';
 import {
   CalendarClock,
@@ -8,12 +8,12 @@ import {
   Ship,
   TriangleAlert,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PageHeader } from '../components/ui/page-header';
 import { StatusBadge } from '../components/ui/status-badge';
 import { Toolbar } from '../components/ui/toolbar';
-import { getImports } from '../features/imports/imports-api';
+import { getImport, getImports } from '../features/imports/imports-api';
 
 const filters: Array<{ code: ImportFilter; label: string }> = [
   { code: 'ALL', label: 'Todas' },
@@ -66,6 +66,57 @@ export function ImportsPage() {
     queryFn: () => getImports({ search, filter, page, pageSize: 20 }),
     placeholderData: (previous) => previous,
   });
+  const detailQueries = useQueries({
+    queries: (imports.data?.items ?? []).map((item) => ({
+      queryKey: ['import', item.id],
+      queryFn: () => getImport(item.id),
+      staleTime: 60_000,
+    })),
+  });
+  const valuesByImport = useMemo(
+    () =>
+      new Map(
+        (imports.data?.items ?? []).map((item, index) => {
+          const detail = detailQueries[index]?.data;
+          const receivedValue =
+            detail?.boxes.reduce(
+              (shipmentTotal, box) =>
+                shipmentTotal +
+                box.items.reduce(
+                  (boxTotal, line) =>
+                    boxTotal +
+                    line.receivedQuantity *
+                      (line.finalUnitCostPen ?? line.originalUnitCost * line.exchangeRateToPen),
+                  0,
+                ),
+              0,
+            ) ?? 0;
+          const missingValue =
+            detail?.boxes.reduce(
+              (shipmentTotal, box) =>
+                shipmentTotal +
+                box.items.reduce(
+                  (boxTotal, line) =>
+                    boxTotal +
+                    Math.max(0, line.expectedQuantity - line.receivedQuantity) *
+                      (line.finalUnitCostPen ?? line.originalUnitCost * line.exchangeRateToPen),
+                  0,
+                ),
+              0,
+            ) ?? 0;
+          return [
+            item.id,
+            {
+              expectedValue: detail?.totals.purchaseValuePen ?? null,
+              receivedValue: detail ? receivedValue : null,
+              missingValue: detail ? missingValue : null,
+            },
+          ] as const;
+        }),
+      ),
+    [detailQueries, imports.data?.items],
+  );
+
   const totalPages = Math.max(
     1,
     Math.ceil((imports.data?.total ?? 0) / (imports.data?.pageSize ?? 20)),
@@ -169,6 +220,9 @@ export function ImportsPage() {
                 <th>Cajas</th>
                 <th>Unidades</th>
                 <th>Llegada estimada</th>
+                <th>Compra esperada</th>
+                <th>Valor recibido</th>
+                <th>Diferencia</th>
                 <th>Costos extra</th>
                 <th>Estado</th>
                 <th />
@@ -177,14 +231,14 @@ export function ImportsPage() {
             <tbody>
               {imports.isLoading ? (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={12}>
                     <div className="empty-state">Cargando importaciones…</div>
                   </td>
                 </tr>
               ) : null}
               {!imports.isLoading && imports.data?.items.length === 0 ? (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={12}>
                     <div className="empty-state">
                       <strong>No hay importaciones</strong>
                       <p>Crea la primera compra internacional o cambia los filtros.</p>
@@ -192,51 +246,63 @@ export function ImportsPage() {
                   </td>
                 </tr>
               ) : null}
-              {imports.data?.items.map((item) => (
-                <tr key={item.id} onClick={() => navigate(`/importaciones/${item.id}`)}>
-                  <td>
-                    <strong>{item.code}</strong>
-                    <small>{item.masterTrackingNumber ?? 'Sin tracking maestro'}</small>
-                  </td>
-                  <td>
-                    <strong>{item.supplierName ?? 'Sin proveedor'}</strong>
-                    <small>
-                      {item.purchaseDate
-                        ? `Compra: ${date(item.purchaseDate)}`
-                        : 'Compra sin confirmar'}
-                    </small>
-                  </td>
-                  <td>{modeLabels[item.transportMode] ?? item.transportMode}</td>
-                  <td className="numeric-cell">
-                    <strong>{item.boxCount}</strong>
-                    <small>
-                      {item.openIncidents
-                        ? `${item.openIncidents} incidencia(s)`
-                        : 'Sin incidencias'}
-                    </small>
-                  </td>
-                  <td className="numeric-cell">
-                    <strong>
-                      {item.totalReceivedUnits}/{item.totalExpectedUnits}
-                    </strong>
-                    <small>recibidas</small>
-                  </td>
-                  <td>{date(item.estimatedArrivalDate)}</td>
-                  <td className="numeric-cell">{money(item.totalCostPen)}</td>
-                  <td>
-                    <StatusBadge tone={toneFor(item.stateCode, item.isDelayed)}>
-                      {item.isDelayed
-                        ? 'Retrasada'
-                        : (stateLabels[item.stateCode] ?? item.stateCode)}
-                    </StatusBadge>
-                  </td>
-                  <td>
-                    <button className="icon-button table-action" aria-label="Abrir importación">
-                      <MoreHorizontal size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {imports.data?.items.map((item) => {
+                const values = valuesByImport.get(item.id);
+                return (
+                  <tr key={item.id} onClick={() => navigate(`/importaciones/${item.id}`)}>
+                    <td>
+                      <strong>{item.code}</strong>
+                      <small>{item.masterTrackingNumber ?? 'Sin tracking maestro'}</small>
+                    </td>
+                    <td>
+                      <strong>{item.supplierName ?? 'Sin proveedor'}</strong>
+                      <small>
+                        {item.purchaseDate
+                          ? `Compra: ${date(item.purchaseDate)}`
+                          : 'Compra sin confirmar'}
+                      </small>
+                    </td>
+                    <td>{modeLabels[item.transportMode] ?? item.transportMode}</td>
+                    <td className="numeric-cell">
+                      <strong>{item.boxCount}</strong>
+                      <small>
+                        {item.openIncidents
+                          ? `${item.openIncidents} incidencia(s)`
+                          : 'Sin incidencias'}
+                      </small>
+                    </td>
+                    <td className="numeric-cell">
+                      <strong>
+                        {item.totalReceivedUnits}/{item.totalExpectedUnits}
+                      </strong>
+                      <small>recibidas</small>
+                    </td>
+                    <td>{date(item.estimatedArrivalDate)}</td>
+                    <td className="numeric-cell">
+                      {values?.expectedValue == null ? 'Cargando…' : money(values.expectedValue)}
+                    </td>
+                    <td className="numeric-cell">
+                      {values?.receivedValue == null ? 'Cargando…' : money(values.receivedValue)}
+                    </td>
+                    <td className="numeric-cell">
+                      {values?.missingValue == null ? 'Cargando…' : money(values.missingValue)}
+                    </td>
+                    <td className="numeric-cell">{money(item.totalCostPen)}</td>
+                    <td>
+                      <StatusBadge tone={toneFor(item.stateCode, item.isDelayed)}>
+                        {item.isDelayed
+                          ? 'Retrasada'
+                          : (stateLabels[item.stateCode] ?? item.stateCode)}
+                      </StatusBadge>
+                    </td>
+                    <td>
+                      <button className="icon-button table-action" aria-label="Abrir importación">
+                        <MoreHorizontal size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -284,42 +350,61 @@ export function ImportsPage() {
             </button>
           ))}
         </div>
-        {imports.data?.items.map((item) => (
-          <article
-            className="mobile-record-card"
-            key={item.id}
-            onClick={() => navigate(`/importaciones/${item.id}`)}
-          >
-            <div className="mobile-record-header">
-              <div>
-                <strong>{item.code}</strong>
-                <small>
-                  {item.supplierName ?? 'Sin proveedor'} · {modeLabels[item.transportMode]}
-                </small>
+        {imports.data?.items.map((item) => {
+          const values = valuesByImport.get(item.id);
+          return (
+            <article
+              className="mobile-record-card"
+              key={item.id}
+              onClick={() => navigate(`/importaciones/${item.id}`)}
+            >
+              <div className="mobile-record-header">
+                <div>
+                  <strong>{item.code}</strong>
+                  <small>
+                    {item.supplierName ?? 'Sin proveedor'} · {modeLabels[item.transportMode]}
+                  </small>
+                </div>
+                <StatusBadge tone={toneFor(item.stateCode, item.isDelayed)}>
+                  {item.isDelayed ? 'Retrasada' : (stateLabels[item.stateCode] ?? item.stateCode)}
+                </StatusBadge>
               </div>
-              <StatusBadge tone={toneFor(item.stateCode, item.isDelayed)}>
-                {item.isDelayed ? 'Retrasada' : (stateLabels[item.stateCode] ?? item.stateCode)}
-              </StatusBadge>
-            </div>
-            <div className="mobile-record-grid">
-              <span>
-                Cajas<strong>{item.boxCount}</strong>
-              </span>
-              <span>
-                Unidades
-                <strong>
-                  {item.totalReceivedUnits}/{item.totalExpectedUnits}
-                </strong>
-              </span>
-              <span>
-                Llegada<strong>{date(item.estimatedArrivalDate)}</strong>
-              </span>
-              <span>
-                Costos<strong>{money(item.totalCostPen)}</strong>
-              </span>
-            </div>
-          </article>
-        ))}
+              <div className="mobile-record-grid">
+                <span>
+                  Cajas<strong>{item.boxCount}</strong>
+                </span>
+                <span>
+                  Unidades
+                  <strong>
+                    {item.totalReceivedUnits}/{item.totalExpectedUnits}
+                  </strong>
+                </span>
+                <span>
+                  Llegada<strong>{date(item.estimatedArrivalDate)}</strong>
+                </span>
+                <span>
+                  Compra esperada
+                  <strong>
+                    {values?.expectedValue == null ? '—' : money(values.expectedValue)}
+                  </strong>
+                </span>
+                <span>
+                  Valor recibido
+                  <strong>
+                    {values?.receivedValue == null ? '—' : money(values.receivedValue)}
+                  </strong>
+                </span>
+                <span>
+                  Diferencia
+                  <strong>{values?.missingValue == null ? '—' : money(values.missingValue)}</strong>
+                </span>
+                <span>
+                  Costos extra<strong>{money(item.totalCostPen)}</strong>
+                </span>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </main>
   );
