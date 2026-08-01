@@ -158,10 +158,10 @@ const deliveryLogisticsFields = {
 
 type DeliveryLogisticsValue = {
   deliveryMethod: DeliveryMethod;
-  operatorPartnerId?: string | null;
-  destinationAddressId?: string | null;
-  plannedDispatchDate?: string | null;
-  notes?: string | null;
+  operatorPartnerId?: string | null | undefined;
+  destinationAddressId?: string | null | undefined;
+  plannedDispatchDate?: string | null | undefined;
+  notes?: string | null | undefined;
   items: Array<{ saleItemId: string; quantity: number }>;
 };
 
