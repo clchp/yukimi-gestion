@@ -67,21 +67,62 @@ Además debe solicitar:
 - Una recepción parcial debe conservar la caja abierta o con estado `Recibida parcialmente` hasta resolver las unidades pendientes.
 - Repetir la confirmación no debe duplicar el stock.
 
-## Siguiente prueba recomendada
+## Revisión de la ventana `Recibir CJA-0000004`
 
-- Pulsar `Recibir e ingresar caja a stock` en `CJA-0000004`.
-- No confirmar todavía.
-- Capturar la ventana o pantalla completa para revisar campos y validaciones.
-- Probar una recepción parcial controlada:
-  - Figura de acción Bulma — Almacén Camila: esperadas 14, recibidas 13.
-  - Figura de acción Bulma — Almacén Lorena: esperadas 23, recibidas 23.
-- Resultado esperado al confirmar después:
-  - Total recibido de la caja: 36.
-  - Faltante real: 1 unidad en Almacén Camila.
-  - Ingreso de 13 unidades a Camila y 23 a Lorena.
-  - Creación de incidencia o solicitud de explicación por la unidad faltante.
-  - Inventario general incrementado una sola vez en 36 unidades.
+### Elementos correctos observados
+
+- La ventana identifica claramente la caja que se recibirá.
+- Muestra por cada línea:
+  - Producto y variante.
+  - SKU.
+  - Almacén de destino.
+  - Cantidad esperada.
+  - Cantidad recibida editable.
+  - Nota por línea.
+- Calcula un resumen inferior con:
+  - Total esperado.
+  - Total que se recibirá.
+  - Diferencia.
+- Incluye `Motivo de la recepción *` como campo obligatorio.
+- El botón `Revisar y confirmar recepción` indica que todavía existirá una segunda confirmación antes de crear el movimiento de inventario.
+
+### Hallazgo 23 — Campos faltantes o poco explícitos
+
+- No existe un campo separado para `Cantidad dañada`.
+- No existe un campo visible para adjuntar evidencia cuando haya faltantes o daños.
+- La diferencia se muestra solo en el resumen general; conviene mostrar también la diferencia calculada en cada línea.
+- El texto de ayuda dice que se cambiará la cantidad si faltan unidades, pero no explica qué ocurrirá con la unidad faltante ni si se generará una incidencia.
+- Debe aparecer un icono `(i)` o texto contextual breve cuando exista diferencia: `Las unidades faltantes o dañadas no ingresarán a stock y requerirán una observación o incidencia.`
+- La fecha real de recepción no aparece como campo editable; puede registrarse automáticamente con fecha y hora actuales, pero debe mostrarse en la revisión final y permitir corrección cuando la recepción se registre después.
+
+## Prueba manual a ejecutar
+
+Modificar únicamente la primera línea:
+
+- Figura de acción Bulma — Almacén Camila:
+  - Esperado: 14.
+  - Recibido: 13.
+  - Nota de la línea: `Falta 1 unidad al abrir la caja.`
+- Figura de acción Bulma — Almacén Lorena:
+  - Esperado: 23.
+  - Recibido: 23.
+  - Nota de la línea: dejar vacía.
+- Motivo de la recepción:
+  - `Prueba manual de recepción parcial de CJA-0000004.`
+
+### Resultado esperado antes de confirmar definitivamente
+
+- Esperadas: 37.
+- Se recibirán: 36.
+- Diferencia: 1.
+- La interfaz debe advertir que existe un faltante y explicar que no ingresará a stock.
+- Al pulsar `Revisar y confirmar recepción`, debe aparecer un resumen final que detalle:
+  - 13 unidades para Almacén Camila.
+  - 23 unidades para Almacén Lorena.
+  - 1 unidad faltante.
+  - Motivo y observación.
+- No debe ingresar stock hasta la confirmación final.
 
 ## Estado
 
-**La recepción parcial en Perú fue registrada sin modificar inventario, lo cual es correcto. Persisten el fallo del estado general y la etiqueta prematura de faltantes. Pendiente revisar la pantalla de recepción física antes de ingresar la caja a stock. `main` no debe modificarse.**
+**La pantalla de recepción física permite capturar cantidades por línea y destino, pero requiere mejorar el tratamiento explícito de daños, evidencia, diferencia por línea y fecha real. Pendiente ejecutar la recepción parcial controlada y revisar la confirmación final. `main` no debe modificarse.**
