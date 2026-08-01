@@ -1,0 +1,47 @@
+name: Patch delivery field error types
+
+on:
+  push:
+    branches:
+      - fix/entregas-flow-validation
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/entregas-flow-validation
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Patch exact optional field-error values
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          paths = [
+              Path('apps/web/src/pages/new-delivery-page.tsx'),
+              Path('apps/web/src/pages/edit-delivery-page.tsx'),
+          ]
+          old = "Record<'operatorPartnerId' | 'destinationAddressId' | 'plannedDispatchDate' | 'notes', string>"
+          new = "Record<\n    'operatorPartnerId' | 'destinationAddressId' | 'plannedDispatchDate' | 'notes',\n    string | undefined\n  >"
+          for path in paths:
+              text = path.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Pattern not found in {path}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - run: npm ci
+      - run: npm run format
+      - name: Commit patched files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/pages/new-delivery-page.tsx apps/web/src/pages/edit-delivery-page.tsx
+          git commit -m "fix(deliveries): clear inline errors safely"
+          git push origin HEAD:fix/entregas-flow-validation
