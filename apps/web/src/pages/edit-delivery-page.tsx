@@ -38,7 +38,10 @@ const money = (value: number) =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
 
 type DeliveryFieldErrors = Partial<
-  Record<'operatorPartnerId' | 'destinationAddressId' | 'plannedDispatchDate' | 'notes', string>
+  Record<
+    'operatorPartnerId' | 'destinationAddressId' | 'plannedDispatchDate' | 'notes',
+    string | undefined
+  >
 >;
 
 export function EditDeliveryPage() {
