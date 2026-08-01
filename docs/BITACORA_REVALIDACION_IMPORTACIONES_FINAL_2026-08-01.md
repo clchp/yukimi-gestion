@@ -85,3 +85,8 @@
 - Formato, tipos, pruebas de API y compilación deben finalizar sin errores.
 - La rama `version-1-1` solo debe recibir estos cambios mediante pull request aprobado.
 - No se requiere reiniciar ni borrar la base de datos para estas correcciones de presentación y flujo.
+
+## Estado de integración
+
+- Correcciones consolidadas en el pull request de Importaciones.
+- Validación automática final en ejecución antes de integrar a `version-1-1`.
