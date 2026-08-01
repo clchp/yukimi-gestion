@@ -2591,3 +2591,112 @@
   color: var(--text-muted);
   margin: -8px 0 12px;
 }
+
+/* Importaciones — revalidación final 2026-08-01 */
+.new-import-layout {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 330px);
+}
+.new-import-main,
+.new-import-summary {
+  min-width: 0;
+}
+.new-import-summary .panel {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 112px);
+  overflow: auto;
+}
+.field-with-action {
+  align-items: end;
+}
+.field-with-action > .button {
+  flex: 0 0 auto;
+}
+.import-cost-summary {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.compact-import-actions {
+  align-items: start;
+}
+.import-action-disclosure {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: white;
+  box-shadow: var(--shadow-sm);
+}
+.import-action-disclosure > summary {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 18px;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 820;
+  list-style: none;
+}
+.import-action-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.import-action-disclosure[open] > summary {
+  border-bottom: 1px solid var(--border);
+  background: var(--primary-pale);
+}
+.import-action-disclosure > .panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.import-preorder-disclosure {
+  margin: 16px 0;
+}
+.inventory-lot-actions {
+  flex-wrap: nowrap;
+}
+.inventory-lots-modal {
+  width: min(1180px, calc(100vw - 36px));
+}
+.inventory-lot-table {
+  max-height: min(58vh, 620px);
+}
+.inventory-lot-table td,
+.inventory-lot-table th {
+  white-space: nowrap;
+}
+.receive-item-fields {
+  grid-template-columns: 90px 110px minmax(180px, 1fr) 90px;
+}
+.table-panel > .toolbar {
+  padding-inline: 18px;
+}
+.table-panel > .toolbar .search-field {
+  width: min(100%, 620px);
+}
+
+@media (max-width: 1180px) {
+  .new-import-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .new-import-summary .panel {
+    position: static;
+    max-height: none;
+  }
+  .import-cost-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .import-cost-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .receive-item-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .inventory-lot-actions {
+    flex-wrap: wrap;
+  }
+}

@@ -72,7 +72,7 @@ const stateLabels: Record<string, string> = {
   REGISTERED: 'Registrada',
   FOREIGN_WAREHOUSE: 'En almacén internacional',
   DISPATCH_CONFIRMED: 'Despacho confirmado',
-  SHIPPED: 'Enviada',
+  SHIPPED: 'Embarcada',
   IN_TRANSIT: 'En tránsito',
   RECEIVED_PERU: 'Recibida en Perú',
   STOCKED: 'Ingresada a stock',
@@ -85,7 +85,7 @@ const stateHelp: Record<string, string> = {
   REGISTERED: 'La caja fue registrada dentro de la importación.',
   FOREIGN_WAREHOUSE: 'La mercadería llegó al almacén internacional.',
   DISPATCH_CONFIRMED: 'El operador confirmó el despacho.',
-  SHIPPED: 'La mercadería salió del origen.',
+  SHIPPED: 'La mercadería fue embarcada y salió del origen.',
   IN_TRANSIT: 'La mercadería está viajando hacia Perú.',
   RECEIVED_PERU: 'La caja llegó físicamente y ya puede confirmarse su recepción.',
   STOCKED: 'Las cantidades recibidas fueron confirmadas y registradas en inventario.',
@@ -151,6 +151,58 @@ function isZeroReceiptBox(box: ImportDetail['boxes'][number]) {
   );
 }
 
+function deriveImportProgress(data: ImportDetail) {
+  const activeBoxes = data.boxes.filter((box) => box.stateCode !== 'CANCELLED');
+  const storedState = data.stateCode;
+  if (storedState === 'CANCELLED' || storedState === 'STOCKED' || activeBoxes.length === 0) {
+    return {
+      stateCode: storedState,
+      label: stateLabels[storedState] ?? storedState,
+      partial: false,
+      independentBoxes: false,
+    };
+  }
+  const indices = activeBoxes
+    .map((box) => boxFlow.indexOf(box.stateCode))
+    .filter((index) => index >= 0);
+  if (indices.length === 0) {
+    return {
+      stateCode: storedState,
+      label: stateLabels[storedState] ?? storedState,
+      partial: false,
+      independentBoxes: false,
+    };
+  }
+  const maxIndex = Math.max(...indices);
+  const minIndex = Math.min(...indices);
+  const shippedIndex = boxFlow.indexOf('SHIPPED');
+  if (maxIndex < shippedIndex) {
+    return {
+      stateCode: storedState,
+      label: stateLabels[storedState] ?? storedState,
+      partial: false,
+      independentBoxes: false,
+    };
+  }
+  const maxState = boxFlow[maxIndex] as ImportStateCode;
+  const countAtMax = indices.filter((index) => index === maxIndex).length;
+  const partialLabels: Partial<Record<ImportStateCode, string>> = {
+    SHIPPED: 'Embarque parcial',
+    IN_TRANSIT: 'Tránsito parcial',
+    RECEIVED_PERU: 'Recepción parcial',
+    STOCKED: 'Ingreso parcial a stock',
+  };
+  return {
+    stateCode: maxState,
+    label:
+      minIndex === maxIndex
+        ? (stateLabels[maxState] ?? maxState)
+        : `${partialLabels[maxState] ?? 'Avance parcial'} — ${countAtMax} de ${activeBoxes.length} cajas`,
+    partial: minIndex !== maxIndex,
+    independentBoxes: true,
+  };
+}
+
 function stateTone(state: string) {
   if (state === 'STOCKED') return 'success' as const;
   if (state === 'CANCELLED') return 'danger' as const;
@@ -163,6 +215,7 @@ interface ReceiveDialogState {
   repair: boolean;
   quantities: Record<string, string>;
   notes: Record<string, string>;
+  receivedAt: string;
   reason: string;
   errors: Record<string, string>;
 }
@@ -461,6 +514,9 @@ export function ImportDetailPage() {
         box.items.map((item) => [item.id, String(item.expectedQuantity)]),
       ),
       notes: Object.fromEntries(box.items.map((item) => [item.id, ''])),
+      receivedAt: new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
+        .toISOString()
+        .slice(0, 16),
       reason: repair
         ? 'Corrección de caja ingresada a stock sin cantidades recibidas'
         : `Recepción física completa de ${box.code}`,
@@ -479,9 +535,17 @@ export function ImportDetailPage() {
         errors[item.id] = `Ingresa un entero entre 0 y ${item.expectedQuantity}.`;
       } else {
         total += value;
+        if (
+          value < item.expectedQuantity &&
+          (receiveDialog.notes[item.id] ?? '').trim().length < 3
+        ) {
+          errors[`note-${item.id}`] = 'Explica el faltante o daño de esta línea.';
+        }
       }
     }
     if (total <= 0) errors.total = 'No puedes finalizar una caja con cero unidades recibidas.';
+    if (!receiveDialog.receivedAt || Number.isNaN(new Date(receiveDialog.receivedAt).getTime()))
+      errors.receivedAt = 'Selecciona la fecha real de recepción.';
     if (receiveDialog.reason.trim().length < 5)
       errors.reason = 'El motivo debe tener al menos 5 caracteres.';
     if (Object.keys(errors).length > 0) {
@@ -506,7 +570,7 @@ export function ImportDetailPage() {
       repair: receiveDialog.repair,
       input: {
         reason: receiveDialog.reason.trim(),
-        occurredAt: new Date().toISOString(),
+        occurredAt: new Date(receiveDialog.receivedAt).toISOString(),
         items: receiveDialog.box.items.map((item) => ({
           importBoxItemId: item.id,
           receivedQuantity: Number(receiveDialog.quantities[item.id]),
@@ -677,7 +741,32 @@ export function ImportDetailPage() {
   const canCancelShipment = shipmentTransitions.some(
     (transition) => transition.stateCode === 'CANCELLED',
   );
-  const currentShipmentIndex = shipmentFlow.indexOf(importData.stateCode);
+  const progress = deriveImportProgress(importData);
+  const currentShipmentIndex = shipmentFlow.indexOf(progress.stateCode);
+  const receivedInventoryValue = importData.boxes.reduce(
+    (shipmentTotal, box) =>
+      shipmentTotal +
+      box.items.reduce(
+        (boxTotal, item) =>
+          boxTotal +
+          item.receivedQuantity *
+            (item.finalUnitCostPen ?? item.originalUnitCost * item.exchangeRateToPen),
+        0,
+      ),
+    0,
+  );
+  const missingInventoryValue = importData.boxes.reduce(
+    (shipmentTotal, box) =>
+      shipmentTotal +
+      box.items.reduce(
+        (boxTotal, item) =>
+          boxTotal +
+          Math.max(0, item.expectedQuantity - item.receivedQuantity) *
+            (item.finalUnitCostPen ?? item.originalUnitCost * item.exchangeRateToPen),
+        0,
+      ),
+    0,
+  );
 
   return (
     <main className="page import-detail-page">
@@ -688,14 +777,10 @@ export function ImportDetailPage() {
         eyebrow="Seguimiento internacional"
         title={`Importación ${importData.code}`}
         description={`${importData.supplierName ?? 'Proveedor sin asignar'} · ${importData.transportMode === 'AIR' ? 'Aéreo' : importData.transportMode === 'SEA' ? 'Marítimo' : 'Otro'} · Creada ${dateLabel(importData.createdAt)}`}
-        actions={
-          <StatusBadge tone={stateTone(importData.stateCode)}>
-            {stateLabels[importData.stateCode]}
-          </StatusBadge>
-        }
+        actions={<StatusBadge tone={stateTone(progress.stateCode)}>{progress.label}</StatusBadge>}
       />
 
-      <section className="summary-strip">
+      <section className="summary-strip import-cost-summary">
         <div>
           <span>Unidades esperadas</span>
           <strong>{importData.totals.expectedUnits}</strong>
@@ -705,14 +790,26 @@ export function ImportDetailPage() {
           <strong>{importData.totals.receivedUnits}</strong>
         </div>
         <div>
-          <span>Compra estimada</span>
+          <span>Compra esperada</span>
           <strong>{money(importData.totals.purchaseValuePen)}</strong>
+        </div>
+        <div>
+          <span>Valor ingresado a inventario</span>
+          <strong>{money(receivedInventoryValue)}</strong>
+        </div>
+        <div>
+          <span>Diferencia no recibida</span>
+          <strong>{money(missingInventoryValue)}</strong>
         </div>
         <div>
           <span>Costos adicionales</span>
           <strong>{money(importData.totals.extraCostsPen)}</strong>
         </div>
       </section>
+      <ContextNote title="Valorización, no movimiento bancario">
+        Estos montos valorizan la compra y los lotes recibidos. Finanzas solo descontará una cuenta
+        cuando se registre el pago real al proveedor.
+      </ContextNote>
 
       {importData.boxes.some(isZeroReceiptBox) ? (
         <div className="alert alert-error import-integrity-alert" role="alert">
@@ -760,7 +857,12 @@ export function ImportDetailPage() {
             title="Siguiente acción"
             subtitle="Avanza solo cuando cuentes con una evidencia real."
           >
-            {nextShipment ? (
+            {progress.independentBoxes && importData.stateCode !== 'STOCKED' ? (
+              <ContextNote title="Continúa desde cada caja">
+                Desde el embarque, cada caja puede viajar y llegar en fechas diferentes. Usa la
+                acción de cada caja; la cabecera resume el avance parcial automáticamente.
+              </ContextNote>
+            ) : nextShipment ? (
               <button
                 className="button button-primary button-full"
                 type="button"
@@ -839,6 +941,12 @@ export function ImportDetailPage() {
               (transition) => transition.stateCode === 'CANCELLED',
             );
             const repair = isZeroReceiptBox(box);
+            const pendingLabel =
+              box.stateCode === 'STOCKED'
+                ? 'Faltantes'
+                : box.stateCode === 'RECEIVED_PERU'
+                  ? 'Pendientes de confirmar'
+                  : 'Pendientes de recibir';
             return (
               <article
                 className={`import-box-card import-box-detail ${repair ? 'import-box-card-error' : ''}`}
@@ -869,7 +977,7 @@ export function ImportDetailPage() {
                     Recibidas <strong>{received}</strong>
                   </span>
                   <span>
-                    Faltantes <strong>{Math.max(0, expected - received)}</strong>
+                    {pendingLabel} <strong>{Math.max(0, expected - received)}</strong>
                   </span>
                   <span>
                     Destino{' '}
@@ -982,262 +1090,285 @@ export function ImportDetailPage() {
         </div>
       </Panel>
 
-      <section className="import-management-grid">
-        <Panel
-          title="Registrar costo"
-          subtitle="El tipo de cambio es 1 cuando la moneda es soles; el costo unitario se recalcula automáticamente."
-        >
-          {Object.keys(costErrors).length > 0 ? (
-            <div className="form-error-summary">Corrige los campos marcados en rojo.</div>
-          ) : null}
-          <form className="form-grid form-grid-2" onSubmit={submitCost} noValidate>
-            <SearchableSelect
-              label="Tipo"
-              required
-              value={costType}
-              options={Object.entries(costLabels).map(([value, label]) => ({ value, label }))}
-              onChange={(value) => setCostType(value as CreateImportCostInput['costType'])}
-            />
-            <SearchableSelect
-              label="Caja opcional"
-              value={costBoxId}
-              allowClear
-              options={importData.boxes.map((box) => ({ value: box.id, label: box.code }))}
-              onChange={setCostBoxId}
-            />
-            <label className={`field ${costErrors.amount ? 'field-invalid' : ''}`}>
-              <span>Importe *</span>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={costAmount}
-                onChange={(event) => {
-                  setCostAmount(event.target.value.replace(/^0+(?=\d)/, ''));
-                  setCostErrors((current) => ({ ...current, amount: '' }));
+      <section className="import-management-grid compact-import-actions">
+        <details className="import-action-disclosure">
+          <summary>
+            <CircleDollarSign size={17} /> Registrar costo adicional
+          </summary>
+          <Panel
+            title="Registrar costo"
+            subtitle="El tipo de cambio es 1 cuando la moneda es soles; el costo unitario se recalcula automáticamente."
+          >
+            {Object.keys(costErrors).length > 0 ? (
+              <div className="form-error-summary">Corrige los campos marcados en rojo.</div>
+            ) : null}
+            <form className="form-grid form-grid-2" onSubmit={submitCost} noValidate>
+              <SearchableSelect
+                label="Tipo"
+                required
+                value={costType}
+                options={Object.entries(costLabels).map(([value, label]) => ({ value, label }))}
+                onChange={(value) => setCostType(value as CreateImportCostInput['costType'])}
+              />
+              <SearchableSelect
+                label="Caja opcional"
+                value={costBoxId}
+                allowClear
+                options={importData.boxes.map((box) => ({ value: box.id, label: box.code }))}
+                onChange={setCostBoxId}
+              />
+              <label className={`field ${costErrors.amount ? 'field-invalid' : ''}`}>
+                <span>Importe *</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={costAmount}
+                  onChange={(event) => {
+                    setCostAmount(event.target.value.replace(/^0+(?=\d)/, ''));
+                    setCostErrors((current) => ({ ...current, amount: '' }));
+                  }}
+                />
+                {costErrors.amount ? (
+                  <small className="field-error">{costErrors.amount}</small>
+                ) : null}
+              </label>
+              <SearchableSelect
+                label="Moneda"
+                required
+                value={costCurrency}
+                options={(support.data?.currencies ?? []).map((currency) => ({
+                  value: currency.code,
+                  label: `${currency.code} · ${currency.name}`,
+                }))}
+                onChange={(value) => {
+                  setCostCurrency(value);
+                  if (value === 'PEN') setCostExchangeRate('1');
                 }}
               />
-              {costErrors.amount ? (
-                <small className="field-error">{costErrors.amount}</small>
-              ) : null}
-            </label>
+              <label className={`field ${costErrors.exchangeRate ? 'field-invalid' : ''}`}>
+                <span>Tipo de cambio a soles *</span>
+                <input
+                  type="number"
+                  min="0.000001"
+                  step="0.000001"
+                  value={costCurrency === 'PEN' ? '1' : costExchangeRate}
+                  disabled={costCurrency === 'PEN'}
+                  onChange={(event) => {
+                    setCostExchangeRate(event.target.value);
+                    setCostErrors((current) => ({ ...current, exchangeRate: '' }));
+                  }}
+                />
+                {costCurrency === 'PEN' ? <small>En soles siempre equivale a 1.</small> : null}
+                {costErrors.exchangeRate ? (
+                  <small className="field-error">{costErrors.exchangeRate}</small>
+                ) : null}
+              </label>
+              <label className="field">
+                <span>Descripción</span>
+                <input
+                  value={costDescription}
+                  onChange={(event) => setCostDescription(event.target.value)}
+                />
+              </label>
+              <div className="field-span-2">
+                <button
+                  className="button button-primary button-full"
+                  type="submit"
+                  disabled={costMutation.isPending}
+                >
+                  {costMutation.isPending ? (
+                    <BusyLabel label="Registrando…" />
+                  ) : (
+                    <>
+                      <CircleDollarSign size={17} /> Registrar costo
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </Panel>
+        </details>
+        <details className="import-action-disclosure">
+          <summary>
+            <ShieldAlert size={17} /> Registrar incidencia
+          </summary>
+          <Panel
+            title="Registrar incidencia"
+            subtitle="Explica qué ocurrió para que la usuaria sepa cómo resolverlo."
+          >
+            {Object.keys(incidentErrors).length > 0 ? (
+              <div className="form-error-summary">Corrige los campos marcados en rojo.</div>
+            ) : null}
+            <form className="form-grid form-grid-2" onSubmit={submitIncident} noValidate>
+              <SearchableSelect
+                label="Tipo"
+                required
+                value={incidentType}
+                options={Object.entries(incidentLabels).map(([value, label]) => ({ value, label }))}
+                onChange={(value) =>
+                  setIncidentType(value as CreateImportIncidentInput['incidentType'])
+                }
+              />
+              <SearchableSelect
+                label="Caja opcional"
+                value={incidentBoxId}
+                allowClear
+                options={importData.boxes.map((box) => ({ value: box.id, label: box.code }))}
+                onChange={(value) => {
+                  setIncidentBoxId(value);
+                  setIncidentItemId('');
+                }}
+              />
+              <div className="field-span-2">
+                <SearchableSelect
+                  label="Producto afectado opcional"
+                  value={incidentItemId}
+                  allowClear
+                  disabled={!incidentBoxId}
+                  placeholder={
+                    incidentBoxId ? 'Seleccionar producto' : 'Selecciona una caja primero'
+                  }
+                  options={allItems
+                    .filter((item) => item.boxId === incidentBoxId)
+                    .map((item) => ({
+                      value: item.id,
+                      label: `${item.productName} · ${item.variantName}`,
+                      description: item.sku,
+                    }))}
+                  onChange={setIncidentItemId}
+                />
+              </div>
+              <label className={`field ${incidentErrors.quantity ? 'field-invalid' : ''}`}>
+                <span>Cantidad afectada</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={incidentQuantity}
+                  onChange={(event) => {
+                    setIncidentQuantity(event.target.value.replace(/^0+(?=\d)/, ''));
+                    setIncidentErrors((current) => ({ ...current, quantity: '' }));
+                  }}
+                />
+                {incidentErrors.quantity ? (
+                  <small className="field-error">{incidentErrors.quantity}</small>
+                ) : null}
+              </label>
+              <label
+                className={`field field-span-2 ${incidentErrors.description ? 'field-invalid' : ''}`}
+              >
+                <span>Descripción *</span>
+                <textarea
+                  rows={4}
+                  value={incidentDescription}
+                  onChange={(event) => {
+                    setIncidentDescription(event.target.value);
+                    setIncidentErrors((current) => ({ ...current, description: '' }));
+                  }}
+                  placeholder="Describe el problema, la evidencia y el siguiente paso recomendado…"
+                />
+                {incidentErrors.description ? (
+                  <small className="field-error">{incidentErrors.description}</small>
+                ) : null}
+              </label>
+              <div className="field-span-2">
+                <button
+                  className="button button-primary button-full"
+                  type="submit"
+                  disabled={incidentMutation.isPending}
+                >
+                  {incidentMutation.isPending ? (
+                    <BusyLabel label="Registrando…" />
+                  ) : (
+                    <>
+                      <ShieldAlert size={17} /> Registrar incidencia
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </Panel>
+        </details>
+      </section>
+
+      <details className="import-action-disclosure import-preorder-disclosure">
+        <summary>
+          <Link2 size={17} /> Vincular preventa
+        </summary>
+        <Panel
+          title="Vincular preventa"
+          subtitle="Relaciona una venta pendiente con una línea de la importación para separar unidades al recibirlas."
+        >
+          {importData.stateCode === 'STOCKED' ? (
+            <ContextNote title="La importación ya ingresó a stock">
+              Las preventas se vinculan antes de recibir las cajas. Desde ahora, separa unidades
+              mediante una venta normal.
+            </ContextNote>
+          ) : null}
+          <div className="form-grid form-grid-3">
             <SearchableSelect
-              label="Moneda"
-              required
-              value={costCurrency}
-              options={(support.data?.currencies ?? []).map((currency) => ({
-                value: currency.code,
-                label: `${currency.code} · ${currency.name}`,
+              label="Producto de la importación"
+              value={allocationItemId}
+              options={allItems.map((item) => ({
+                value: item.id,
+                label: `${item.productName} · ${item.variantName}`,
+                description: `${item.boxCode} · ${item.sku}`,
               }))}
               onChange={(value) => {
-                setCostCurrency(value);
-                if (value === 'PEN') setCostExchangeRate('1');
+                setAllocationItemId(value);
+                setCandidateSaleItemId('');
               }}
             />
-            <label className={`field ${costErrors.exchangeRate ? 'field-invalid' : ''}`}>
-              <span>Tipo de cambio a soles *</span>
-              <input
-                type="number"
-                min="0.000001"
-                step="0.000001"
-                value={costCurrency === 'PEN' ? '1' : costExchangeRate}
-                disabled={costCurrency === 'PEN'}
-                onChange={(event) => {
-                  setCostExchangeRate(event.target.value);
-                  setCostErrors((current) => ({ ...current, exchangeRate: '' }));
-                }}
-              />
-              {costCurrency === 'PEN' ? <small>En soles siempre equivale a 1.</small> : null}
-              {costErrors.exchangeRate ? (
-                <small className="field-error">{costErrors.exchangeRate}</small>
-              ) : null}
-            </label>
-            <label className="field">
-              <span>Descripción</span>
-              <input
-                value={costDescription}
-                onChange={(event) => setCostDescription(event.target.value)}
-              />
-            </label>
-            <div className="field-span-2">
-              <button
-                className="button button-primary button-full"
-                type="submit"
-                disabled={costMutation.isPending}
-              >
-                {costMutation.isPending ? (
-                  <BusyLabel label="Registrando…" />
-                ) : (
-                  <>
-                    <CircleDollarSign size={17} /> Registrar costo
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </Panel>
-
-        <Panel
-          title="Registrar incidencia"
-          subtitle="Explica qué ocurrió para que la usuaria sepa cómo resolverlo."
-        >
-          {Object.keys(incidentErrors).length > 0 ? (
-            <div className="form-error-summary">Corrige los campos marcados en rojo.</div>
-          ) : null}
-          <form className="form-grid form-grid-2" onSubmit={submitIncident} noValidate>
             <SearchableSelect
-              label="Tipo"
-              required
-              value={incidentType}
-              options={Object.entries(incidentLabels).map(([value, label]) => ({ value, label }))}
-              onChange={(value) =>
-                setIncidentType(value as CreateImportIncidentInput['incidentType'])
+              label="Preventa pendiente"
+              value={candidateSaleItemId}
+              disabled={!allocationItemId}
+              placeholder={
+                allocationItemId ? 'Seleccionar preventa' : 'Selecciona un producto primero'
               }
+              options={filteredCandidates.map((candidate) => ({
+                value: candidate.saleItemId,
+                label: `${candidate.saleCode} · ${candidate.clientName}`,
+                description: `${candidate.productName} · ${candidate.remainingQuantity} pendientes`,
+              }))}
+              onChange={setCandidateSaleItemId}
             />
-            <SearchableSelect
-              label="Caja opcional"
-              value={incidentBoxId}
-              allowClear
-              options={importData.boxes.map((box) => ({ value: box.id, label: box.code }))}
-              onChange={(value) => {
-                setIncidentBoxId(value);
-                setIncidentItemId('');
-              }}
-            />
-            <div className="field-span-2">
-              <SearchableSelect
-                label="Producto afectado opcional"
-                value={incidentItemId}
-                allowClear
-                disabled={!incidentBoxId}
-                placeholder={incidentBoxId ? 'Seleccionar producto' : 'Selecciona una caja primero'}
-                options={allItems
-                  .filter((item) => item.boxId === incidentBoxId)
-                  .map((item) => ({
-                    value: item.id,
-                    label: `${item.productName} · ${item.variantName}`,
-                    description: item.sku,
-                  }))}
-                onChange={setIncidentItemId}
-              />
-            </div>
-            <label className={`field ${incidentErrors.quantity ? 'field-invalid' : ''}`}>
-              <span>Cantidad afectada</span>
+            <label className="field">
+              <span>Cantidad *</span>
               <input
                 type="number"
                 min="1"
                 step="1"
-                value={incidentQuantity}
-                onChange={(event) => {
-                  setIncidentQuantity(event.target.value.replace(/^0+(?=\d)/, ''));
-                  setIncidentErrors((current) => ({ ...current, quantity: '' }));
-                }}
+                value={allocationQuantity}
+                onChange={(event) =>
+                  setAllocationQuantity(event.target.value.replace(/^0+(?=\d)/, ''))
+                }
               />
-              {incidentErrors.quantity ? (
-                <small className="field-error">{incidentErrors.quantity}</small>
-              ) : null}
             </label>
-            <label
-              className={`field field-span-2 ${incidentErrors.description ? 'field-invalid' : ''}`}
-            >
-              <span>Descripción *</span>
-              <textarea
-                rows={4}
-                value={incidentDescription}
-                onChange={(event) => {
-                  setIncidentDescription(event.target.value);
-                  setIncidentErrors((current) => ({ ...current, description: '' }));
-                }}
-                placeholder="Describe el problema, la evidencia y el siguiente paso recomendado…"
-              />
-              {incidentErrors.description ? (
-                <small className="field-error">{incidentErrors.description}</small>
-              ) : null}
-            </label>
-            <div className="field-span-2">
-              <button
-                className="button button-primary button-full"
-                type="submit"
-                disabled={incidentMutation.isPending}
-              >
-                {incidentMutation.isPending ? (
-                  <BusyLabel label="Registrando…" />
-                ) : (
-                  <>
-                    <ShieldAlert size={17} /> Registrar incidencia
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </Panel>
-      </section>
-
-      <Panel
-        title="Vincular preventa"
-        subtitle="Relaciona una venta pendiente con una línea de la importación para separar unidades al recibirlas."
-      >
-        <div className="form-grid form-grid-3">
-          <SearchableSelect
-            label="Producto de la importación"
-            value={allocationItemId}
-            options={allItems.map((item) => ({
-              value: item.id,
-              label: `${item.productName} · ${item.variantName}`,
-              description: `${item.boxCode} · ${item.sku}`,
-            }))}
-            onChange={(value) => {
-              setAllocationItemId(value);
-              setCandidateSaleItemId('');
-            }}
-          />
-          <SearchableSelect
-            label="Preventa pendiente"
-            value={candidateSaleItemId}
-            disabled={!allocationItemId}
-            placeholder={
-              allocationItemId ? 'Seleccionar preventa' : 'Selecciona un producto primero'
+          </div>
+          <button
+            className="button button-primary"
+            type="button"
+            disabled={
+              !allocationItemId ||
+              !candidateSaleItemId ||
+              Number(allocationQuantity) <= 0 ||
+              allocationMutation.isPending ||
+              importData.stateCode === 'STOCKED'
             }
-            options={filteredCandidates.map((candidate) => ({
-              value: candidate.saleItemId,
-              label: `${candidate.saleCode} · ${candidate.clientName}`,
-              description: `${candidate.productName} · ${candidate.remainingQuantity} pendientes`,
-            }))}
-            onChange={setCandidateSaleItemId}
-          />
-          <label className="field">
-            <span>Cantidad *</span>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={allocationQuantity}
-              onChange={(event) =>
-                setAllocationQuantity(event.target.value.replace(/^0+(?=\d)/, ''))
-              }
-            />
-          </label>
-        </div>
-        <button
-          className="button button-primary"
-          type="button"
-          disabled={
-            !allocationItemId ||
-            !candidateSaleItemId ||
-            Number(allocationQuantity) <= 0 ||
-            allocationMutation.isPending
-          }
-          onClick={() => allocationMutation.mutate()}
-        >
-          {allocationMutation.isPending ? (
-            <BusyLabel label="Vinculando…" />
-          ) : (
-            <>
-              <Link2 size={17} /> Vincular preventa
-            </>
-          )}
-        </button>
-      </Panel>
+            onClick={() => allocationMutation.mutate()}
+          >
+            {allocationMutation.isPending ? (
+              <BusyLabel label="Vinculando…" />
+            ) : (
+              <>
+                <Link2 size={17} /> Vincular preventa
+              </>
+            )}
+          </button>
+        </Panel>
+      </details>
 
       <section className="import-lower-grid">
         <Panel
@@ -1392,7 +1523,7 @@ export function ImportDetailPage() {
                 <X size={20} />
               </button>
             </header>
-            {Object.keys(receiveDialog.errors).length > 0 ? (
+            {Object.values(receiveDialog.errors).some(Boolean) ? (
               <div className="form-error-summary" role="alert">
                 No se pudo continuar. Corrige los campos marcados en rojo.
               </div>
@@ -1442,7 +1573,11 @@ export function ImportDetailPage() {
                               ...receiveDialog.quantities,
                               [item.id]: event.target.value.replace(/^0+(?=\d)/, ''),
                             },
-                            errors: { ...receiveDialog.errors, [item.id]: '' },
+                            errors: Object.fromEntries(
+                              Object.entries(receiveDialog.errors).filter(
+                                ([key]) => key !== item.id,
+                              ),
+                            ),
                           })
                         }
                       />
@@ -1450,7 +1585,9 @@ export function ImportDetailPage() {
                         <small className="field-error">{receiveDialog.errors[item.id]}</small>
                       ) : null}
                     </label>
-                    <label className="field receive-notes">
+                    <label
+                      className={`field receive-notes ${receiveDialog.errors[`note-${item.id}`] ? 'field-invalid' : ''}`}
+                    >
                       <span>Nota de la línea</span>
                       <input
                         value={receiveDialog.notes[item.id] ?? ''}
@@ -1458,9 +1595,29 @@ export function ImportDetailPage() {
                           setReceiveDialog({
                             ...receiveDialog,
                             notes: { ...receiveDialog.notes, [item.id]: event.target.value },
+                            errors: Object.fromEntries(
+                              Object.entries(receiveDialog.errors).filter(
+                                ([key]) => key !== `note-${item.id}`,
+                              ),
+                            ),
                           })
                         }
-                        placeholder="Ej. Llegó una unidad con caja dañada…"
+                        placeholder="Ej. Falta 1 unidad o llegó dañada…"
+                      />
+                      {receiveDialog.errors[`note-${item.id}`] ? (
+                        <small className="field-error">
+                          {receiveDialog.errors[`note-${item.id}`]}
+                        </small>
+                      ) : null}
+                    </label>
+                    <label className="field">
+                      <span>Diferencia</span>
+                      <input
+                        value={Math.max(
+                          0,
+                          item.expectedQuantity - (Number(receiveDialog.quantities[item.id]) || 0),
+                        )}
+                        disabled
                       />
                     </label>
                   </div>
@@ -1470,6 +1627,25 @@ export function ImportDetailPage() {
             {receiveDialog.errors.total ? (
               <div className="alert alert-error">{receiveDialog.errors.total}</div>
             ) : null}
+            <label className={`field ${receiveDialog.errors.receivedAt ? 'field-invalid' : ''}`}>
+              <span>Fecha real de recepción *</span>
+              <input
+                type="datetime-local"
+                value={receiveDialog.receivedAt}
+                onChange={(event) =>
+                  setReceiveDialog({
+                    ...receiveDialog,
+                    receivedAt: event.target.value,
+                    errors: Object.fromEntries(
+                      Object.entries(receiveDialog.errors).filter(([key]) => key !== 'receivedAt'),
+                    ),
+                  })
+                }
+              />
+              {receiveDialog.errors.receivedAt ? (
+                <small className="field-error">{receiveDialog.errors.receivedAt}</small>
+              ) : null}
+            </label>
             <label className={`field ${receiveDialog.errors.reason ? 'field-invalid' : ''}`}>
               <span>Motivo de la recepción *</span>
               <textarea
@@ -1479,7 +1655,9 @@ export function ImportDetailPage() {
                   setReceiveDialog({
                     ...receiveDialog,
                     reason: event.target.value,
-                    errors: { ...receiveDialog.errors, reason: '' },
+                    errors: Object.fromEntries(
+                      Object.entries(receiveDialog.errors).filter(([key]) => key !== 'reason'),
+                    ),
                   })
                 }
               />

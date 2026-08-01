@@ -241,6 +241,16 @@ export function NewImportPage() {
         { name: 'notes', label: 'Notas', type: 'textarea' },
       ],
       confirmLabel: 'Crear proveedor',
+      validate: (draft) => {
+        const next: Record<string, string> = {};
+        const country = (draft.countryCode ?? '').trim();
+        const email = (draft.email ?? '').trim();
+        if (country.length !== 2)
+          next.countryCode = 'Usa el código de país de 2 letras, por ejemplo JP o PE.';
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+          next.email = 'Ingresa un correo válido o déjalo vacío.';
+        return Object.keys(next).length > 0 ? next : null;
+      },
     });
     if (!values) return;
     try {
@@ -260,6 +270,61 @@ export function NewImportPage() {
       notify({ title: 'Proveedor creado', tone: 'success' });
     } catch (error) {
       notifyError(error, 'No se pudo crear el proveedor.');
+    }
+  }
+
+  async function createOperator(
+    boxIndex: number,
+    partnerTypeCode: 'INTERNATIONAL_OPERATOR' | 'LOCAL_OPERATOR',
+  ) {
+    const international = partnerTypeCode === 'INTERNATIONAL_OPERATOR';
+    const values = await promptDialog({
+      title: international ? 'Nuevo operador internacional' : 'Nuevo operador local',
+      message: 'El operador quedará disponible para esta caja y para futuras importaciones.',
+      fields: [
+        { name: 'name', label: 'Nombre', required: true, minLength: 2 },
+        {
+          name: 'countryCode',
+          label: 'País',
+          initialValue: international ? 'JP' : 'PE',
+          required: true,
+        },
+        { name: 'contactName', label: 'Contacto' },
+        { name: 'email', label: 'Correo' },
+        { name: 'phone', label: 'Teléfono' },
+        { name: 'notes', label: 'Notas', type: 'textarea' },
+      ],
+      validate: (draft) => {
+        const next: Record<string, string> = {};
+        const country = (draft.countryCode ?? '').trim();
+        const email = (draft.email ?? '').trim();
+        if (country.length !== 2) next.countryCode = 'Usa el código de país de 2 letras.';
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+          next.email = 'Ingresa un correo válido o déjalo vacío.';
+        return Object.keys(next).length > 0 ? next : null;
+      },
+      confirmLabel: 'Crear operador',
+    });
+    if (!values) return;
+    try {
+      const result = await createImportPartner({
+        partnerTypeCode,
+        legalName: (values.name ?? '').trim(),
+        tradeName: (values.name ?? '').trim(),
+        countryCode: (values.countryCode ?? '').trim().toUpperCase(),
+        contactName: (values.contactName ?? '').trim() || null,
+        email: (values.email ?? '').trim() || null,
+        phone: (values.phone ?? '').trim() || null,
+        notes: (values.notes ?? '').trim() || null,
+      });
+      updateBox(
+        boxIndex,
+        international ? { internationalOperatorId: result.id } : { localOperatorId: result.id },
+      );
+      await queryClient.invalidateQueries({ queryKey: ['import-support'] });
+      notify({ title: 'Operador creado y seleccionado', tone: 'success' });
+    } catch (error) {
+      notifyError(error, 'No se pudo crear el operador.');
     }
   }
 
@@ -299,6 +364,13 @@ export function NewImportPage() {
       });
     });
     setErrors(next);
+    if (Object.keys(next).length > 0) {
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>('.field-invalid, [aria-invalid="true"]')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
     return Object.keys(next).length === 0;
   }
 
@@ -484,7 +556,7 @@ export function NewImportPage() {
                 ) : null}
               </label>
               <label className="field">
-                <span>Tracking maestro</span>
+                <span>Tracking maestro (opcional)</span>
                 <input
                   value={masterTrackingNumber}
                   onChange={(event) => setMasterTrackingNumber(event.target.value)}
@@ -500,7 +572,6 @@ export function NewImportPage() {
                 />
               </label>
             </div>
-            <small className="required-note">* Campo obligatorio</small>
           </Panel>
 
           <Panel
@@ -527,26 +598,46 @@ export function NewImportPage() {
                     </button>
                   </header>
                   <div className="form-grid form-grid-2">
-                    <SearchableSelect
-                      label="Operador internacional"
-                      value={box.internationalOperatorId}
-                      allowClear
-                      options={(support.data?.internationalOperators ?? []).map((partner) => ({
-                        value: partner.id,
-                        label: partner.name,
-                      }))}
-                      onChange={(value) => updateBox(boxIndex, { internationalOperatorId: value })}
-                    />
-                    <SearchableSelect
-                      label="Operador local"
-                      value={box.localOperatorId}
-                      allowClear
-                      options={(support.data?.localOperators ?? []).map((partner) => ({
-                        value: partner.id,
-                        label: partner.name,
-                      }))}
-                      onChange={(value) => updateBox(boxIndex, { localOperatorId: value })}
-                    />
+                    <div className="field-with-action">
+                      <SearchableSelect
+                        label="Operador internacional"
+                        value={box.internationalOperatorId}
+                        allowClear
+                        options={(support.data?.internationalOperators ?? []).map((partner) => ({
+                          value: partner.id,
+                          label: partner.name,
+                        }))}
+                        onChange={(value) =>
+                          updateBox(boxIndex, { internationalOperatorId: value })
+                        }
+                      />
+                      <button
+                        className="button button-secondary button-compact"
+                        type="button"
+                        onClick={() => void createOperator(boxIndex, 'INTERNATIONAL_OPERATOR')}
+                      >
+                        <Plus size={15} /> Crear
+                      </button>
+                    </div>
+                    <div className="field-with-action">
+                      <SearchableSelect
+                        label="Operador local"
+                        value={box.localOperatorId}
+                        allowClear
+                        options={(support.data?.localOperators ?? []).map((partner) => ({
+                          value: partner.id,
+                          label: partner.name,
+                        }))}
+                        onChange={(value) => updateBox(boxIndex, { localOperatorId: value })}
+                      />
+                      <button
+                        className="button button-secondary button-compact"
+                        type="button"
+                        onClick={() => void createOperator(boxIndex, 'LOCAL_OPERATOR')}
+                      >
+                        <Plus size={15} /> Crear
+                      </button>
+                    </div>
                     <label className="field">
                       <span>Tracking de caja</span>
                       <input

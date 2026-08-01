@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Download, Printer, TrendingUp } from 'lucide-react';
+import { Download, Layers3, Printer, TrendingUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { PageHeader } from '../components/ui/page-header';
+import { ContextNote } from '../components/ui/info-tip';
 import { Panel } from '../components/ui/panel';
 import { StatusBadge } from '../components/ui/status-badge';
 import { downloadCsv } from '../features/insights/csv-export';
@@ -100,6 +102,7 @@ function reportRows(
   ];
 }
 export function ReportsPage() {
+  const navigate = useNavigate();
   const defaults = useMemo(initialPeriod, []);
   const [startDate, setStartDate] = useState(defaults.start);
   const [endDate, setEndDate] = useState(defaults.end);
@@ -376,6 +379,17 @@ export function ReportsPage() {
               <StatusBadge tone="info">Costo PEN</StatusBadge>
             </div>
           </div>
+          <ContextNote title="Valorización de inventario">
+            El valor estimado proviene del costo final de los lotes recibidos; no representa un pago
+            bancario automático.
+          </ContextNote>
+          <button
+            className="button button-secondary button-full no-print"
+            type="button"
+            onClick={() => navigate('/inventario?showLots=1')}
+          >
+            <Layers3 size={16} /> Ver lotes y costos
+          </button>
         </Panel>
       </section>
 

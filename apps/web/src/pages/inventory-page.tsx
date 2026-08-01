@@ -1,8 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InventoryMovementAction, InventoryRow } from '@yukimi/shared';
-import { AlertTriangle, Boxes, PackageMinus, PackagePlus, Plus, Wrench, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  Boxes,
+  Eye,
+  ExternalLink,
+  Layers3,
+  PackageMinus,
+  PackagePlus,
+  Plus,
+  Wrench,
+  X,
+} from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { FilterButton, FilterPanel } from '../components/ui/filter-panel';
 import { BusyLabel, useFeedback } from '../components/ui/feedback-provider';
 import { ContextNote } from '../components/ui/info-tip';
@@ -12,6 +23,7 @@ import { SearchableSelect } from '../components/ui/searchable-select';
 import { StatusBadge } from '../components/ui/status-badge';
 import { Toolbar } from '../components/ui/toolbar';
 import { getCatalogs } from '../features/catalog/catalog-api';
+import { getImport, getImports } from '../features/imports/imports-api';
 import { createInventoryMovement, getInventory } from '../features/products/products-api';
 
 interface ConsolidatedRow extends InventoryRow {
@@ -40,7 +52,14 @@ const actionHelp: Record<InventoryMovementAction, string> = {
 
 function groupConsolidated(items: InventoryRow[]): ConsolidatedRow[] {
   const grouped = new Map<string, ConsolidatedRow>();
+  const valuations = new Map<string, { value: number; quantity: number }>();
   for (const item of items) {
+    const valuation = valuations.get(item.variantId) ?? { value: 0, quantity: 0 };
+    if (item.currentUnitCostPen != null && item.availableQuantity > 0) {
+      valuation.value += item.currentUnitCostPen * item.availableQuantity;
+      valuation.quantity += item.availableQuantity;
+    }
+    valuations.set(item.variantId, valuation);
     const current = grouped.get(item.variantId);
     if (!current) {
       grouped.set(item.variantId, { ...item, warehouseName: 'Todos los almacenes' });
@@ -54,6 +73,11 @@ function groupConsolidated(items: InventoryRow[]): ConsolidatedRow[] {
     current.inTransitQuantity += item.inTransitQuantity;
     current.preorderExpectedQuantity += item.preorderExpectedQuantity;
   }
+  for (const row of grouped.values()) {
+    const valuation = valuations.get(row.variantId);
+    row.currentUnitCostPen =
+      valuation && valuation.quantity > 0 ? valuation.value / valuation.quantity : null;
+  }
   return [...grouped.values()];
 }
 
@@ -63,6 +87,7 @@ function isLow(row: InventoryRow) {
 
 export function InventoryPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { confirm: confirmDialog, notify, notifyError } = useFeedback();
   const [warehouseId, setWarehouseId] = useState<string>('ALL');
@@ -80,6 +105,9 @@ export function InventoryPage() {
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [lotVariantId, setLotVariantId] = useState<string | null>(
+    searchParams.get('showLots') ? '' : null,
+  );
 
   const catalogs = useQuery({ queryKey: ['catalogs'], queryFn: getCatalogs });
   const inventory = useQuery({
@@ -93,6 +121,60 @@ export function InventoryPage() {
     placeholderData: (previous) => previous,
     refetchOnMount: 'always',
   });
+
+  const stockedImports = useQuery({
+    queryKey: ['imports', 'inventory-lots'],
+    queryFn: () => getImports({ filter: 'STOCKED', page: 1, pageSize: 100 }),
+    staleTime: 60_000,
+  });
+  const importDetailQueries = useQueries({
+    queries: (stockedImports.data?.items ?? []).map((item) => ({
+      queryKey: ['import', item.id],
+      queryFn: () => getImport(item.id),
+      staleTime: 60_000,
+    })),
+  });
+  const importLots = useMemo(
+    () =>
+      importDetailQueries.flatMap((query) => {
+        const shipment = query.data;
+        if (!shipment) return [];
+        return shipment.boxes.flatMap((box) =>
+          box.items
+            .filter((item) => item.inventoryLotId)
+            .map((item) => ({
+              inventoryLotId: item.inventoryLotId as string,
+              importId: shipment.id,
+              importCode: shipment.code,
+              boxCode: box.code,
+              variantId: item.variantId,
+              productName: item.productName,
+              variantName: item.variantName,
+              sku: item.sku,
+              warehouseId: item.destinationWarehouseId,
+              warehouseName: item.destinationWarehouseName ?? 'Sin almacén',
+              receivedQuantity: item.receivedQuantity,
+              originalUnitCost: item.originalUnitCost,
+              originalCurrencyCode: item.originalCurrencyCode,
+              exchangeRateToPen: item.exchangeRateToPen,
+              finalUnitCostPen:
+                item.finalUnitCostPen ?? item.originalUnitCost * item.exchangeRateToPen,
+              receivedAt:
+                box.actualArrivalAt ?? shipment.stockEntryCompletedAt ?? shipment.createdAt,
+            })),
+        );
+      }),
+    [importDetailQueries],
+  );
+  const selectedLots = useMemo(
+    () =>
+      importLots.filter(
+        (lot) =>
+          (!lotVariantId || lot.variantId === lotVariantId) &&
+          (warehouseId === 'ALL' || lot.warehouseId === warehouseId),
+      ),
+    [importLots, lotVariantId, warehouseId],
+  );
 
   const operationalWarehouses = useMemo(
     () =>
@@ -244,10 +326,11 @@ export function InventoryPage() {
         (summary, row) => ({
           available: summary.available + row.availableQuantity,
           reserved: summary.reserved + row.reservedQuantity,
+          accumulated: summary.accumulated + row.accumulatedQuantity,
           inTransit: summary.inTransit + row.inTransitQuantity,
           unavailable: summary.unavailable + row.damagedQuantity + row.lostQuantity,
         }),
-        { available: 0, reserved: 0, inTransit: 0, unavailable: 0 },
+        { available: 0, reserved: 0, accumulated: 0, inTransit: 0, unavailable: 0 },
       ),
     [allRows],
   );
@@ -317,6 +400,16 @@ export function InventoryPage() {
           </div>
         </article>
         <article className="inventory-stat">
+          <span className="stat-icon stat-primary">
+            <Layers3 size={19} />
+          </span>
+          <div>
+            <small>Acumulado</small>
+            <strong>{totals.accumulated}</strong>
+            <p>Compras guardadas para clientes</p>
+          </div>
+        </article>
+        <article className="inventory-stat">
           <span className="stat-icon stat-info">
             <PackagePlus size={19} />
           </span>
@@ -366,25 +459,27 @@ export function InventoryPage() {
                 <th>Almacén</th>
                 <th>Disponible</th>
                 <th>Reservado</th>
+                <th>Acumulado</th>
                 <th>Preventa</th>
                 <th>Tránsito</th>
                 <th>Dañado</th>
+                <th>Costo actual</th>
                 <th>Stock mínimo</th>
                 <th>Alerta</th>
-                <th>Acción</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {inventory.isLoading ? (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={12}>
                     <div className="empty-state">Cargando inventario…</div>
                   </td>
                 </tr>
               ) : null}
               {!inventory.isLoading && rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={12}>
                     <div className="empty-state">
                       <strong>Sin resultados</strong>
                       <p>Cambia la búsqueda o limpia los filtros.</p>
@@ -408,9 +503,15 @@ export function InventoryPage() {
                       <strong>{row.availableQuantity}</strong>
                     </td>
                     <td className="numeric-cell">{row.reservedQuantity}</td>
+                    <td className="numeric-cell">{row.accumulatedQuantity}</td>
                     <td className="numeric-cell">{row.preorderExpectedQuantity}</td>
                     <td className="numeric-cell">{row.inTransitQuantity}</td>
                     <td className="numeric-cell">{row.damagedQuantity}</td>
+                    <td className="numeric-cell">
+                      {row.currentUnitCostPen == null
+                        ? '—'
+                        : `S/ ${row.currentUnitCostPen.toFixed(2)}`}
+                    </td>
                     <td className="numeric-cell">{row.minimumStock}</td>
                     <td>
                       {low ? (
@@ -427,13 +528,22 @@ export function InventoryPage() {
                       )}
                     </td>
                     <td>
-                      <button
-                        className="button button-secondary button-compact"
-                        type="button"
-                        onClick={() => openMovement(row, 'TRANSFER')}
-                      >
-                        <Wrench size={15} /> Registrar
-                      </button>
+                      <div className="row-actions inventory-lot-actions">
+                        <button
+                          className="button button-secondary button-compact"
+                          type="button"
+                          onClick={() => setLotVariantId(row.variantId)}
+                        >
+                          <Eye size={15} /> Ver lotes
+                        </button>
+                        <button
+                          className="button button-secondary button-compact"
+                          type="button"
+                          onClick={() => openMovement(row, 'TRANSFER')}
+                        >
+                          <Wrench size={15} /> Registrar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -470,7 +580,18 @@ export function InventoryPage() {
                   Reservado<strong>{row.reservedQuantity}</strong>
                 </span>
                 <span>
+                  Acumulado<strong>{row.accumulatedQuantity}</strong>
+                </span>
+                <span>
                   Tránsito<strong>{row.inTransitQuantity}</strong>
+                </span>
+                <span>
+                  Costo
+                  <strong>
+                    {row.currentUnitCostPen == null
+                      ? '—'
+                      : `S/ ${row.currentUnitCostPen.toFixed(2)}`}
+                  </strong>
                 </span>
                 <span>
                   Dañado<strong>{row.damagedQuantity}</strong>
@@ -478,13 +599,22 @@ export function InventoryPage() {
               </div>
               <div className="mobile-record-footer">
                 <small>{row.warehouseName}</small>
-                <button
-                  className="link-button"
-                  type="button"
-                  onClick={() => (low ? resolveLowStock(row) : openMovement(row, 'TRANSFER'))}
-                >
-                  {low ? 'Resolver stock bajo' : 'Registrar movimiento'}
-                </button>
+                <div className="row-actions">
+                  <button
+                    className="link-button"
+                    type="button"
+                    onClick={() => setLotVariantId(row.variantId)}
+                  >
+                    Ver lotes
+                  </button>
+                  <button
+                    className="link-button"
+                    type="button"
+                    onClick={() => (low ? resolveLowStock(row) : openMovement(row, 'TRANSFER'))}
+                  >
+                    {low ? 'Resolver stock bajo' : 'Registrar movimiento'}
+                  </button>
+                </div>
               </div>
             </article>
           );
@@ -530,6 +660,120 @@ export function InventoryPage() {
           onChange={(value) => setDraftAlertFilter(value as AlertFilter)}
         />
       </FilterPanel>
+
+      {lotVariantId !== null ? (
+        <div
+          className="app-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setLotVariantId(null);
+          }}
+        >
+          <section
+            className="app-modal-card modal-card-wide inventory-lots-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inventory-lots-title"
+          >
+            <header className="app-modal-header">
+              <div>
+                <span className="eyebrow">Costo y procedencia</span>
+                <h2 id="inventory-lots-title">Lotes de importación</h2>
+                <p>Moneda, tipo de cambio, costo final y operación de origen.</p>
+              </div>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="Cerrar"
+                onClick={() => setLotVariantId(null)}
+              >
+                <X size={20} />
+              </button>
+            </header>
+            <ContextNote title="Cantidad recibida y stock disponible">
+              Esta vista muestra lo recibido originalmente por lote. El disponible actual puede ser
+              menor por ventas, reservas, transferencias o bajas posteriores.
+            </ContextNote>
+            <div className="responsive-table-wrap inventory-lot-table">
+              <table className="data-table compact-table">
+                <thead>
+                  <tr>
+                    <th>Lote / origen</th>
+                    <th>Producto</th>
+                    <th>Almacén</th>
+                    <th>Recibido</th>
+                    <th>Costo original</th>
+                    <th>TC</th>
+                    <th>Costo final</th>
+                    <th>Valor recibido</th>
+                    <th>Fecha</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedLots.map((lot) => (
+                    <tr key={lot.inventoryLotId}>
+                      <td>
+                        <strong>{lot.boxCode}</strong>
+                        <small>
+                          {lot.importCode} · {lot.inventoryLotId.slice(0, 8).toUpperCase()}
+                        </small>
+                      </td>
+                      <td>
+                        <strong>{lot.productName}</strong>
+                        <small>
+                          {lot.variantName} · {lot.sku}
+                        </small>
+                      </td>
+                      <td>{lot.warehouseName}</td>
+                      <td>{lot.receivedQuantity}</td>
+                      <td>{`${lot.originalCurrencyCode} ${lot.originalUnitCost.toFixed(2)}`}</td>
+                      <td>{lot.exchangeRateToPen.toFixed(4)}</td>
+                      <td>{`S/ ${lot.finalUnitCostPen.toFixed(2)}`}</td>
+                      <td>{`S/ ${(lot.receivedQuantity * lot.finalUnitCostPen).toFixed(2)}`}</td>
+                      <td>
+                        {new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(
+                          new Date(lot.receivedAt),
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          className="icon-button"
+                          type="button"
+                          title="Abrir importación"
+                          onClick={() => navigate(`/importaciones/${lot.importId}`)}
+                        >
+                          <ExternalLink size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {selectedLots.length === 0 ? (
+                    <tr>
+                      <td colSpan={10}>
+                        <div className="empty-state">
+                          {importDetailQueries.some((query) => query.isLoading)
+                            ? 'Cargando lotes…'
+                            : 'No se encontraron lotes importados para esta variante y almacén.'}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+            <footer className="app-modal-actions">
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={() => setLotVariantId(null)}
+              >
+                Cerrar
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
 
       {movementOpen ? (
         <div
