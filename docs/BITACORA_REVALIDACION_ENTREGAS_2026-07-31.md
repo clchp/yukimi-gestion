@@ -123,12 +123,30 @@ Validar si el sistema permite crear una entrega por agencia sin dirección ni pu
 - No debe ofrecerse como acción principal un estado anterior sin una explicación y confirmación explícita.
 - Antes de continuar esta prueba, se debe revisar el resto de botones de la sección para confirmar si existen más transiciones disponibles.
 
+## Hallazgo 6 — No debe permitirse elegir cualquier estado libremente
+
+- La especificación exige que cada entrega avance únicamente por estados válidos y registre sus fechas.
+- Los estados definidos son:
+  - `Pendiente de indicaciones`: todavía falta que el cliente indique cómo o dónde recibir.
+  - `Acumula almacén`: el cliente decide conservar temporalmente los productos en Yukimi.
+  - `Pendiente de despacho a agencia`: ya se definieron agencia y datos logísticos, pero el paquete aún no fue entregado a la agencia.
+  - `Entregado a agencia`: Yukimi ya dejó físicamente el paquete en la agencia; debe registrarse la fecha de despacho y, cuando exista, el seguimiento.
+  - `En reparto`: la agencia o motorizado ya trasladan el paquete al destino final.
+  - `Entregado al cliente`: el cliente ya recibió; es un estado final y debe registrar la fecha real de entrega.
+- No deben mostrarse todos los estados como botones equivalentes desde cualquier punto.
+- Para `ENT-0000005`, cuyo estado actual es `Pendiente de despacho a agencia`, la acción principal correcta es `Marcar como entregado a agencia`.
+- `Pendiente de indicaciones` solo puede ofrecerse como corrección o retroceso controlado antes del despacho, con confirmación y motivo obligatorio.
+- `En reparto` no debe poder seleccionarse antes de `Entregado a agencia`.
+- `Entregado al cliente` no debe poder seleccionarse directamente desde `Pendiente de despacho a agencia`; debe respetar la secuencia o requerir una corrección excepcional con motivo y trazabilidad.
+- `Acumula almacén` no debe mezclarse con el avance normal de una entrega por agencia ya creada; si el cliente cambia de decisión antes del despacho, debe tratarse como cambio de modalidad con confirmación.
+- La interfaz debe mostrar solo la siguiente acción válida como botón principal y colocar las correcciones excepcionales dentro de `Más opciones`, explicando su efecto.
+
 ## Clasificación de esta ronda
 
-- **Defectos funcionales:** creación de entrega por agencia sin destino, ausencia de advertencia por saldo pendiente y posible transición logística regresiva.
+- **Defectos funcionales:** creación de entrega por agencia sin destino, ausencia de advertencia por saldo pendiente, transición logística regresiva y selección libre de estados no secuenciales.
 - **Defectos visuales:** etiquetas y valores pegados en resumen y fechas.
 - **Datos que sí se conservaron:** operador, fecha planificada, costo, responsable del costo y notas.
 
 ## Estado
 
-**La primera prueba de creación de entrega falló en las validaciones esperadas. Pendiente revisar las transiciones de estado sin ejecutar una acción regresiva. `main` no debe modificarse.**
+**La primera prueba de creación de entrega falló en las validaciones esperadas. Pendiente corregir la matriz de transiciones y continuar la prueba sin saltar estados. `main` no debe modificarse.**
