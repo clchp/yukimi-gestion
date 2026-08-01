@@ -1,0 +1,164 @@
+.delivery-payment-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.delivery-payment-warning > div {
+  display: grid;
+  gap: 3px;
+}
+
+.delivery-payment-warning strong,
+.delivery-payment-warning span {
+  display: block;
+}
+
+.delivery-payment-warning span {
+  font-size: 0.68rem;
+}
+
+.delivery-field-title {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.delivery-add-address-button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: var(--primary);
+  background: var(--primary-pale);
+  font-size: 0.64rem;
+  font-weight: 760;
+}
+
+.delivery-add-address-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.delivery-address-modal {
+  width: min(680px, calc(100vw - 32px));
+}
+
+.delivery-address-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 13px;
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.delivery-address-default {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  font-weight: 680;
+}
+
+.delivery-address-default input {
+  accent-color: var(--primary);
+}
+
+.delivery-summary-list,
+.delivery-meta-list {
+  display: grid;
+  gap: 0;
+}
+
+.delivery-summary-list > div,
+.delivery-meta-list > div {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+
+.delivery-summary-list > div:last-child,
+.delivery-meta-list > div:last-child {
+  border-bottom: 0;
+}
+
+.delivery-summary-list span,
+.delivery-meta-list span {
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.delivery-summary-list strong,
+.delivery-meta-list strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-size: 0.72rem;
+}
+
+.delivery-detail-page .detail-summary-grid > div {
+  min-width: 0;
+}
+
+.delivery-detail-page .detail-summary-grid strong,
+.delivery-detail-page .detail-summary-grid small {
+  overflow-wrap: anywhere;
+}
+
+.detail-note-warning {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.delivery-transition-list {
+  display: grid;
+  gap: 9px;
+}
+
+.delivery-transition-list .button {
+  justify-content: center;
+}
+
+.field-error {
+  display: block;
+  margin-top: 5px;
+  color: var(--danger);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .delivery-field-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .delivery-add-address-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .delivery-summary-list > div,
+  .delivery-meta-list > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .delivery-summary-list strong,
+  .delivery-meta-list strong {
+    text-align: left;
+  }
+}

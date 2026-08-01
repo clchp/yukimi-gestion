@@ -140,97 +140,104 @@ export const createDeliveryItemSchema = z.object({
   quantity: z.number().int().positive().max(999),
 });
 
+const deliveryLogisticsFields = {
+  deliveryMethod: deliveryMethodSchema,
+  operatorPartnerId: z.string().uuid().nullable().optional(),
+  destinationAddressId: z.string().uuid().nullable().optional(),
+  trackingNumber: z.string().trim().max(150).nullable().optional(),
+  shippingCost: z.number().nonnegative().max(999999.99),
+  costPayer: z.enum(['CLIENT', 'BUSINESS', 'SHARED', 'NOT_APPLICABLE']),
+  plannedDispatchDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+  items: z.array(createDeliveryItemSchema).min(1).max(100),
+};
+
+type DeliveryLogisticsValue = {
+  deliveryMethod: DeliveryMethod;
+  operatorPartnerId?: string | null | undefined;
+  destinationAddressId?: string | null | undefined;
+  plannedDispatchDate?: string | null | undefined;
+  notes?: string | null | undefined;
+  items: Array<{ saleItemId: string; quantity: number }>;
+};
+
+function validateDeliveryLogistics(value: DeliveryLogisticsValue, context: z.RefinementCtx): void {
+  if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
+    context.addIssue({
+      code: 'custom',
+      path: ['operatorPartnerId'],
+      message: 'Selecciona la agencia.',
+    });
+  }
+  if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
+    context.addIssue({
+      code: 'custom',
+      path: ['operatorPartnerId'],
+      message: 'Selecciona el motorizado o courier.',
+    });
+  }
+
+  if (value.deliveryMethod !== 'WAREHOUSE_ACCUMULATION' && !value.destinationAddressId) {
+    context.addIssue({
+      code: 'custom',
+      path: ['destinationAddressId'],
+      message: 'Registra una dirección o punto de entrega.',
+    });
+  }
+
+  if (
+    ['AGENCY', 'MOTORBIKE', 'IN_PERSON'].includes(value.deliveryMethod) &&
+    !value.plannedDispatchDate
+  ) {
+    context.addIssue({
+      code: 'custom',
+      path: ['plannedDispatchDate'],
+      message: 'Indica la fecha planificada de despacho o entrega.',
+    });
+  }
+
+  if (value.deliveryMethod === 'OTHER' && (!value.notes || value.notes.trim().length < 5)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['notes'],
+      message: 'Describe el método de entrega y el acuerdo con el cliente.',
+    });
+  }
+
+  const seen = new Set<string>();
+  value.items.forEach((item, index) => {
+    if (seen.has(item.saleItemId)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['items', index],
+        message: 'Un producto no puede repetirse en la misma entrega.',
+      });
+    }
+    seen.add(item.saleItemId);
+  });
+}
+
 export const createDeliverySchema = z
   .object({
     saleId: z.string().uuid(),
-    deliveryMethod: deliveryMethodSchema,
-    operatorPartnerId: z.string().uuid().nullable().optional(),
-    destinationAddressId: z.string().uuid().nullable().optional(),
-    trackingNumber: z.string().trim().max(150).nullable().optional(),
-    shippingCost: z.number().nonnegative().max(999999.99).default(0),
-    costPayer: z.enum(['CLIENT', 'BUSINESS', 'SHARED', 'NOT_APPLICABLE']).default('CLIENT'),
-    plannedDispatchDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullable()
-      .optional(),
-    notes: z.string().trim().max(2000).nullable().optional(),
-    items: z.array(createDeliveryItemSchema).min(1).max(100),
+    ...deliveryLogisticsFields,
+    shippingCost: deliveryLogisticsFields.shippingCost.default(0),
+    costPayer: deliveryLogisticsFields.costPayer.default('CLIENT'),
   })
-  .superRefine((value, context) => {
-    if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
-      context.addIssue({
-        code: 'custom',
-        path: ['operatorPartnerId'],
-        message: 'Selecciona la agencia.',
-      });
-    }
-    if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
-      context.addIssue({
-        code: 'custom',
-        path: ['operatorPartnerId'],
-        message: 'Selecciona el motorizado o courier.',
-      });
-    }
-    const seen = new Set<string>();
-    value.items.forEach((item, index) => {
-      if (seen.has(item.saleItemId)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['items', index],
-          message: 'Un producto no puede repetirse en la misma entrega.',
-        });
-      }
-      seen.add(item.saleItemId);
-    });
-  });
+  .superRefine(validateDeliveryLogistics);
 export type CreateDeliveryInput = z.infer<typeof createDeliverySchema>;
 
 export const updateDeliverySchema = z
   .object({
     version: z.number().int().positive(),
     reason: z.string().trim().min(3).max(1000),
-    deliveryMethod: deliveryMethodSchema,
-    operatorPartnerId: z.string().uuid().nullable().optional(),
-    destinationAddressId: z.string().uuid().nullable().optional(),
-    trackingNumber: z.string().trim().max(150).nullable().optional(),
-    shippingCost: z.number().nonnegative().max(999999.99),
-    costPayer: z.enum(['CLIENT', 'BUSINESS', 'SHARED', 'NOT_APPLICABLE']),
-    plannedDispatchDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullable()
-      .optional(),
-    notes: z.string().trim().max(2000).nullable().optional(),
-    items: z.array(createDeliveryItemSchema).min(1).max(100),
+    ...deliveryLogisticsFields,
   })
-  .superRefine((value, context) => {
-    if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
-      context.addIssue({
-        code: 'custom',
-        path: ['operatorPartnerId'],
-        message: 'Selecciona la agencia.',
-      });
-    }
-    if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
-      context.addIssue({
-        code: 'custom',
-        path: ['operatorPartnerId'],
-        message: 'Selecciona el motorizado o courier.',
-      });
-    }
-    const seen = new Set<string>();
-    value.items.forEach((item, index) => {
-      if (seen.has(item.saleItemId)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['items', index],
-          message: 'Un producto no puede repetirse en la misma entrega.',
-        });
-      }
-      seen.add(item.saleItemId);
-    });
-  });
+  .superRefine(validateDeliveryLogistics);
 export type UpdateDeliveryInput = z.infer<typeof updateDeliverySchema>;
 
 export const updateDeliveryStateSchema = z.object({

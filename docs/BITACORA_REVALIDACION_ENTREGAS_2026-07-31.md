@@ -141,12 +141,38 @@ Validar si el sistema permite crear una entrega por agencia sin dirección ni pu
 - `Acumula almacén` no debe mezclarse con el avance normal de una entrega por agencia ya creada; si el cliente cambia de decisión antes del despacho, debe tratarse como cambio de modalidad con confirmación.
 - La interfaz debe mostrar solo la siguiente acción válida como botón principal y colocar las correcciones excepcionales dentro de `Más opciones`, explicando su efecto.
 
+## Resultado final de la exploración manual — salto confirmado
+
+- La usuaria ejecutó las opciones disponibles en `ENT-0000005` para comprobar el comportamiento.
+- El sistema permitió pasar de `Pendiente de despacho a agencia` a `Entregado a agencia` y luego directamente a `Entregado al cliente`.
+- No exigió el estado intermedio `En reparto`.
+- El historial muestra:
+  1. `Pendiente de despacho a agencia` — 31 jul. 2026, 7:05 p. m.
+  2. `Entregado a agencia` — 31 jul. 2026, 7:17 p. m.
+  3. `Entregado al cliente` — 31 jul. 2026, 7:17 p. m.
+- También quedaron registradas fechas de despacho y recepción por agencia, pero la entrega seguía sin destino registrado.
+- El caso confirma que la validación no podía limitarse a la interfaz: la API también debía rechazar saltos de estado.
+- `ENT-0000005` permanece como registro histórico de prueba ya finalizado; la corrección se aplica a nuevas transiciones y no reescribe silenciosamente su historial.
+
+## Correcciones implementadas en la rama de trabajo
+
+- Se definió una matriz secuencial por método de entrega en la API.
+- Para agencia, el flujo queda: `Pendiente de despacho a agencia` → `Entregado a agencia` → `En reparto` → `Entregado al cliente`.
+- La API rechaza una transición fuera de orden con un mensaje claro y código de conflicto.
+- El detalle de entrega muestra solamente las siguientes acciones válidas devueltas por la API.
+- Se exige destino para agencia, motorizado, entrega presencial y otros métodos no acumulados.
+- Se exige fecha planificada para agencia, motorizado y entrega presencial.
+- Se añadió un botón `Agregar` que abre una ventana emergente para guardar una dirección o punto en la ficha del cliente y seleccionarlo sin abandonar la entrega.
+- Se muestra una advertencia visible cuando la venta tiene saldo pendiente, sin impedir la preparación logística.
+- Se mejoraron la separación entre etiquetas y valores, el formato de fechas, la traducción de quién paga el envío y la visualización de destinos faltantes históricos.
+- Se añadieron pruebas automáticas para destino obligatorio y secuencia de estados.
+
 ## Clasificación de esta ronda
 
-- **Defectos funcionales:** creación de entrega por agencia sin destino, ausencia de advertencia por saldo pendiente, transición logística regresiva y selección libre de estados no secuenciales.
-- **Defectos visuales:** etiquetas y valores pegados en resumen y fechas.
-- **Datos que sí se conservaron:** operador, fecha planificada, costo, responsable del costo y notas.
+- **Defectos funcionales confirmados:** creación de entrega por agencia sin destino, ausencia de advertencia por saldo pendiente, transición logística regresiva, selección libre de estados y salto directo a entrega final.
+- **Defectos visuales confirmados:** etiquetas y valores pegados en resumen y fechas.
+- **Datos que sí se conservaron:** operador, fecha planificada, costo, responsable del costo, seguimiento, fechas e historial.
 
 ## Estado
 
-**La primera prueba de creación de entrega falló en las validaciones esperadas. Pendiente corregir la matriz de transiciones y continuar la prueba sin saltar estados. `main` no debe modificarse.**
+**Correcciones implementadas en `fix/entregas-flow-validation`, pendiente de validación técnica y fusión únicamente hacia `version-1-1`. `main` no debe modificarse.**

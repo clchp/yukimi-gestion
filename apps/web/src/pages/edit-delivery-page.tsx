@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { DeliveryMethod, UpdateDeliveryInput } from '@yukimi/shared';
-import { ArrowLeft, Check, PackageCheck } from 'lucide-react';
+import type { CreateClientAddressInput, DeliveryMethod, UpdateDeliveryInput } from '@yukimi/shared';
+import { ArrowLeft, Check, PackageCheck, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { DeliveryAddressModal } from '../components/deliveries/delivery-address-modal';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
 import { SearchableNativeSelect } from '../components/ui/searchable-native-select';
+import { createClientAddress } from '../features/clients/clients-api';
 import {
   getDelivery,
   getDeliverySupportData,
@@ -31,8 +33,16 @@ const methodOptions: Array<{ code: DeliveryMethod; label: string; description: s
   },
   { code: 'OTHER', label: 'Otro', description: 'Método excepcional documentado en notas.' },
 ];
+
 const money = (value: number) =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
+
+type DeliveryFieldErrors = Partial<
+  Record<
+    'operatorPartnerId' | 'destinationAddressId' | 'plannedDispatchDate' | 'notes',
+    string | undefined
+  >
+>;
 
 export function EditDeliveryPage() {
   const navigate = useNavigate();
@@ -66,6 +76,8 @@ export function EditDeliveryPage() {
   const [reason, setReason] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [localError, setLocalError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<DeliveryFieldErrors>({});
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
 
   const selectedSale = support.data?.selectedSale ?? null;
   const operators = support.data?.operators ?? [];
@@ -107,6 +119,7 @@ export function EditDeliveryPage() {
     if (method === 'WAREHOUSE_ACCUMULATION') {
       setCostPayer('NOT_APPLICABLE');
       setShippingCost('0');
+      setAddressId('');
     } else if (costPayer === 'NOT_APPLICABLE') {
       setCostPayer('CLIENT');
     }
@@ -121,9 +134,24 @@ export function EditDeliveryPage() {
     0,
   );
 
+  const addAddress = useMutation({
+    mutationFn: async (input: CreateClientAddressInput) => {
+      if (!selectedSale) throw new Error('No se encontró el cliente de esta entrega.');
+      return createClientAddress(selectedSale.clientId, input);
+    },
+    onSuccess: async (result) => {
+      setAddressId(result.id);
+      setFieldErrors((current) => ({ ...current, destinationAddressId: undefined }));
+      await queryClient.invalidateQueries({ queryKey: ['delivery-edit-support', deliveryId] });
+      await support.refetch();
+      setAddressModalOpen(false);
+    },
+  });
+
   const save = useMutation({
     mutationFn: async () => {
       setLocalError(null);
+      const nextErrors: DeliveryFieldErrors = {};
       const current = detail.data;
       if (!current || !selectedSale) throw new Error('La entrega no está disponible.');
       if (!current.canEdit)
@@ -138,6 +166,24 @@ export function EditDeliveryPage() {
             `La cantidad de ${item.productName} supera el máximo disponible para esta entrega.`,
           );
       }
+      if ((method === 'AGENCY' || method === 'MOTORBIKE') && !operatorId) {
+        nextErrors.operatorPartnerId =
+          method === 'AGENCY' ? 'Selecciona la agencia.' : 'Selecciona el courier o motorizado.';
+      }
+      if (method !== 'WAREHOUSE_ACCUMULATION' && !addressId) {
+        nextErrors.destinationAddressId = 'Registra una dirección o punto de entrega.';
+      }
+      if (['AGENCY', 'MOTORBIKE', 'IN_PERSON'].includes(method) && !plannedDate) {
+        nextErrors.plannedDispatchDate = 'Indica la fecha planificada.';
+      }
+      if (method === 'OTHER' && notes.trim().length < 5) {
+        nextErrors.notes = 'Describe el método y el acuerdo de entrega.';
+      }
+      setFieldErrors(nextErrors);
+      if (Object.keys(nextErrors).length > 0) {
+        throw new Error('Revisa los campos marcados antes de guardar la corrección.');
+      }
+
       const cost = Number(shippingCost || 0);
       if (!Number.isFinite(cost) || cost < 0) throw new Error('El costo de envío no es válido.');
       const input: UpdateDeliveryInput = {
@@ -257,7 +303,10 @@ export function EditDeliveryPage() {
                   type="button"
                   key={item.code}
                   className={`choice-card ${method === item.code ? 'selected' : ''}`}
-                  onClick={() => setMethod(item.code)}
+                  onClick={() => {
+                    setMethod(item.code);
+                    setFieldErrors({});
+                  }}
                 >
                   <span className="choice-icon">
                     <PackageCheck size={19} />
@@ -270,11 +319,14 @@ export function EditDeliveryPage() {
             </div>
             <div className="form-grid form-grid-2">
               {method === 'AGENCY' || method === 'MOTORBIKE' ? (
-                <label className="field">
-                  <span>{method === 'AGENCY' ? 'Agencia' : 'Courier o motorizado'}</span>
+                <div className="field">
+                  <span>{method === 'AGENCY' ? 'Agencia *' : 'Courier o motorizado *'}</span>
                   <SearchableNativeSelect
                     value={operatorId}
-                    onChange={(event) => setOperatorId(event.target.value)}
+                    onChange={(event) => {
+                      setOperatorId(event.target.value);
+                      setFieldErrors((current) => ({ ...current, operatorPartnerId: undefined }));
+                    }}
                     required
                   >
                     <option value="">Selecciona</option>
@@ -284,30 +336,63 @@ export function EditDeliveryPage() {
                       </option>
                     ))}
                   </SearchableNativeSelect>
-                </label>
+                  {fieldErrors.operatorPartnerId ? (
+                    <small className="field-error">{fieldErrors.operatorPartnerId}</small>
+                  ) : null}
+                </div>
+              ) : null}
+              {method !== 'WAREHOUSE_ACCUMULATION' ? (
+                <div className="field">
+                  <div className="delivery-field-title">
+                    <span>Dirección o punto de entrega *</span>
+                    <button
+                      type="button"
+                      className="delivery-add-address-button"
+                      onClick={() => setAddressModalOpen(true)}
+                    >
+                      <Plus size={15} /> Agregar
+                    </button>
+                  </div>
+                  <SearchableNativeSelect
+                    value={addressId}
+                    onChange={(event) => {
+                      setAddressId(event.target.value);
+                      setFieldErrors((current) => ({
+                        ...current,
+                        destinationAddressId: undefined,
+                      }));
+                    }}
+                  >
+                    <option value="">Selecciona una dirección o punto</option>
+                    {selectedSale.addresses.map((address) => (
+                      <option key={address.id} value={address.id}>
+                        {address.label} · {address.addressLine}
+                        {address.isPrimary ? ' · Principal' : ''}
+                      </option>
+                    ))}
+                  </SearchableNativeSelect>
+                  {fieldErrors.destinationAddressId ? (
+                    <small className="field-error">{fieldErrors.destinationAddressId}</small>
+                  ) : null}
+                </div>
               ) : null}
               <label className="field">
-                <span>Dirección o punto de referencia</span>
-                <SearchableNativeSelect
-                  value={addressId}
-                  onChange={(event) => setAddressId(event.target.value)}
-                >
-                  <option value="">Sin dirección registrada</option>
-                  {selectedSale.addresses.map((address) => (
-                    <option key={address.id} value={address.id}>
-                      {address.label} · {address.addressLine}
-                      {address.isPrimary ? ' · Principal' : ''}
-                    </option>
-                  ))}
-                </SearchableNativeSelect>
-              </label>
-              <label className="field">
-                <span>Fecha planificada de despacho</span>
+                <span>
+                  Fecha planificada de {method === 'IN_PERSON' ? 'entrega' : 'despacho'}
+                  {['AGENCY', 'MOTORBIKE', 'IN_PERSON'].includes(method) ? ' *' : ''}
+                </span>
                 <input
                   type="date"
                   value={plannedDate}
-                  onChange={(event) => setPlannedDate(event.target.value)}
+                  onChange={(event) => {
+                    setPlannedDate(event.target.value);
+                    setFieldErrors((current) => ({ ...current, plannedDispatchDate: undefined }));
+                  }}
+                  disabled={method === 'WAREHOUSE_ACCUMULATION'}
                 />
+                {fieldErrors.plannedDispatchDate ? (
+                  <small className="field-error">{fieldErrors.plannedDispatchDate}</small>
+                ) : null}
               </label>
               <label className="field">
                 <span>N.º de seguimiento</span>
@@ -315,6 +400,7 @@ export function EditDeliveryPage() {
                   value={trackingNumber}
                   onChange={(event) => setTrackingNumber(event.target.value)}
                   placeholder="Puede registrarse después"
+                  disabled={method === 'WAREHOUSE_ACCUMULATION'}
                 />
               </label>
               <label className="field">
@@ -333,6 +419,7 @@ export function EditDeliveryPage() {
                 <SearchableNativeSelect
                   value={costPayer}
                   onChange={(event) => setCostPayer(event.target.value as typeof costPayer)}
+                  disabled={method === 'WAREHOUSE_ACCUMULATION'}
                 >
                   <option value="CLIENT">Cliente</option>
                   <option value="BUSINESS">Yukimi</option>
@@ -341,16 +428,22 @@ export function EditDeliveryPage() {
                 </SearchableNativeSelect>
               </label>
               <label className="field field-span-2">
-                <span>Notas</span>
+                <span>Notas{method === 'OTHER' ? ' *' : ''}</span>
                 <textarea
                   rows={4}
                   value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
+                  onChange={(event) => {
+                    setNotes(event.target.value);
+                    setFieldErrors((current) => ({ ...current, notes: undefined }));
+                  }}
                   placeholder="Indicaciones de entrega, horario, persona que recibe…"
                 />
+                {fieldErrors.notes ? (
+                  <small className="field-error">{fieldErrors.notes}</small>
+                ) : null}
               </label>
               <label className="field field-span-2">
-                <span>Motivo de la corrección</span>
+                <span>Motivo de la corrección *</span>
                 <textarea
                   rows={3}
                   value={reason}
@@ -365,7 +458,7 @@ export function EditDeliveryPage() {
 
         <aside className="delivery-form-summary">
           <Panel title="Resumen">
-            <div className="summary-list">
+            <div className="summary-list delivery-summary-list">
               <div>
                 <span>Venta</span>
                 <strong>{detail.data.saleCode}</strong>
@@ -397,6 +490,23 @@ export function EditDeliveryPage() {
           </Panel>
         </aside>
       </section>
+
+      <DeliveryAddressModal
+        open={addressModalOpen}
+        clientName={selectedSale.clientName}
+        isPending={addAddress.isPending}
+        errorMessage={
+          addAddress.isError
+            ? addAddress.error instanceof Error
+              ? addAddress.error.message
+              : 'No se pudo guardar la dirección.'
+            : null
+        }
+        onClose={() => {
+          if (!addAddress.isPending) setAddressModalOpen(false);
+        }}
+        onSubmit={(input) => addAddress.mutate(input)}
+      />
     </main>
   );
 }

@@ -1,12 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { DeliveryStateCode } from '@yukimi/shared';
-import { ArrowLeft, ExternalLink, PackageCheck, Pencil, Truck, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ExternalLink,
+  PackageCheck,
+  Pencil,
+  Truck,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { PageHeader } from '../components/ui/page-header';
 import { Panel } from '../components/ui/panel';
 import { StatusBadge } from '../components/ui/status-badge';
 import { advanceDelivery, getDelivery } from '../features/deliveries/deliveries-api';
+import { getSale } from '../features/sales/sales-api';
 
 const stateLabels: Record<string, string> = {
   PENDING_INSTRUCTIONS: 'Pendiente de indicaciones',
@@ -25,15 +34,27 @@ const methodLabels: Record<string, string> = {
   WAREHOUSE_ACCUMULATION: 'Acumula almacén',
   OTHER: 'Otro',
 };
+const costPayerLabels: Record<string, string> = {
+  CLIENT: 'Cliente',
+  BUSINESS: 'Yukimi',
+  SHARED: 'Compartido',
+  NOT_APPLICABLE: 'No aplica',
+};
 const transitionLabels: Partial<Record<DeliveryStateCode, string>> = {
   ACCUMULATED: 'Mantener acumulado',
   PENDING_AGENCY_DISPATCH: 'Preparar despacho a agencia',
-  DELIVERED_TO_AGENCY: 'Confirmar entrega a agencia',
+  DELIVERED_TO_AGENCY: 'Registrar entrega a agencia',
   OUT_FOR_DELIVERY: 'Marcar en reparto',
   PARTIALLY_DELIVERED: 'Marcar entrega parcial',
   DELIVERED_TO_CLIENT: 'Confirmar entrega al cliente',
   CANCELLED: 'Cancelar entrega',
 };
+const physicalTransitions = new Set<DeliveryStateCode>([
+  'DELIVERED_TO_AGENCY',
+  'OUT_FOR_DELIVERY',
+  'PARTIALLY_DELIVERED',
+  'DELIVERED_TO_CLIENT',
+]);
 const money = (value: number) =>
   new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
 const dateTime = (value: string | null) =>
@@ -42,6 +63,14 @@ const dateTime = (value: string | null) =>
         new Date(value),
       )
     : 'Sin registrar';
+const dateOnly = (value: string | null) => {
+  if (!value) return 'Sin fecha';
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return value;
+  return new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium' }).format(
+    new Date(year, month - 1, day),
+  );
+};
 function toneFor(state: string): 'success' | 'warning' | 'danger' | 'info' | 'primary' {
   if (state === 'DELIVERED_TO_CLIENT') return 'success';
   if (state === 'CANCELLED') return 'danger';
@@ -61,6 +90,11 @@ export function DeliveryDetailPage() {
     queryKey: ['delivery', deliveryId],
     queryFn: () => getDelivery(deliveryId as string),
     enabled: Boolean(deliveryId),
+  });
+  const sale = useQuery({
+    queryKey: ['sale', delivery.data?.saleId],
+    queryFn: () => getSale(delivery.data?.saleId as string),
+    enabled: Boolean(delivery.data?.saleId),
   });
 
   const transition = useMutation({
@@ -91,6 +125,7 @@ export function DeliveryDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['delivery', deliveryId] }),
         queryClient.invalidateQueries({ queryKey: ['deliveries'] }),
         queryClient.invalidateQueries({ queryKey: ['sales'] }),
+        queryClient.invalidateQueries({ queryKey: ['sale'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory'] }),
       ]);
       setPendingState(null);
@@ -119,8 +154,12 @@ export function DeliveryDetailPage() {
     );
 
   const data = delivery.data;
+  const pendingBalance = Math.max(0, sale.data?.balanceAmount ?? 0);
+  const pendingTransitionHasPhysicalEffect =
+    pendingState !== null && physicalTransitions.has(pendingState);
+
   return (
-    <main className="page">
+    <main className="page delivery-detail-page">
       <button className="back-link" onClick={() => navigate('/entregas')}>
         <ArrowLeft size={17} /> Volver a entregas
       </button>
@@ -155,6 +194,17 @@ export function DeliveryDetailPage() {
           {methodLabels[data.deliveryMethod] ?? data.deliveryMethod}
         </StatusBadge>
       </div>
+      {pendingBalance > 0 ? (
+        <div className="alert alert-warning delivery-payment-warning">
+          <AlertTriangle size={18} />
+          <div>
+            <strong>La venta todavía tiene {money(pendingBalance)} de saldo pendiente.</strong>
+            <span>
+              La preparación está permitida; verifica el pago antes de ejecutar el despacho.
+            </span>
+          </div>
+        </div>
+      ) : null}
       {transition.isError ? (
         <div className="alert alert-error">
           {transition.error instanceof Error
@@ -185,16 +235,15 @@ export function DeliveryDetailPage() {
               <div>
                 <span>Costo</span>
                 <strong>{money(data.shippingCost)}</strong>
-                <small>{data.costPayer}</small>
+                <small>{costPayerLabels[data.costPayer] ?? data.costPayer}</small>
               </div>
             </div>
-            {data.destinationAddress ? (
-              <p className="detail-note">
-                <strong>Destino:</strong>{' '}
-                {data.destinationLabel ? `${data.destinationLabel} · ` : ''}
-                {data.destinationAddress}
-              </p>
-            ) : null}
+            <p className={`detail-note ${data.destinationAddress ? '' : 'detail-note-warning'}`}>
+              <strong>Destino:</strong>{' '}
+              {data.destinationAddress
+                ? `${data.destinationLabel ? `${data.destinationLabel} · ` : ''}${data.destinationAddress}`
+                : 'Sin dirección o punto registrado'}
+            </p>
             {data.notes ? (
               <p className="detail-note">
                 <strong>Notas:</strong> {data.notes}
@@ -261,10 +310,10 @@ export function DeliveryDetailPage() {
 
         <aside className="sale-detail-sidebar">
           <Panel title="Fechas">
-            <div className="summary-list">
+            <div className="summary-list delivery-meta-list">
               <div>
                 <span>Planificado</span>
-                <strong>{data.plannedDispatchDate ?? 'Sin fecha'}</strong>
+                <strong>{dateOnly(data.plannedDispatchDate)}</strong>
               </div>
               <div>
                 <span>Despachado</span>
@@ -282,7 +331,7 @@ export function DeliveryDetailPage() {
           </Panel>
           <Panel
             title="Siguiente acción"
-            subtitle="Los cambios quedan en el historial y actualizan el inventario cuando el cliente recibe."
+            subtitle="Solo se muestra el siguiente paso válido. Los cambios quedan en el historial."
           >
             <div className="delivery-transition-list">
               {data.allowedTransitions.length === 0 ? (
@@ -354,6 +403,17 @@ export function DeliveryDetailPage() {
                 <X size={18} />
               </button>
             </div>
+            {pendingBalance > 0 && pendingTransitionHasPhysicalEffect ? (
+              <div className="alert alert-warning delivery-payment-warning">
+                <AlertTriangle size={18} />
+                <div>
+                  <strong>Saldo pendiente: {money(pendingBalance)}</strong>
+                  <span>
+                    Confirma que revisaste el pago antes de continuar con el movimiento físico.
+                  </span>
+                </div>
+              </div>
+            ) : null}
             {pendingState === 'DELIVERED_TO_AGENCY' ? (
               <label className="field">
                 <span>Número de seguimiento *</span>
