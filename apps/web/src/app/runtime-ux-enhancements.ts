@@ -622,10 +622,8 @@ async function enhanceProductDetail() {
   if (!main || main.querySelector('.runtime-product-profit-panel')) return;
   const productId = match[1]!;
   try {
-    const [product, inventory] = await Promise.all([
-      getProduct(productId),
-      getInventory({ search: product.code, includeVirtual: false }),
-    ]);
+    const product = await getProduct(productId);
+    const inventory = await getInventory({ search: product.code, includeVirtual: false });
     if (main.querySelector('.runtime-product-profit-panel')) return;
     const panel = element('section', 'panel runtime-product-profit-panel');
     const heading = element('div', 'panel-heading');
