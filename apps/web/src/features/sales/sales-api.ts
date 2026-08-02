@@ -88,6 +88,16 @@ export function saveSaleDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetai
   });
 }
 
+export function cancelSaleDraft(
+  draftId: string,
+  version: number,
+): Promise<{ id: string; status: string; version: number }> {
+  return apiRequest<{ id: string; status: string; version: number }>(`/sales/drafts/${draftId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ version }),
+  });
+}
+
 export function confirmSaleDraft(
   draftId: string,
   version: number,

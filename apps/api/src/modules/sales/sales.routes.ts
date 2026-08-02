@@ -23,6 +23,10 @@ const listQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+const draftVersionSchema = z.object({
+  version: z.number().int().positive(),
+});
+
 function actorIdOrThrow(id: string | undefined): string {
   if (!id)
     throw new AppError({
@@ -95,12 +99,20 @@ export function createSalesRouter(
     }
   });
 
+  router.delete('/drafts/:draftId', async (request, response, next) => {
+    try {
+      const draftId = z.string().uuid().parse(request.params.draftId);
+      const { version } = draftVersionSchema.parse(request.body);
+      response.json({ data: await serviceFor(request).cancelDraft(draftId, version) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post('/drafts/:draftId/confirm', async (request, response, next) => {
     try {
       const draftId = z.string().uuid().parse(request.params.draftId);
-      const version = z
-        .object({ version: z.number().int().positive() })
-        .parse(request.body).version;
+      const { version } = draftVersionSchema.parse(request.body);
       const idempotencyKey = request.header('idempotency-key')?.trim() || randomUUID();
       response.json({
         data: await serviceFor(request).confirmDraft(draftId, version, idempotencyKey),

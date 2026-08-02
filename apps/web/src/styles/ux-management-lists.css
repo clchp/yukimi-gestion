@@ -1,0 +1,300 @@
+/* Correcciones compartidas para buscadores, filtros, listados y borradores. */
+.table-toolbar {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px 12px;
+  background: var(--surface);
+}
+
+.toolbar-search {
+  display: flex;
+  width: min(680px, 100%);
+  min-width: 280px;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 13px;
+  color: var(--muted);
+  background: white;
+  box-shadow: 0 1px 0 rgba(43, 30, 42, 0.03);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+.toolbar-search:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 48%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.toolbar-search svg {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.toolbar-search input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.toolbar-search input::placeholder {
+  color: color-mix(in srgb, var(--muted) 86%, white);
+}
+
+.table-toolbar .toolbar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.table-panel > .filter-chips {
+  gap: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 62%, white);
+  padding: 12px 18px 14px;
+  background: color-mix(in srgb, var(--surface-soft) 42%, white);
+  scrollbar-width: thin;
+}
+
+.table-panel > .filter-chips .filter-chip {
+  min-height: 32px;
+  padding-inline: 12px;
+}
+
+.mobile-card-list > .table-toolbar {
+  padding: 0 0 12px;
+  background: transparent;
+}
+
+.mobile-card-list > .filter-chips {
+  margin-bottom: 12px;
+  border: 0;
+  padding: 0 0 4px;
+  background: transparent;
+}
+
+.client-cell > div {
+  min-width: 0;
+}
+
+.client-cell strong,
+.client-cell small {
+  display: block;
+}
+
+.client-cell strong {
+  color: var(--text);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.client-cell small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.61rem;
+  line-height: 1.35;
+}
+
+.draft-list {
+  gap: 9px;
+}
+
+.draft-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.draft-open-button {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+  border-radius: 12px;
+  padding: 11px 14px;
+  color: var(--text-soft);
+  text-align: left;
+  background: color-mix(in srgb, var(--primary-soft) 38%, white);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.draft-open-button:hover {
+  border-color: color-mix(in srgb, var(--primary) 42%, white);
+  background: color-mix(in srgb, var(--primary-soft) 62%, white);
+}
+
+.draft-open-button:focus-visible,
+.draft-delete-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 24%, transparent);
+  outline-offset: 2px;
+}
+
+.draft-open-button > span:first-child {
+  min-width: 0;
+}
+
+.draft-open-button strong,
+.draft-open-button small {
+  display: block;
+}
+
+.draft-open-button strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-open-button small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.63rem;
+  line-height: 1.35;
+}
+
+.draft-delete-button {
+  width: 42px;
+  height: auto;
+  min-height: 58px;
+  border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--border));
+  border-radius: 12px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger-soft) 55%, white);
+}
+
+.draft-delete-button:not(:disabled):hover {
+  border-color: color-mix(in srgb, var(--danger) 46%, white);
+  background: var(--danger-soft);
+}
+
+.draft-delete-button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+/* El tooltip se mantiene dentro del área visible del gráfico para que no lo recorte el scroll. */
+.dashboard-real-chart {
+  isolation: isolate;
+}
+
+.dashboard-real-chart .bar-column {
+  position: relative;
+  overflow: visible;
+}
+
+.dashboard-real-chart .chart-tooltip {
+  z-index: 120;
+  top: 8px;
+  bottom: auto;
+  display: block;
+  max-width: 240px;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 120ms ease;
+}
+
+.dashboard-real-chart .bar-column:hover .chart-tooltip,
+.dashboard-real-chart .bar-column:focus-within .chart-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.dashboard-real-chart .bar-column:first-child .chart-tooltip {
+  left: 0;
+  transform: translateY(-4px);
+}
+
+.dashboard-real-chart .bar-column:first-child:hover .chart-tooltip,
+.dashboard-real-chart .bar-column:first-child:focus-within .chart-tooltip {
+  transform: translateY(0);
+}
+
+.dashboard-real-chart .bar-column:last-child .chart-tooltip {
+  right: 0;
+  left: auto;
+  transform: translateY(-4px);
+}
+
+.dashboard-real-chart .bar-column:last-child:hover .chart-tooltip,
+.dashboard-real-chart .bar-column:last-child:focus-within .chart-tooltip {
+  transform: translateY(0);
+}
+
+@media (max-width: 760px) {
+  .table-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .toolbar-search {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .table-toolbar .toolbar-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .table-toolbar .toolbar-actions > * {
+    flex: 1 1 auto;
+  }
+
+  .table-panel > .filter-chips {
+    padding: 10px 14px 13px;
+  }
+
+  .draft-row {
+    grid-template-columns: minmax(0, 1fr) 40px;
+  }
+
+  .draft-open-button {
+    gap: 9px;
+    padding: 10px 12px;
+  }
+
+  .draft-open-button .status-badge {
+    display: none;
+  }
+
+  .draft-delete-button {
+    width: 40px;
+  }
+
+  .dashboard-real-chart .chart-tooltip {
+    max-width: min(210px, calc(100vw - 72px));
+  }
+}

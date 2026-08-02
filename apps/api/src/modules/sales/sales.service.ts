@@ -38,6 +38,10 @@ export class SalesService {
     return this.repository.saveDraft(input);
   }
 
+  public cancelDraft(draftId: string, version: number) {
+    return this.repository.cancelDraft(draftId, version);
+  }
+
   public confirmDraft(draftId: string, version: number, idempotencyKey: string) {
     return this.repository.confirmDraft(draftId, version, idempotencyKey);
   }
