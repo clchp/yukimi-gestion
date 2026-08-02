@@ -9,14 +9,18 @@ select ok(
   to_regprocedure('public.cancel_sale_draft_v1(uuid,bigint)') is not null,
   'Existe la función para eliminar borradores'
 );
-select like(
-  pg_get_functiondef('public.cancel_sale_draft_v1(uuid,bigint)'::regprocedure),
-  '%status = ''CANCELLED''%',
+select ok(
+  position(
+    'status = ''CANCELLED'''
+    in pg_get_functiondef('public.cancel_sale_draft_v1(uuid,bigint)'::regprocedure)
+  ) > 0,
   'La eliminación conserva el borrador como cancelado para auditoría'
 );
-select like(
-  pg_get_functiondef('public.cancel_sale_draft_v1(uuid,bigint)'::regprocedure),
-  '%version = p_expected_version%',
+select ok(
+  position(
+    'version = p_expected_version'
+    in pg_get_functiondef('public.cancel_sale_draft_v1(uuid,bigint)'::regprocedure)
+  ) > 0,
   'La eliminación protege contra cambios concurrentes'
 );
 
