@@ -81,11 +81,19 @@ export function getSaleDraft(draftId: string): Promise<SaleDraftDetail> {
   return apiRequest<SaleDraftDetail>(`/sales/drafts/${draftId}`);
 }
 
-export function saveSaleDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetail> {
-  return apiRequest<SaleDraftDetail>('/sales/drafts', {
+export async function saveSaleDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetail> {
+  const result = await apiRequest<SaleDraftDetail>('/sales/drafts', {
     method: 'POST',
     body: JSON.stringify(input),
   });
+  window.setTimeout(() => {
+    window.dispatchEvent(
+      new CustomEvent('yukimi:sale-draft-saved', {
+        detail: { id: result.id, code: result.code },
+      }),
+    );
+  }, 350);
+  return result;
 }
 
 export function cancelSaleDraft(
