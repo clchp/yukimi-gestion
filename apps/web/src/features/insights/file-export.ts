@@ -161,7 +161,10 @@ function columnName(index: number): string {
 }
 
 function safeSheetName(value: string, index: number): string {
-  const cleaned = value.replace(/[\\/?*:[\]]/g, ' ').trim().slice(0, 31);
+  const cleaned = value
+    .replace(/[\\/?*:[\]]/g, ' ')
+    .trim()
+    .slice(0, 31);
   return cleaned || `Hoja ${index + 1}`;
 }
 
@@ -507,7 +510,9 @@ export function downloadBusinessPdf(filename: string, report: BusinessPdfReport)
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets
     .slice(1)
     .map((offset) => `${String(offset).padStart(10, '0')} 00000 n `)
-    .join('\n')}\ntrailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+    .join(
+      '\n',
+    )}\ntrailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
   downloadBlob(filename, new Blob([pdf], { type: 'application/pdf' }));
 }
 

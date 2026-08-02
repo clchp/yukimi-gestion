@@ -50,7 +50,10 @@
   visibility: hidden;
   opacity: 0;
   transform: translateX(-50%) translateY(-5px);
-  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 120ms ease;
 }
 
 .runtime-finance-chart .dual-column:hover .chart-tooltip,

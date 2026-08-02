@@ -1,9 +1,6 @@
 import { getClients } from '../features/clients/clients-api';
 import { getDeliveries } from '../features/deliveries/deliveries-api';
-import {
-  getFinanceTransactions,
-  getBankReconciliation,
-} from '../features/finance/finance-api';
+import { getFinanceTransactions, getBankReconciliation } from '../features/finance/finance-api';
 import { getImports } from '../features/imports/imports-api';
 import {
   downloadBusinessPdf,
@@ -11,11 +8,7 @@ import {
   type BusinessPdfReport,
   type WorkbookSheet,
 } from '../features/insights/file-export';
-import {
-  getDashboard,
-  getReports,
-  registerReportExport,
-} from '../features/insights/insights-api';
+import { getDashboard, getReports, registerReportExport } from '../features/insights/insights-api';
 import { getInventory, getProduct } from '../features/products/products-api';
 
 type DailyValue = {
@@ -156,7 +149,10 @@ function chartTooltip(primaryLabel: string, secondaryLabel: string, value: Daily
   const tooltip = element('span', 'chart-tooltip runtime-chart-tooltip');
   tooltip.setAttribute('role', 'tooltip');
   const first = element('span', 'runtime-tooltip-line');
-  first.append(element('strong', '', `${primaryLabel}: `), document.createTextNode(money(value.primary)));
+  first.append(
+    element('strong', '', `${primaryLabel}: `),
+    document.createTextNode(money(value.primary)),
+  );
   const second = element('span', 'runtime-tooltip-line');
   second.append(
     element('strong', '', `${secondaryLabel}: `),
@@ -184,7 +180,10 @@ function renderDashboardBars(chart: HTMLElement, values: DailyValue[]) {
     const collections = element('span', 'collections-bar');
     collections.style.height = `${Math.max(value.secondary > 0 ? 5 : 0, (value.secondary / maximum) * 100)}%`;
     button.append(sales, collections);
-    column.append(button, element('small', '', value.date.startsWith('20') ? shortDate(value.date) : value.date));
+    column.append(
+      button,
+      element('small', '', value.date.startsWith('20') ? shortDate(value.date) : value.date),
+    );
     chart.append(column);
   });
 }
@@ -336,7 +335,11 @@ async function allFinanceTransactions() {
   return financeTransactionsPromise;
 }
 
-function financeDaily(rows: FinanceTransaction[], startDate: string, endDate: string): DailyValue[] {
+function financeDaily(
+  rows: FinanceTransaction[],
+  startDate: string,
+  endDate: string,
+): DailyValue[] {
   const map = new Map<string, DailyValue>();
   const incoming = new Set(['INCOME', 'LOAN_RECEIVED', 'LOAN_COLLECTION']);
   rows.forEach((item) => {
@@ -413,7 +416,13 @@ async function renderFinancePeriod(panel: HTMLElement, period: ChartPeriod) {
     const income = daily.reduce((sum, item) => sum + item.primary, 0);
     const expense = daily.reduce((sum, item) => sum + item.secondary, 0);
     const periodLabel =
-      period === 'TODAY' ? 'de hoy' : period === '7D' ? 'de 7 días' : period === 'MONTH' ? 'del mes' : 'total';
+      period === 'TODAY'
+        ? 'de hoy'
+        : period === '7D'
+          ? 'de 7 días'
+          : period === 'MONTH'
+            ? 'del mes'
+            : 'total';
     if (summaryValues[0]) {
       summaryValues[0].querySelector('span')!.textContent = `Ingresos ${periodLabel}`;
       summaryValues[0].querySelector('strong')!.textContent = money(income);
@@ -427,7 +436,9 @@ async function renderFinancePeriod(panel: HTMLElement, period: ChartPeriod) {
       summaryValues[2].querySelector('strong')!.textContent = money(income - expense);
     }
   } catch {
-    chart.replaceChildren(element('div', 'empty-state', 'No se pudo actualizar el gráfico financiero.'));
+    chart.replaceChildren(
+      element('div', 'empty-state', 'No se pudo actualizar el gráfico financiero.'),
+    );
   } finally {
     panel.dataset.runtimeFinanceLoading = 'false';
   }
@@ -538,7 +549,9 @@ function enhanceReconciliation() {
   const controls = main?.querySelector<HTMLElement>('.reconciliation-controls');
   if (!main || !controls) return;
   const labels = [...controls.querySelectorAll<HTMLLabelElement>('label.field')];
-  const fileLabel = labels.find((label) => label.querySelector('span')?.textContent?.includes('Archivo'));
+  const fileLabel = labels.find((label) =>
+    label.querySelector('span')?.textContent?.includes('Archivo'),
+  );
   const select = fileLabel?.querySelector<HTMLSelectElement>('select');
   if (fileLabel && select && !fileLabel.querySelector('.reconciliation-clear-button')) {
     fileLabel.classList.add('reconciliation-file-field');
@@ -643,20 +656,30 @@ async function enhanceProductDetail() {
               0,
             ) / Math.max(costWeight, 1);
       const profit = averageCost == null ? null : variant.salePrice - averageCost;
-      const margin = profit == null || variant.salePrice <= 0 ? null : (profit / variant.salePrice) * 100;
+      const margin =
+        profit == null || variant.salePrice <= 0 ? null : (profit / variant.salePrice) * 100;
       const card = element('article', 'runtime-profit-card');
       const cardHeader = element('header');
       const names = element('div');
       names.append(element('strong', '', variant.variantName), element('small', '', variant.sku));
-      cardHeader.append(names, element('span', 'status-badge status-success', variant.isActive ? 'Activa' : 'Inactiva'));
+      cardHeader.append(
+        names,
+        element('span', 'status-badge status-success', variant.isActive ? 'Activa' : 'Inactiva'),
+      );
       const metrics = element('div', 'runtime-profit-metrics');
       metrics.append(
         definitionRow('Precio de venta', money(variant.salePrice)),
-        definitionRow('Costo promedio', averageCost == null ? 'Sin costo registrado' : money(averageCost)),
+        definitionRow(
+          'Costo promedio',
+          averageCost == null ? 'Sin costo registrado' : money(averageCost),
+        ),
         definitionRow('Ganancia estimada', profit == null ? '—' : money(profit)),
         definitionRow('Margen estimado', margin == null ? '—' : `${margin.toFixed(1)}%`),
         definitionRow('Código de barras', variant.barcode ?? 'No indicado'),
-        definitionRow('Peso', variant.weightGrams == null ? 'No indicado' : `${variant.weightGrams} g`),
+        definitionRow(
+          'Peso',
+          variant.weightGrams == null ? 'No indicado' : `${variant.weightGrams} g`,
+        ),
       );
       const dimensions = Object.entries(variant.dimensions ?? {});
       if (dimensions.length > 0) {
@@ -732,7 +755,12 @@ async function fetchAllClients(): Promise<ClientItem[]> {
   return items;
 }
 
-function rowsInPeriod<T>(items: T[], dateOf: (item: T) => string | null, start: string, end: string) {
+function rowsInPeriod<T>(
+  items: T[],
+  dateOf: (item: T) => string | null,
+  start: string,
+  end: string,
+) {
   return items.filter((item) => {
     const value = dateOf(item)?.slice(0, 10);
     return Boolean(value && value >= start && value <= end);
@@ -762,7 +790,12 @@ function reportWorkbook(
         ['YUKIMI GESTIÓN — REPORTE GENERAL'],
         ['Periodo', startDate, endDate],
         ['Almacén', warehouseName],
-        ['Generado', new Intl.DateTimeFormat('es-PE', { dateStyle: 'long', timeStyle: 'short' }).format(new Date())],
+        [
+          'Generado',
+          new Intl.DateTimeFormat('es-PE', { dateStyle: 'long', timeStyle: 'short' }).format(
+            new Date(),
+          ),
+        ],
         [],
         ['INDICADORES PRINCIPALES'],
         ['Indicador', 'Resultado'],
@@ -798,7 +831,15 @@ function reportWorkbook(
       name: 'Productos',
       rows: [
         ['PRODUCTOS MÁS VENDIDOS'],
-        ['SKU', 'Producto', 'Variante', 'Unidades', 'Ventas', 'Costo estimado', 'Ganancia estimada'],
+        [
+          'SKU',
+          'Producto',
+          'Variante',
+          'Unidades',
+          'Ventas',
+          'Costo estimado',
+          'Ganancia estimada',
+        ],
         ...report.topProducts.map((item) => [
           item.sku,
           item.productName,
@@ -816,7 +857,17 @@ function reportWorkbook(
       name: 'Clientes',
       rows: [
         ['CLIENTES Y SALDOS'],
-        ['Código', 'Cliente', 'Documento', 'Teléfono', 'VIP', 'Comprado', 'Saldo', 'Vencidas', 'Última compra'],
+        [
+          'Código',
+          'Cliente',
+          'Documento',
+          'Teléfono',
+          'VIP',
+          'Comprado',
+          'Saldo',
+          'Vencidas',
+          'Última compra',
+        ],
         ...clients.map((item) => [
           item.code,
           item.fullName,
@@ -858,7 +909,16 @@ function reportWorkbook(
       name: 'Gastos',
       rows: [
         ['GASTOS DEL PERIODO'],
-        ['Fecha', 'Código', 'Descripción', 'Categoría', 'Cuenta', 'Importe', 'Estado', 'Registrado por'],
+        [
+          'Fecha',
+          'Código',
+          'Descripción',
+          'Categoría',
+          'Cuenta',
+          'Importe',
+          'Estado',
+          'Registrado por',
+        ],
         ...expenses.map((item) => [
           item.occurredAt.slice(0, 10),
           item.code,
@@ -877,7 +937,17 @@ function reportWorkbook(
       name: 'Movimientos financieros',
       rows: [
         ['MOVIMIENTOS FINANCIEROS'],
-        ['Fecha', 'Código', 'Tipo', 'Descripción', 'Categoría', 'Cuenta', 'Importe', 'Moneda', 'Estado'],
+        [
+          'Fecha',
+          'Código',
+          'Tipo',
+          'Descripción',
+          'Categoría',
+          'Cuenta',
+          'Importe',
+          'Moneda',
+          'Estado',
+        ],
         ...finance.map((item) => [
           item.occurredAt.slice(0, 10),
           item.code,
@@ -897,7 +967,18 @@ function reportWorkbook(
       name: 'Compras e importaciones',
       rows: [
         ['COMPRAS E IMPORTACIONES'],
-        ['Código', 'Proveedor', 'Compra', 'Llegada estimada', 'Estado', 'Cajas', 'Esperado', 'Recibido', 'Costo PEN', 'Incidentes'],
+        [
+          'Código',
+          'Proveedor',
+          'Compra',
+          'Llegada estimada',
+          'Estado',
+          'Cajas',
+          'Esperado',
+          'Recibido',
+          'Costo PEN',
+          'Incidentes',
+        ],
         ...imports.map((item) => [
           item.code,
           item.supplierName ?? '',
@@ -918,7 +999,18 @@ function reportWorkbook(
       name: 'Entregas',
       rows: [
         ['ENTREGAS'],
-        ['Código', 'Venta', 'Cliente', 'Método', 'Estado', 'Operador', 'Tracking', 'Fecha planificada', 'Unidades', 'Costo de envío'],
+        [
+          'Código',
+          'Venta',
+          'Cliente',
+          'Método',
+          'Estado',
+          'Operador',
+          'Tracking',
+          'Fecha planificada',
+          'Unidades',
+          'Costo de envío',
+        ],
         ...deliveries.map((item) => [
           item.code,
           item.saleCode,
@@ -948,7 +1040,9 @@ function reportPdf(
   warehouseName: string,
 ): BusinessPdfReport {
   const income = finance
-    .filter((item) => ['INCOME', 'LOAN_RECEIVED', 'LOAN_COLLECTION'].includes(item.transactionTypeCode))
+    .filter((item) =>
+      ['INCOME', 'LOAN_RECEIVED', 'LOAN_COLLECTION'].includes(item.transactionTypeCode),
+    )
     .reduce((sum, item) => sum + item.totalAmount, 0);
   const expense = finance
     .filter(
@@ -981,14 +1075,24 @@ function reportPdf(
         columns: ['Producto', 'Unidades', 'Ventas', 'Ganancia'],
         rows: report.topProducts
           .slice(0, 10)
-          .map((item) => [item.productName, String(item.units), money(item.revenue), money(item.profit)]),
+          .map((item) => [
+            item.productName,
+            String(item.units),
+            money(item.revenue),
+            money(item.profit),
+          ]),
       },
       {
         title: 'Clientes principales',
         columns: ['Cliente', 'Ventas', 'Comprado', 'Saldo'],
         rows: report.topClients
           .slice(0, 10)
-          .map((item) => [item.clientName, String(item.salesCount), money(item.purchased), money(item.outstanding)]),
+          .map((item) => [
+            item.clientName,
+            String(item.salesCount),
+            money(item.purchased),
+            money(item.outstanding),
+          ]),
       },
       {
         title: 'Inventario',
@@ -1005,14 +1109,26 @@ function reportPdf(
         columns: ['Código', 'Estado', 'Esperado', 'Recibido', 'Costo'],
         rows: imports
           .slice(0, 12)
-          .map((item) => [item.code, item.stateCode, String(item.totalExpectedUnits), String(item.totalReceivedUnits), money(item.totalCostPen)]),
+          .map((item) => [
+            item.code,
+            item.stateCode,
+            String(item.totalExpectedUnits),
+            String(item.totalReceivedUnits),
+            money(item.totalCostPen),
+          ]),
       },
       {
         title: 'Entregas',
         columns: ['Código', 'Cliente', 'Estado', 'Unidades', 'Costo'],
         rows: deliveries
           .slice(0, 12)
-          .map((item) => [item.code, item.clientName, item.stateCode, String(item.totalUnits), money(item.shippingCost)]),
+          .map((item) => [
+            item.code,
+            item.clientName,
+            item.stateCode,
+            String(item.totalUnits),
+            money(item.shippingCost),
+          ]),
       },
     ],
   };
@@ -1092,7 +1208,10 @@ async function runEnhancedReportExport(format: 'XLSX' | 'PDF') {
         : 'PDF ejecutivo descargado correctamente.',
     );
   } catch (error) {
-    runtimeNotice(error instanceof Error ? error.message : 'No se pudo preparar el reporte.', 'error');
+    runtimeNotice(
+      error instanceof Error ? error.message : 'No se pudo preparar el reporte.',
+      'error',
+    );
   } finally {
     main.dataset.runtimeExporting = 'false';
   }
