@@ -30,6 +30,10 @@ export interface SalesRepository {
   listDrafts(): Promise<SaleDraftList>;
   getDraft(draftId: string): Promise<SaleDraftDetail>;
   saveDraft(input: SaveSaleDraftInput): Promise<SaleDraftDetail>;
+  cancelDraft(
+    draftId: string,
+    version: number,
+  ): Promise<{ id: string; status: string; version: number }>;
   confirmDraft(draftId: string, version: number, idempotencyKey: string): Promise<CreateSaleResult>;
   createReturnCase(
     saleId: string,
