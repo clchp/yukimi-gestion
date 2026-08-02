@@ -15,8 +15,13 @@ function fitText(value: string, maximum = 42) {
 }
 
 export function productLabelSvg(title: string, subtitle: string, payload: string) {
-  const qr = qrSvg(payload, 348);
-  const nestedQr = qr.replace('<svg ', '<svg x="66" y="122" preserveAspectRatio="xMidYMid meet" ');
+  const qr = qrSvg(payload, 1)
+    .replace(/\swidth="[^"]*"/, '')
+    .replace(/\sheight="[^"]*"/, '');
+  const nestedQr = qr.replace(
+    '<svg ',
+    '<svg x="76" y="132" width="328" height="328" preserveAspectRatio="xMidYMid meet" ',
+  );
   return `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="620" viewBox="0 0 480 620">
     <rect x="1" y="1" width="478" height="618" rx="24" fill="#fff" stroke="#242124" stroke-width="2"/>
     <text x="240" y="52" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#111">${escapeXml(fitText(title, 34))}</text>

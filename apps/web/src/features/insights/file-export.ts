@@ -1,3 +1,24 @@
+export interface WorkbookSheet {
+  name: string;
+  rows: unknown[][];
+  freezeRows?: number;
+  autoFilterRow?: number;
+  columnWidths?: number[];
+}
+
+export interface PdfSection {
+  title: string;
+  rows: string[][];
+  columns?: string[];
+}
+
+export interface BusinessPdfReport {
+  title: string;
+  subtitle?: string;
+  metadata?: string[];
+  sections: PdfSection[];
+}
+
 function copyToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
@@ -12,7 +33,7 @@ function downloadBlob(filename: string, blob: Blob) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function xmlEscape(value: unknown): string {
@@ -36,6 +57,7 @@ function crc32(bytes: Uint8Array): number {
 function u16(value: number): Uint8Array {
   return Uint8Array.of(value & 255, (value >>> 8) & 255);
 }
+
 function u32(value: number): Uint8Array {
   return Uint8Array.of(
     value & 255,
@@ -44,6 +66,7 @@ function u32(value: number): Uint8Array {
     (value >>> 24) & 255,
   );
 }
+
 function concat(parts: Uint8Array[]): Uint8Array {
   const output = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
   let offset = 0;
@@ -60,6 +83,7 @@ interface ZipEntry {
   crc: number;
   offset: number;
 }
+
 function zipStore(files: Record<string, string>): Uint8Array {
   const encoder = new TextEncoder();
   const locals: Uint8Array[] = [];
@@ -136,30 +160,197 @@ function columnName(index: number): string {
   return name;
 }
 
-export function downloadXlsx(filename: string, rows: unknown[][]) {
+function safeSheetName(value: string, index: number): string {
+  const cleaned = value
+    .replace(/[\\/?*:[\]]/g, ' ')
+    .trim()
+    .slice(0, 31);
+  return cleaned || `Hoja ${index + 1}`;
+}
+
+function isSectionRow(row: unknown[]): boolean {
+  return (
+    row.length === 1 &&
+    typeof row[0] === 'string' &&
+    row[0].trim().length > 0 &&
+    row[0] === row[0].toLocaleUpperCase('es-PE')
+  );
+}
+
+function looksLikeHeader(row: unknown[], next: unknown[] | undefined): boolean {
+  if (row.length < 2 || !row.every((value) => typeof value === 'string')) return false;
+  if (!next || next.length === 0) return false;
+  return next.some((value) => typeof value === 'number') || next.length === row.length;
+}
+
+function moneyHeader(value: unknown): boolean {
+  return /venta|cobro|costo|ganancia|precio|importe|saldo|comprado|valor|monto|gasto|ingreso|ticket/i.test(
+    String(value ?? ''),
+  );
+}
+
+function cellStyle(
+  rows: unknown[][],
+  rowIndex: number,
+  columnIndex: number,
+  value: unknown,
+): number {
+  const row = rows[rowIndex] ?? [];
+  if (rowIndex === 0 && row.length === 1) return 1;
+  if (isSectionRow(row)) return 2;
+  if (looksLikeHeader(row, rows[rowIndex + 1])) return 3;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const nearestHeader = [...rows.slice(0, rowIndex)]
+      .reverse()
+      .find((candidate) => looksLikeHeader(candidate, row));
+    return moneyHeader(nearestHeader?.[columnIndex]) ? 4 : 5;
+  }
+  return rowIndex % 2 === 0 ? 0 : 6;
+}
+
+function widthForColumn(rows: unknown[][], index: number): number {
+  const longest = rows.reduce(
+    (maximum, row) => Math.max(maximum, String(row[index] ?? '').length),
+    0,
+  );
+  return Math.min(42, Math.max(10, longest + 2));
+}
+
+function sheetXml(sheet: WorkbookSheet): string {
+  const rows = sheet.rows.length > 0 ? sheet.rows : [['Sin información']];
+  const columnCount = Math.max(1, ...rows.map((row) => row.length));
+  const widths = Array.from(
+    { length: columnCount },
+    (_, index) => sheet.columnWidths?.[index] ?? widthForColumn(rows, index),
+  );
+  const merges: string[] = [];
   const sheetRows = rows
+    .map((row, rowIndex) => {
+      if ((rowIndex === 0 && row.length === 1) || isSectionRow(row)) {
+        merges.push(`A${rowIndex + 1}:${columnName(columnCount - 1)}${rowIndex + 1}`);
+      }
+      const cells = row
+        .map((value, columnIndex) => {
+          const reference = `${columnName(columnIndex)}${rowIndex + 1}`;
+          const style = cellStyle(rows, rowIndex, columnIndex, value);
+          if (typeof value === 'number' && Number.isFinite(value))
+            return `<c r="${reference}" s="${style}"><v>${value}</v></c>`;
+          return `<c r="${reference}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(value)}</t></is></c>`;
+        })
+        .join('');
+      const height = rowIndex === 0 && row.length === 1 ? ' ht="28" customHeight="1"' : '';
+      return `<row r="${rowIndex + 1}"${height}>${cells}</row>`;
+    })
+    .join('');
+  const freezeRows = Math.max(0, sheet.freezeRows ?? 0);
+  const pane =
+    freezeRows > 0
+      ? `<sheetViews><sheetView workbookViewId="0"><pane ySplit="${freezeRows}" topLeftCell="A${freezeRows + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
+      : '<sheetViews><sheetView workbookViewId="0"/></sheetViews>';
+  const autoFilter = sheet.autoFilterRow
+    ? `<autoFilter ref="A${sheet.autoFilterRow}:${columnName(columnCount - 1)}${sheet.autoFilterRow}"/>`
+    : '';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+${pane}
+<cols>${widths
     .map(
-      (row, rowIndex) =>
-        `<row r="${rowIndex + 1}">${row
-          .map((value, columnIndex) => {
-            const reference = `${columnName(columnIndex)}${rowIndex + 1}`;
-            if (typeof value === 'number' && Number.isFinite(value))
-              return `<c r="${reference}"><v>${value}</v></c>`;
-            return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(value)}</t></is></c>`;
-          })
-          .join('')}</row>`,
+      (width, index) =>
+        `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`,
+    )
+    .join('')}</cols>
+<sheetData>${sheetRows}</sheetData>
+${autoFilter}
+${merges.length > 0 ? `<mergeCells count="${merges.length}">${merges.map((ref) => `<mergeCell ref="${ref}"/>`).join('')}</mergeCells>` : ''}
+<pageMargins left="0.35" right="0.35" top="0.55" bottom="0.55" header="0.2" footer="0.2"/>
+</worksheet>`;
+}
+
+function workbookStyles(): string {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="S/ #,##0.00;[Red]-S/ #,##0.00"/></numFmts>
+<fonts count="4">
+  <font><sz val="10"/><name val="Aptos"/><color rgb="FF2B1E2A"/></font>
+  <font><b/><sz val="16"/><name val="Aptos Display"/><color rgb="FFFFFFFF"/></font>
+  <font><b/><sz val="11"/><name val="Aptos"/><color rgb="FFFFFFFF"/></font>
+  <font><b/><sz val="10"/><name val="Aptos"/><color rgb="FF4F214A"/></font>
+</fonts>
+<fills count="6">
+  <fill><patternFill patternType="none"/></fill>
+  <fill><patternFill patternType="gray125"/></fill>
+  <fill><patternFill patternType="solid"><fgColor rgb="FF74366E"/><bgColor indexed="64"/></patternFill></fill>
+  <fill><patternFill patternType="solid"><fgColor rgb="FF9A5A91"/><bgColor indexed="64"/></patternFill></fill>
+  <fill><patternFill patternType="solid"><fgColor rgb="FFF2E8F0"/><bgColor indexed="64"/></patternFill></fill>
+  <fill><patternFill patternType="solid"><fgColor rgb="FFFAF7FA"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+  <border><left/><right/><top/><bottom/><diagonal/></border>
+  <border><left style="thin"><color rgb="FFE7DCE5"/></left><right style="thin"><color rgb="FFE7DCE5"/></right><top style="thin"><color rgb="FFE7DCE5"/></top><bottom style="thin"><color rgb="FFE7DCE5"/></bottom><diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="7">
+  <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
+  <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+  <xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>
+  <xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+  <xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+  <xf numFmtId="1" fontId="3" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+  <xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+}
+
+function normalizeWorkbook(input: unknown[][] | WorkbookSheet[]): WorkbookSheet[] {
+  if (
+    input.length > 0 &&
+    !Array.isArray(input[0]) &&
+    typeof input[0] === 'object' &&
+    input[0] !== null &&
+    'rows' in input[0]
+  ) {
+    return input as WorkbookSheet[];
+  }
+  return [{ name: 'Reporte', rows: input as unknown[][], freezeRows: 1 }];
+}
+
+export function downloadXlsx(filename: string, input: unknown[][] | WorkbookSheet[]) {
+  const sheets = normalizeWorkbook(input).map((sheet, index) => ({
+    ...sheet,
+    name: safeSheetName(sheet.name, index),
+  }));
+  const worksheetOverrides = sheets
+    .map(
+      (_, index) =>
+        `<Override PartName="/xl/worksheets/sheet${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`,
     )
     .join('');
-  const files = {
-    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`,
+  const workbookSheets = sheets
+    .map(
+      (sheet, index) =>
+        `<sheet name="${xmlEscape(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`,
+    )
+    .join('');
+  const relationships = sheets
+    .map(
+      (_, index) =>
+        `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index + 1}.xml"/>`,
+    )
+    .join('');
+  const files: Record<string, string> = {
+    '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${worksheetOverrides}</Types>`,
     '_rels/.rels': `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
-    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Reporte" sheetId="1" r:id="rId1"/></sheets></workbook>`,
-    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
-    'xl/worksheets/sheet1.xml': `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData></worksheet>`,
+    'xl/workbook.xml': `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${workbookSheets}</sheets></workbook>`,
+    'xl/_rels/workbook.xml.rels': `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+    'xl/styles.xml': workbookStyles(),
   };
+  sheets.forEach((sheet, index) => {
+    files[`xl/worksheets/sheet${index + 1}.xml`] = sheetXml(sheet);
+  });
   const bytes = zipStore(files);
   downloadBlob(
-    filename,
+    filename.replace(/\.csv$/i, '.xlsx'),
     new Blob([copyToArrayBuffer(bytes)], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     }),
@@ -168,13 +359,16 @@ export function downloadXlsx(filename: string, rows: unknown[][]) {
 
 function pdfEscape(text: string): string {
   return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/\\/g, '\\\\')
     .replace(/\(/g, '\\(')
     .replace(/\)/g, '\\)')
-    .replace(/[^\x20-\x7eáéíóúÁÉÍÓÚñÑüÜ¿¡]/g, '?');
+    .replace(/[^\x20-\x7e]/g, '?');
 }
-function wrap(text: string, width = 92): string[] {
-  const words = text.split(/\s+/);
+
+function wrap(text: string, width = 88): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = '';
   for (const word of words) {
@@ -184,14 +378,68 @@ function wrap(text: string, width = 92): string[] {
     } else current = `${current} ${word}`.trim();
   }
   if (current) lines.push(current);
+  return lines.length > 0 ? lines : [''];
+}
+
+interface PdfLine {
+  text: string;
+  kind: 'title' | 'subtitle' | 'meta' | 'section' | 'header' | 'body';
+}
+
+function reportToLines(report: BusinessPdfReport): PdfLine[] {
+  const lines: PdfLine[] = [{ text: report.title, kind: 'title' }];
+  if (report.subtitle) lines.push({ text: report.subtitle, kind: 'subtitle' });
+  for (const value of report.metadata ?? []) lines.push({ text: value, kind: 'meta' });
+  for (const section of report.sections) {
+    lines.push({ text: section.title, kind: 'section' });
+    if (section.columns?.length)
+      lines.push({ text: section.columns.join('  |  '), kind: 'header' });
+    for (const row of section.rows) lines.push({ text: row.join('  |  '), kind: 'body' });
+  }
   return lines;
 }
 
-export function downloadPdf(filename: string, title: string, lines: string[]) {
-  const logicalLines = [title, '', ...lines].flatMap((line) => wrap(line));
-  const pages: string[][] = [];
-  for (let index = 0; index < logicalLines.length; index += 46)
-    pages.push(logicalLines.slice(index, index + 46));
+function legacyLinesToReport(title: string, lines: string[]): BusinessPdfReport {
+  const sections: PdfSection[] = [];
+  let current: PdfSection = { title: 'Resumen', rows: [] };
+  for (const line of lines) {
+    const parts = line.split(' | ').map((value) => value.trim());
+    const first = parts[0] ?? '';
+    if (parts.length === 1 && first && first === first.toLocaleUpperCase('es-PE')) {
+      if (current.rows.length > 0 || current.columns) sections.push(current);
+      current = { title: first, rows: [] };
+      continue;
+    }
+    if (parts.length > 1 && current.rows.length === 0 && !current.columns) {
+      current.columns = parts;
+      continue;
+    }
+    if (parts.some(Boolean)) current.rows.push(parts);
+  }
+  if (current.rows.length > 0 || current.columns) sections.push(current);
+  return { title, sections };
+}
+
+export function downloadBusinessPdf(filename: string, report: BusinessPdfReport) {
+  const logical = reportToLines(report).flatMap((line) =>
+    wrap(line.text, line.kind === 'body' ? 92 : 76).map((text) => ({ ...line, text })),
+  );
+  const pages: PdfLine[][] = [];
+  let page: PdfLine[] = [];
+  let used = 0;
+  for (const line of logical) {
+    const height = line.kind === 'title' ? 34 : line.kind === 'section' ? 27 : 18;
+    if (used + height > 700 && page.length > 0) {
+      pages.push(page);
+      page = [];
+      used = 0;
+    }
+    page.push(line);
+    used += height;
+  }
+  if (page.length > 0) pages.push(page);
+  if (pages.length === 0) pages.push([{ text: 'Sin información', kind: 'body' }]);
+
   const objects: string[] = [];
   const add = (body: string) => {
     objects.push(body);
@@ -199,24 +447,56 @@ export function downloadPdf(filename: string, title: string, lines: string[]) {
   };
   const catalogId = add('');
   const pagesId = add('');
-  const fontId = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const regularFontId = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const boldFontId = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
   const pageIds: number[] = [];
-  for (const pageLines of pages) {
-    const commands = pageLines
-      .map(
-        (line, index) =>
-          `BT /F1 ${index === 0 ? 16 : 10} Tf 48 ${790 - index * 16} Td (${pdfEscape(line)}) Tj ET`,
-      )
-      .join('\n');
+
+  pages.forEach((pageLines, pageIndex) => {
+    let y = 790;
+    const commands: string[] = [
+      '0.45 0.21 0.43 rg 36 806 523 18 re f',
+      `BT /F2 8 Tf 44 812 Td (YUKIMI GESTION) Tj ET`,
+    ];
+    for (const line of pageLines) {
+      if (line.kind === 'title') {
+        commands.push(`BT /F2 20 Tf 44 ${y} Td (${pdfEscape(line.text)}) Tj ET`);
+        y -= 30;
+      } else if (line.kind === 'subtitle') {
+        commands.push(`0.35 0.31 0.35 rg BT /F1 10 Tf 44 ${y} Td (${pdfEscape(line.text)}) Tj ET`);
+        y -= 19;
+      } else if (line.kind === 'meta') {
+        commands.push(`0.35 0.31 0.35 rg BT /F1 8 Tf 44 ${y} Td (${pdfEscape(line.text)}) Tj ET`);
+        y -= 15;
+      } else if (line.kind === 'section') {
+        y -= 5;
+        commands.push(`0.95 0.90 0.94 rg 40 ${y - 7} 515 22 re f`);
+        commands.push(`0.31 0.13 0.29 rg BT /F2 11 Tf 47 ${y} Td (${pdfEscape(line.text)}) Tj ET`);
+        y -= 27;
+      } else if (line.kind === 'header') {
+        commands.push(`0.45 0.21 0.43 rg 40 ${y - 6} 515 18 re f`);
+        commands.push(`1 1 1 rg BT /F2 8 Tf 45 ${y} Td (${pdfEscape(line.text)}) Tj ET`);
+        y -= 20;
+      } else {
+        commands.push(`0.16 0.12 0.16 rg BT /F1 8 Tf 45 ${y} Td (${pdfEscape(line.text)}) Tj ET`);
+        commands.push(`0.90 0.86 0.89 RG 40 ${y - 5} m 555 ${y - 5} l S`);
+        y -= 16;
+      }
+    }
+    commands.push(
+      `0.35 0.31 0.35 rg BT /F1 8 Tf 44 28 Td (Generado por Yukimi Gestion) Tj ET`,
+      `BT /F1 8 Tf 500 28 Td (Pagina ${pageIndex + 1} de ${pages.length}) Tj ET`,
+    );
+    const stream = commands.join('\n');
     const contentId = add(
-      `<< /Length ${new TextEncoder().encode(commands).length} >>\nstream\n${commands}\nendstream`,
+      `<< /Length ${new TextEncoder().encode(stream).length} >>\nstream\n${stream}\nendstream`,
     );
     pageIds.push(
       add(
-        `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`,
+        `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> >> /Contents ${contentId} 0 R >>`,
       ),
     );
-  }
+  });
+
   objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
   objects[pagesId - 1] =
     `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
@@ -234,4 +514,8 @@ export function downloadPdf(filename: string, title: string, lines: string[]) {
       '\n',
     )}\ntrailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
   downloadBlob(filename, new Blob([pdf], { type: 'application/pdf' }));
+}
+
+export function downloadPdf(filename: string, title: string, lines: string[]) {
+  downloadBusinessPdf(filename, legacyLinesToReport(title, lines));
 }
