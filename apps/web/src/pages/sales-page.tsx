@@ -1,12 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SaleFilter } from '@yukimi/shared';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useFeedback } from '../components/ui/feedback-provider';
 import { PageHeader } from '../components/ui/page-header';
 import { StatusBadge } from '../components/ui/status-badge';
 import { Toolbar } from '../components/ui/toolbar';
-import { getSaleDrafts, getSales } from '../features/sales/sales-api';
+import { cancelSaleDraft, getSaleDrafts, getSales } from '../features/sales/sales-api';
 
 function formatMoney(value: number) {
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
@@ -46,10 +47,25 @@ const deliveryLabels: Record<string, string> = {
 
 export function SalesPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const feedback = useFeedback();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<SaleFilter>('ALL');
   const [page, setPage] = useState(1);
   const drafts = useQuery({ queryKey: ['sale-drafts'], queryFn: getSaleDrafts });
+  const cancelDraft = useMutation({
+    mutationFn: ({ draftId, version }: { draftId: string; version: number }) =>
+      cancelSaleDraft(draftId, version),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['sale-drafts'] });
+      feedback.notify({
+        title: 'Borrador eliminado',
+        message: 'El borrador dejó de aparecer en la lista de pendientes.',
+        tone: 'success',
+      });
+    },
+    onError: (error) => feedback.notifyError(error, 'No se pudo eliminar el borrador.'),
+  });
   const sales = useQuery({
     queryKey: ['sales', search, filter, page],
     queryFn: () => getSales({ search, filter, page, pageSize: 20 }),
@@ -59,6 +75,25 @@ export function SalesPage() {
     1,
     Math.ceil((sales.data?.total ?? 0) / (sales.data?.pageSize ?? 20)),
   );
+
+  async function requestDraftDeletion(draft: {
+    id: string;
+    code: string;
+    clientName: string;
+    version: number;
+  }) {
+    const confirmed = await feedback.confirm({
+      title: 'Eliminar borrador',
+      message: `¿Deseas eliminar ${draft.code} · ${draft.clientName}?`,
+      detail:
+        'Solo se elimina de la lista de borradores pendientes. No afecta ventas confirmadas ni movimientos de inventario.',
+      confirmLabel: 'Eliminar borrador',
+      cancelLabel: 'Conservar',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    cancelDraft.mutate({ draftId: draft.id, version: draft.version });
+  }
 
   return (
     <main className="page">
@@ -81,26 +116,41 @@ export function SalesPage() {
             </div>
             <StatusBadge tone="info">{drafts.data.items.length}</StatusBadge>
           </div>
-          <div className="catalog-list">
-            {drafts.data.items.slice(0, 6).map((draft) => (
-              <button
-                className="selection-row"
-                key={draft.id}
-                type="button"
-                onClick={() => navigate(`/ventas/borradores/${draft.id}`)}
-              >
-                <span>
-                  <strong>
-                    {draft.code} · {draft.clientName}
-                  </strong>
-                  <small>
-                    {draft.itemLines} líneas · {formatMoney(draft.totalAmount)} · actualizado{' '}
-                    {formatDate(draft.updatedAt)}
-                  </small>
-                </span>
-                <StatusBadge tone="neutral">Editar</StatusBadge>
-              </button>
-            ))}
+          <div className="catalog-list draft-list">
+            {drafts.data.items.slice(0, 6).map((draft) => {
+              const deleting =
+                cancelDraft.isPending && cancelDraft.variables?.draftId === draft.id;
+              return (
+                <div className="draft-row" key={draft.id}>
+                  <button
+                    className="draft-open-button"
+                    type="button"
+                    onClick={() => navigate(`/ventas/borradores/${draft.id}`)}
+                  >
+                    <span>
+                      <strong>
+                        {draft.code} · {draft.clientName}
+                      </strong>
+                      <small>
+                        {draft.itemLines} líneas · {formatMoney(draft.totalAmount)} · actualizado{' '}
+                        {formatDate(draft.updatedAt)}
+                      </small>
+                    </span>
+                    <StatusBadge tone="neutral">Editar</StatusBadge>
+                  </button>
+                  <button
+                    className="icon-button draft-delete-button"
+                    type="button"
+                    aria-label={`Eliminar borrador ${draft.code}`}
+                    title="Eliminar borrador"
+                    disabled={deleting}
+                    onClick={() => void requestDraftDeletion(draft)}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </section>
       ) : null}
