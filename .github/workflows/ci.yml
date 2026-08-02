@@ -17,11 +17,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - name: Mostrar formato requerido para Ventas
-        run: |
-          npx prettier --write apps/web/src/pages/sales-page.tsx
-          git diff -- apps/web/src/pages/sales-page.tsx
-          git diff --exit-code -- apps/web/src/pages/sales-page.tsx
       - run: npm run format:check
       - run: npm run build:shared
       - run: npm run typecheck
