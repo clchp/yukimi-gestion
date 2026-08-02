@@ -118,8 +118,7 @@ export function SalesPage() {
           </div>
           <div className="catalog-list draft-list">
             {drafts.data.items.slice(0, 6).map((draft) => {
-              const deleting =
-                cancelDraft.isPending && cancelDraft.variables?.draftId === draft.id;
+              const deleting = cancelDraft.isPending && cancelDraft.variables?.draftId === draft.id;
               return (
                 <div className="draft-row" key={draft.id}>
                   <button
