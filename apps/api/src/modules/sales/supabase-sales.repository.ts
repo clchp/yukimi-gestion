@@ -85,6 +85,19 @@ export class SupabaseSalesRepository implements SalesRepository {
     return saleDraftDetailSchema.parse(data);
   }
 
+  public async cancelDraft(
+    draftId: string,
+    version: number,
+  ): Promise<{ id: string; status: string; version: number }> {
+    const { data, error } = await this.client.rpc('cancel_sale_draft_v1', {
+      p_draft_id: draftId,
+      p_expected_version: version,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudo eliminar el borrador.');
+    const row = data as { id: string; status: string; version: number };
+    return { id: row.id, status: row.status, version: row.version };
+  }
+
   public async confirmDraft(
     draftId: string,
     version: number,
