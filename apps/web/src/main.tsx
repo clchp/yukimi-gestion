@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
+import { installDeliveryCostLock } from './app/delivery-cost-lock';
 import { installFinalPendingCorrections } from './app/final-pending-corrections';
 import { installImportReconciliationFinalFixes } from './app/import-reconciliation-final-fixes';
 import { installPendingWorkflowEnhancements } from './app/pending-workflow-enhancements';
@@ -47,6 +48,7 @@ installRuntimeUxEnhancements();
 installPendingWorkflowEnhancements();
 installSaleWizardSummaryEnhancement();
 installImportReconciliationFinalFixes();
+installDeliveryCostLock();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
