@@ -35,6 +35,7 @@ Esta entrega consolida los hallazgos de la revisión manual realizada después d
 
 - Productos muestra la columna Acumulado para mantener coherencia con Inventario.
 - Los encabezados extensos de Inventario admiten dos líneas y mayor separación horizontal.
+- Rótulos como `En tránsito`, `Costo actual` y `Stock mínimo` pueden dividirse entre sus palabras para evitar que se choquen.
 - El cambio afecta únicamente los rótulos y no modifica los valores de las filas.
 
 ## Entregas y costo logístico
