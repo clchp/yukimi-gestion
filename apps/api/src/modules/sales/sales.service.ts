@@ -5,6 +5,7 @@ import type {
   ReviewSaleReleaseInput,
   SaveSaleDraftInput,
 } from '@yukimi/shared';
+import { AppError } from '../../shared/errors/app-error.js';
 import type { SaleListQuery, SalesRepository } from './sales.repository.js';
 
 export class SalesService {
@@ -46,7 +47,39 @@ export class SalesService {
     return this.repository.confirmDraft(draftId, version, idempotencyKey);
   }
 
-  public createReturnCase(saleId: string, input: CreateReturnCaseInput, idempotencyKey: string) {
+  public async createReturnCase(
+    saleId: string,
+    input: CreateReturnCaseInput,
+    idempotencyKey: string,
+  ) {
+    const sale = await this.repository.getById(saleId);
+
+    if (sale.deliveryStateCode !== 'DELIVERED') {
+      throw new AppError({
+        code: 'RETURN_REQUIRES_DELIVERED_SALE',
+        message:
+          'Solo puedes registrar una devolución o cambio después de confirmar la entrega al cliente.',
+        statusCode: 409,
+        details: {
+          saleId,
+          deliveryStateCode: sale.deliveryStateCode,
+        },
+      });
+    }
+
+    if (['CANCELLED', 'ANNULLED'].includes(sale.commercialStateCode)) {
+      throw new AppError({
+        code: 'RETURN_NOT_ALLOWED_FOR_CLOSED_SALE',
+        message:
+          'No se puede registrar una devolución o cambio para una venta anulada o cancelada.',
+        statusCode: 409,
+        details: {
+          saleId,
+          commercialStateCode: sale.commercialStateCode,
+        },
+      });
+    }
+
     return this.repository.createReturnCase(saleId, input, idempotencyKey);
   }
 

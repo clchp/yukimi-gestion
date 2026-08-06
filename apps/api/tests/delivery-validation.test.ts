@@ -55,16 +55,23 @@ test('other delivery methods require destination and an explanatory note', () =>
   );
 });
 
-test('agency delivery transitions are sequential', () => {
+test('agency delivery transitions go from agency receipt to customer delivery', () => {
   assert.deepEqual(getAllowedDeliveryTransitionCodes('AGENCY', 'PENDING_AGENCY_DISPATCH'), [
     'DELIVERED_TO_AGENCY',
     'CANCELLED',
   ]);
   assert.deepEqual(getAllowedDeliveryTransitionCodes('AGENCY', 'DELIVERED_TO_AGENCY'), [
+    'DELIVERED_TO_CLIENT',
+    'CANCELLED',
+  ]);
+});
+
+test('motorbike delivery keeps the in-transit step', () => {
+  assert.deepEqual(getAllowedDeliveryTransitionCodes('MOTORBIKE', 'PENDING_INSTRUCTIONS'), [
     'OUT_FOR_DELIVERY',
     'CANCELLED',
   ]);
-  assert.deepEqual(getAllowedDeliveryTransitionCodes('AGENCY', 'OUT_FOR_DELIVERY'), [
+  assert.deepEqual(getAllowedDeliveryTransitionCodes('MOTORBIKE', 'OUT_FOR_DELIVERY'), [
     'DELIVERED_TO_CLIENT',
     'CANCELLED',
   ]);

@@ -7,8 +7,10 @@ interface StatusBadgeProps extends PropsWithChildren {
 }
 
 export function StatusBadge({ children, tone = 'neutral', dot = true }: StatusBadgeProps) {
+  const label = typeof children === 'string' ? children : undefined;
+
   return (
-    <span className={`status-badge status-${tone}`}>
+    <span className={`status-badge status-${tone}`} data-label={label}>
       {dot ? <span className="status-dot" aria-hidden="true" /> : null}
       {children}
     </span>

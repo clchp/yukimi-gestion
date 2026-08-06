@@ -1,0 +1,14 @@
+/* La devolución o el cambio solo corresponde después de confirmar la entrega al cliente. */
+main.page:has(> .sale-status-line)
+  > .page-header
+  .page-actions
+  > .button:has(.lucide-package-check) {
+  display: none;
+}
+
+main.page:has(> .sale-status-line .status-badge[data-label='Entregada'])
+  > .page-header
+  .page-actions
+  > .button:has(.lucide-package-check) {
+  display: inline-flex;
+}

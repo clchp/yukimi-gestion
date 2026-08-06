@@ -31,7 +31,7 @@ function agencyTransitions(state: DeliveryStateCode): DeliveryStateCode[] {
     case 'PENDING_AGENCY_DISPATCH':
       return ['DELIVERED_TO_AGENCY', 'CANCELLED'];
     case 'DELIVERED_TO_AGENCY':
-      return ['OUT_FOR_DELIVERY', 'CANCELLED'];
+      return ['DELIVERED_TO_CLIENT', 'CANCELLED'];
     case 'OUT_FOR_DELIVERY':
     case 'PARTIALLY_DELIVERED':
       return ['DELIVERED_TO_CLIENT', 'CANCELLED'];
