@@ -1,0 +1,225 @@
+.pending-dashboard-panel {
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+.pending-dashboard-panel .panel-body,
+.pending-dashboard-panel > div:last-child {
+  min-height: 0 !important;
+}
+
+.pending-dashboard-chart {
+  min-height: 300px !important;
+  height: 320px !important;
+  padding-top: 12px;
+  align-items: stretch;
+}
+
+.pending-dashboard-chart .pending-bar-column {
+  min-height: 100%;
+}
+
+.pending-dashboard-chart .bar-track {
+  min-height: 238px;
+}
+
+.pending-chart-tooltip {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 170px;
+  white-space: nowrap;
+}
+
+.pending-bar-column:hover .pending-chart-tooltip,
+.pending-bar-column:focus-within .pending-chart-tooltip {
+  display: flex;
+}
+
+.pending-tooltip-line {
+  display: block;
+}
+
+.product-table th[data-accumulated-column],
+.product-table td[data-accumulated-column] {
+  min-width: 82px;
+  text-align: center;
+}
+
+.pending-inventory-table th {
+  padding-inline: 11px !important;
+  line-height: 1.25;
+  white-space: normal !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.pending-inventory-table th:first-child,
+.pending-inventory-table th:nth-child(2) {
+  text-align: left;
+}
+
+.pending-inventory-table th:nth-child(3),
+.pending-inventory-table th:nth-child(4),
+.pending-inventory-table th:nth-child(5),
+.pending-inventory-table th:nth-child(6),
+.pending-inventory-table th:nth-child(7),
+.pending-inventory-table th:nth-child(8),
+.pending-inventory-table th:nth-child(9),
+.pending-inventory-table th:nth-child(10) {
+  min-width: 76px;
+}
+
+.pending-vip-deposit-due {
+  animation: pending-field-in 160ms ease-out;
+}
+
+.pending-deposit-review-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px;
+  border-top: 1px solid var(--border-color, #e8e0e7);
+}
+
+.pending-deposit-review-row span {
+  color: var(--text-muted, #786f7a);
+}
+
+.pending-next-step-card {
+  display: grid !important;
+  gap: 5px;
+  padding: 15px 16px !important;
+  border: 1px solid #d9bdd6 !important;
+  background: #f7eef6 !important;
+  color: #4e294a !important;
+}
+
+.pending-next-step-card strong {
+  font-size: 0.94rem;
+}
+
+.pending-next-step-card span {
+  color: #6c5369;
+  line-height: 1.5;
+}
+
+.pending-vip-status {
+  display: grid;
+  gap: 13px;
+  border: 1px solid #dbc5d8;
+  background: #fbf5fa;
+}
+
+.pending-vip-status-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pending-vip-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pending-vip-status-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #eadde8;
+}
+
+.pending-vip-status-grid span {
+  color: var(--text-muted, #786f7a);
+  font-size: 0.76rem;
+}
+
+.alert {
+  position: relative;
+}
+
+.pending-alert-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: currentColor;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.pending-alert-close:hover {
+  background: rgb(255 255 255 / 55%);
+}
+
+.pending-receipt-info {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f3e7f1;
+  color: #713b6c;
+  font-size: 0.78rem;
+  cursor: help;
+}
+
+.pending-receipt-file-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted, #786f7a);
+  line-height: 1.45;
+}
+
+.pending-delivery-cost-note,
+.pending-delivery-decision-note {
+  padding: 13px 15px;
+  border: 1px solid #d8c4d5;
+  border-radius: 12px;
+  background: #faf3f9;
+  color: #60445d;
+  line-height: 1.5;
+}
+
+.pending-delivery-decision-note {
+  margin-bottom: 15px;
+}
+
+@keyframes pending-field-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .pending-dashboard-chart {
+    min-height: 260px !important;
+    height: 280px !important;
+    overflow-x: auto;
+  }
+
+  .pending-dashboard-chart .bar-track {
+    min-height: 195px;
+  }
+
+  .pending-vip-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

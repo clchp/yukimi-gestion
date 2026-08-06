@@ -2,7 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
+import { installImportReconciliationFinalFixes } from './app/import-reconciliation-final-fixes';
+import { installPendingWorkflowEnhancements } from './app/pending-workflow-enhancements';
 import { installRuntimeUxEnhancements } from './app/runtime-ux-enhancements';
+import { installSaleWizardSummaryEnhancement } from './app/sale-wizard-summary-enhancement';
 import { router } from './app/router';
 import { FeedbackProvider } from './components/ui/feedback-provider';
 import { GlobalFormValidationBridge } from './components/ui/global-form-validation-bridge';
@@ -39,6 +42,9 @@ createRoot(root).render(
 );
 
 installRuntimeUxEnhancements();
+installPendingWorkflowEnhancements();
+installSaleWizardSummaryEnhancement();
+installImportReconciliationFinalFixes();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
