@@ -89,6 +89,7 @@
   font-size: 0.88rem;
   line-height: 1.45;
 }
+.pending-delivery-cost-note[hidden] { display: none !important; }
 .final-operator-field-title {
   display: flex;
   align-items: center;
@@ -99,12 +100,8 @@
 
 .final-partner-modal { width: min(720px, calc(100vw - 2rem)); }
 .final-partner-error { margin: 0 1.5rem 1rem; }
-.final-delivery-partners-panel .panel-heading {
-  align-items: center;
-}
-.final-partner-row {
-  grid-template-columns: minmax(0, 1fr) auto auto;
-}
+.final-delivery-partners-panel .panel-heading { align-items: center; }
+.final-partner-row { grid-template-columns: minmax(0, 1fr) auto auto; }
 
 .final-catalog-report-panel { margin-bottom: 1.25rem; }
 .final-catalog-report-panel .panel-heading {
