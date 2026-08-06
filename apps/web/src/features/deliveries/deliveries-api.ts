@@ -13,6 +13,11 @@ import type {
 } from '@yukimi/shared';
 import { apiRequest } from '../../app/api-client';
 
+type DeliveryPartnerRequest = Omit<UpsertDeliveryPartnerInput, 'id' | 'version'> & {
+  id?: string | undefined;
+  version?: number | undefined;
+};
+
 export function getDeliveries(filters: {
   search?: string | undefined;
   filter?: DeliveryFilter | undefined;
@@ -31,9 +36,7 @@ export function getDeliveryPartners(): Promise<DeliveryPartnerListResponse> {
   return apiRequest<DeliveryPartnerListResponse>('/deliveries/partners');
 }
 
-export function createDeliveryPartner(
-  input: UpsertDeliveryPartnerInput,
-): Promise<DeliveryPartner> {
+export function createDeliveryPartner(input: DeliveryPartnerRequest): Promise<DeliveryPartner> {
   return apiRequest<DeliveryPartner>('/deliveries/partners', {
     method: 'POST',
     body: JSON.stringify(input),
@@ -42,7 +45,7 @@ export function createDeliveryPartner(
 
 export function updateDeliveryPartner(
   partnerId: string,
-  input: UpsertDeliveryPartnerInput,
+  input: DeliveryPartnerRequest,
 ): Promise<DeliveryPartner> {
   return apiRequest<DeliveryPartner>(`/deliveries/partners/${partnerId}`, {
     method: 'PATCH',
