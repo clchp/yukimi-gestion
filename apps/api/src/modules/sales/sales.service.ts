@@ -70,7 +70,8 @@ export class SalesService {
     if (['CANCELLED', 'ANNULLED'].includes(sale.commercialStateCode)) {
       throw new AppError({
         code: 'RETURN_NOT_ALLOWED_FOR_CLOSED_SALE',
-        message: 'No se puede registrar una devolución o cambio para una venta anulada o cancelada.',
+        message:
+          'No se puede registrar una devolución o cambio para una venta anulada o cancelada.',
         statusCode: 409,
         details: {
           saleId,
