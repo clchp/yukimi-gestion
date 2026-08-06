@@ -102,9 +102,36 @@ function refresh(force = false) {
     .catch(() => undefined);
 }
 
+function watchPartnerMutations() {
+  if (window.fetch.toString().includes('deliveryPartnerOptionsFetch')) return;
+  const original = window.fetch.bind(window);
+  const patched = async function deliveryPartnerOptionsFetch(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const response = await original(input, init);
+    const rawUrl =
+      typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const url = new URL(rawUrl, location.origin);
+    const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    if (
+      response.ok &&
+      ['POST', 'PATCH'].includes(method) &&
+      /\/deliveries\/partners(?:\/[0-9a-f-]+)?$/i.test(url.pathname)
+    ) {
+      cached = [];
+      loadedAt = 0;
+      window.dispatchEvent(new Event('yukimi:delivery-partners-updated'));
+    }
+    return response;
+  };
+  window.fetch = patched;
+}
+
 export function installDeliveryPartnerOptions() {
   if (document.documentElement.dataset.deliveryPartnerOptions === 'true') return;
   document.documentElement.dataset.deliveryPartnerOptions = 'true';
+  watchPartnerMutations();
   let scheduled = false;
   const schedule = () => {
     if (scheduled) return;
