@@ -42,6 +42,10 @@ test('does not require a deadline when the negotiated VIP deposit is zero', () =
   assert.equal(parsed.negotiatedMinimumDepositDueAt, null);
 });
 
+test('requires the deadline before saving a VIP draft with a positive deposit', () => {
+  assert.throws(() => parseSaveSaleDraftRequest({ input: sale }));
+});
+
 test('preserves the deposit deadline inside a sale draft payload', () => {
   const parsed = parseSaveSaleDraftRequest({
     input: {
