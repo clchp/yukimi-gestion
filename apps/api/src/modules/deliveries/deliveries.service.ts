@@ -23,6 +23,13 @@ const stateNames: Record<DeliveryStateCode, string> = {
 
 const terminalStates = new Set<DeliveryStateCode>(['DELIVERED_TO_CLIENT', 'CANCELLED']);
 
+function normalizedDeliveryCost<T extends CreateDeliveryInput | UpdateDeliveryInput>(input: T): T {
+  if (input.costPayer === 'CLIENT' || input.costPayer === 'NOT_APPLICABLE') {
+    return { ...input, shippingCost: 0 } as T;
+  }
+  return input;
+}
+
 function agencyTransitions(state: DeliveryStateCode): DeliveryStateCode[] {
   switch (state) {
     case 'PENDING_INSTRUCTIONS':
@@ -128,11 +135,11 @@ export class DeliveriesService {
   }
 
   public create(input: CreateDeliveryInput, idempotencyKey: string) {
-    return this.repository.create(input, idempotencyKey);
+    return this.repository.create(normalizedDeliveryCost(input), idempotencyKey);
   }
 
   public update(deliveryId: string, input: UpdateDeliveryInput) {
-    return this.repository.update(deliveryId, input);
+    return this.repository.update(deliveryId, normalizedDeliveryCost(input));
   }
 
   public async advance(deliveryId: string, input: UpdateDeliveryStateInput) {
