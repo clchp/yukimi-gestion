@@ -1,0 +1,109 @@
+import type { DeliveryPartner, DeliveryPartnerType } from '@yukimi/shared';
+import { getDeliveryPartners } from '../features/deliveries/deliveries-api';
+
+let cached: DeliveryPartner[] = [];
+let loading: Promise<DeliveryPartner[]> | null = null;
+let loadedAt = 0;
+
+function partners(force = false) {
+  if (!force && cached.length > 0 && Date.now() - loadedAt < 30_000) {
+    return Promise.resolve(cached);
+  }
+  loading ??= getDeliveryPartners()
+    .then((response) => {
+      cached = response.items.filter((item) => item.isActive);
+      loadedAt = Date.now();
+      return cached;
+    })
+    .finally(() => {
+      loading = null;
+    });
+  return loading;
+}
+
+function partnerField() {
+  return [...document.querySelectorAll<HTMLElement>('.field')].find((candidate) => {
+    const text = candidate.querySelector(':scope > span')?.textContent?.trim() ?? '';
+    return text.startsWith('Agencia') || text.startsWith('Courier o motorizado');
+  });
+}
+
+function applyPartners(items: DeliveryPartner[]) {
+  if (!/^\/entregas\/(nueva|[0-9a-f-]+\/editar)$/i.test(location.pathname)) return;
+  const field = partnerField();
+  const label = field?.querySelector<HTMLElement>(':scope > span');
+  const hiddenSelect = field?.querySelector<HTMLSelectElement>('select.searchable-native-hidden');
+  const wrapper = field?.querySelector<HTMLElement>('.searchable-native-select');
+  if (!field || !label || !hiddenSelect || !wrapper) return;
+  const type: DeliveryPartnerType = label.textContent?.startsWith('Agencia')
+    ? 'AGENCY'
+    : 'COURIER';
+  const matching = items.filter((item) => item.partnerTypeCode === type);
+
+  matching.forEach((partner) => {
+    if (!hiddenSelect.querySelector(`option[value="${partner.id}"]`)) {
+      const option = new Option(partner.name, partner.id);
+      option.dataset.finalDeliveryPartner = 'true';
+      hiddenSelect.append(option);
+    }
+  });
+
+  const selected = matching.find((item) => item.id === hiddenSelect.value);
+  const triggerText = wrapper.querySelector<HTMLElement>('.searchable-native-trigger span');
+  if (selected && triggerText) {
+    triggerText.textContent = selected.name;
+    triggerText.classList.remove('placeholder');
+  }
+
+  const optionList = wrapper.querySelector<HTMLElement>('.searchable-native-options');
+  if (!optionList) return;
+  matching.forEach((partner) => {
+    const exists = [...optionList.querySelectorAll<HTMLButtonElement>('button')].some(
+      (button) =>
+        button.dataset.finalDeliveryPartnerId === partner.id ||
+        button.textContent?.trim() === partner.name,
+    );
+    if (exists) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.finalDeliveryPartnerId = partner.id;
+    button.setAttribute('role', 'option');
+    button.setAttribute('aria-selected', String(partner.id === hiddenSelect.value));
+    const text = document.createElement('span');
+    text.textContent = partner.name;
+    button.append(text);
+    button.addEventListener('click', () => {
+      hiddenSelect.value = partner.id;
+      hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      const currentText = wrapper.querySelector<HTMLElement>('.searchable-native-trigger span');
+      if (currentText) {
+        currentText.textContent = partner.name;
+        currentText.classList.remove('placeholder');
+      }
+      wrapper.querySelector<HTMLElement>('.searchable-native-popover')?.remove();
+    });
+    optionList.append(button);
+  });
+}
+
+function refresh(force = false) {
+  void partners(force).then(applyPartners).catch(() => undefined);
+}
+
+export function installDeliveryPartnerOptions() {
+  if (document.documentElement.dataset.deliveryPartnerOptions === 'true') return;
+  document.documentElement.dataset.deliveryPartnerOptions = 'true';
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      refresh();
+    });
+  };
+  new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('popstate', schedule);
+  window.addEventListener('yukimi:delivery-partners-updated', () => refresh(true));
+  schedule();
+}
