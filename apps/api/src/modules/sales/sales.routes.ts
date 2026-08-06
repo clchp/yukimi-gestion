@@ -2,17 +2,16 @@ import { randomUUID } from 'node:crypto';
 import { Router, type Request } from 'express';
 import {
   createReturnCaseSchema,
-  createSaleSchema,
   requestSaleReleaseSchema,
   reviewSaleReleaseSchema,
   saleFilterSchema,
-  saveSaleDraftSchema,
 } from '@yukimi/shared';
 import { z } from 'zod';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { UserSupabaseClientFactory } from '../../shared/supabase/user-client.js';
 import type { SupabaseAuthGateway } from '../auth/supabase-auth.gateway.js';
 import { requireAuth } from '../auth/require-auth.js';
+import { parseCreateSaleRequest, parseSaveSaleDraftRequest } from './sale-request-validation.js';
 import { SalesService } from './sales.service.js';
 import { SupabaseSalesRepository } from './supabase-sales.repository.js';
 
@@ -81,7 +80,7 @@ export function createSalesRouter(
 
   router.post('/drafts', async (request, response, next) => {
     try {
-      const input = saveSaleDraftSchema.parse(request.body);
+      const input = parseSaveSaleDraftRequest(request.body);
       response
         .status(input.draftId ? 200 : 201)
         .json({ data: await serviceFor(request).saveDraft(input) });
@@ -154,7 +153,7 @@ export function createSalesRouter(
 
   router.post('/', async (request, response, next) => {
     try {
-      const input = createSaleSchema.parse(request.body);
+      const input = parseCreateSaleRequest(request.body);
       const idempotencyKey = request.header('idempotency-key')?.trim() || randomUUID();
       response.status(201).json({ data: await serviceFor(request).create(input, idempotencyKey) });
     } catch (error) {
