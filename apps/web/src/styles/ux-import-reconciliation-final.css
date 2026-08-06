@@ -1,0 +1,139 @@
+/* Ajustes finales de Importaciones y Conciliación bancaria. */
+
+.import-detail-page .import-box-card,
+.import-detail-page .import-box-card > *,
+.import-detail-page .import-box-card .responsive-table-wrap,
+.import-detail-page .import-box-card table {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.import-detail-page .import-box-card.import-box-contained {
+  overflow: hidden;
+}
+
+.import-detail-page .import-box-card .responsive-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.import-detail-page .import-box-card .compact-table {
+  width: 100%;
+  min-width: 680px;
+}
+
+.import-detail-page .import-box-card .box-state-mini-flow {
+  width: 100%;
+  overflow: hidden;
+}
+
+.import-detail-page .import-box-card .import-box-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  padding: 14px 0 0;
+}
+
+.import-preorder-disclosure,
+.import-preorder-disclosure[open],
+.import-preorder-disclosure .panel,
+.import-preorder-disclosure .panel-content,
+.import-preorder-disclosure .form-grid,
+.import-preorder-visible-menu {
+  overflow: visible !important;
+}
+
+.import-preorder-disclosure[open] {
+  position: relative;
+  z-index: 80;
+}
+
+.import-preorder-disclosure .searchable-select {
+  position: relative;
+  z-index: 1;
+}
+
+.import-preorder-disclosure .searchable-select:focus-within {
+  z-index: 120;
+}
+
+.import-preorder-disclosure .searchable-select-popover {
+  z-index: 500 !important;
+  width: max(100%, 340px);
+  max-width: min(520px, calc(100vw - 48px));
+  max-height: 310px;
+  overflow: hidden;
+  box-shadow: 0 18px 44px rgba(45, 27, 43, 0.18);
+}
+
+.import-preorder-disclosure .searchable-select-list {
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.import-preorder-disclosure .searchable-select-option {
+  min-height: 48px;
+  white-space: normal;
+}
+
+.import-preorder-disclosure .searchable-select-option > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  text-align: left;
+}
+
+.import-preorder-disclosure .searchable-select-option strong,
+.import-preorder-disclosure .searchable-select-option small {
+  overflow-wrap: anywhere;
+}
+
+.reconciliation-cleared .reconciliation-file-field select {
+  color: var(--muted);
+}
+
+.import-reconciliation-runtime-notice {
+  position: fixed;
+  z-index: 12000;
+  top: 22px;
+  right: 22px;
+  width: min(430px, calc(100vw - 44px));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: white;
+  box-shadow: 0 18px 48px rgba(34, 21, 33, 0.22);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.import-reconciliation-runtime-notice.success {
+  border-color: color-mix(in srgb, var(--success) 34%, var(--border));
+  color: var(--success);
+}
+
+.import-reconciliation-runtime-notice.error {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--border));
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .import-detail-page .import-box-card .compact-table {
+    min-width: 620px;
+  }
+
+  .import-preorder-disclosure .searchable-select-popover {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .import-detail-page .import-box-card .import-box-actions .button {
+    width: 100%;
+  }
+}
