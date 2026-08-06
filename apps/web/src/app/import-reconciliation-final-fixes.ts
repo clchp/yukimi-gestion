@@ -41,6 +41,16 @@ function ensureReconciliationEmptyState(main: HTMLElement, controls: HTMLElement
   }
 }
 
+function forceClearedSelection(
+  main: HTMLElement,
+  controls: HTMLElement,
+  select: HTMLSelectElement,
+) {
+  if (sessionStorage.getItem(reconciliationClearedKey) !== 'true') return;
+  if (select.value !== '') select.value = '';
+  ensureReconciliationEmptyState(main, controls);
+}
+
 function enhanceReconciliationSelection() {
   if (location.pathname !== '/bancos/conciliacion') return;
   const main = document.querySelector<HTMLElement>('main.page');
@@ -64,7 +74,10 @@ function enhanceReconciliationSelection() {
       'click',
       () => {
         sessionStorage.setItem(reconciliationClearedKey, 'true');
-        ensureReconciliationEmptyState(main, controls);
+        forceClearedSelection(main, controls, select);
+        [0, 60, 180, 420].forEach((delay) => {
+          window.setTimeout(() => forceClearedSelection(main, controls, select), delay);
+        });
       },
       { capture: true },
     );
@@ -81,10 +94,7 @@ function enhanceReconciliationSelection() {
     });
   }
 
-  if (sessionStorage.getItem(reconciliationClearedKey) === 'true') {
-    if (select.value !== '') select.value = '';
-    ensureReconciliationEmptyState(main, controls);
-  }
+  forceClearedSelection(main, controls, select);
 }
 
 function enhanceImportPresentation() {
