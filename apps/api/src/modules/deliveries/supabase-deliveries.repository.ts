@@ -3,14 +3,19 @@ import {
   deliveryDetailSchema,
   deliveryListResponseSchema,
   deliveryMutationResultSchema,
+  deliveryPartnerListResponseSchema,
+  deliveryPartnerSchema,
   deliverySupportDataSchema,
   type CreateDeliveryInput,
   type DeliveryDetail,
   type DeliveryListResponse,
   type DeliveryMutationResult,
+  type DeliveryPartner,
+  type DeliveryPartnerListResponse,
   type DeliverySupportData,
   type UpdateDeliveryInput,
   type UpdateDeliveryStateInput,
+  type UpsertDeliveryPartnerInput,
 } from '@yukimi/shared';
 import { mapSupabaseError } from '../../shared/supabase/map-error.js';
 import type { DeliveriesRepository, DeliveryListQuery } from './deliveries.repository.js';
@@ -32,6 +37,20 @@ export class SupabaseDeliveriesRepository implements DeliveriesRepository {
     });
     if (error) throw mapSupabaseError(error, 'No se pudieron cargar las entregas.');
     return deliveryListResponseSchema.parse(data);
+  }
+
+  public async listPartners(): Promise<DeliveryPartnerListResponse> {
+    const { data, error } = await this.client.rpc('list_delivery_partners_v1');
+    if (error) throw mapSupabaseError(error, 'No se pudieron cargar las agencias y motorizados.');
+    return deliveryPartnerListResponseSchema.parse(data);
+  }
+
+  public async upsertPartner(input: UpsertDeliveryPartnerInput): Promise<DeliveryPartner> {
+    const { data, error } = await this.client.rpc('upsert_delivery_partner_v1', {
+      p_input: input,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudo guardar la agencia o motorizado.');
+    return deliveryPartnerSchema.parse(data);
   }
 
   public async getSupportData(
