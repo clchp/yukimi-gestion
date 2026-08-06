@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+export const productMaintenanceAttributeSchema = z.object({
+  attributeId: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+  dataType: z.string(),
+  valueText: z.string().nullable(),
+  valueNumber: z.number().nullable(),
+  valueBoolean: z.boolean().nullable(),
+  valueDate: z.string().nullable(),
+});
+export type ProductMaintenanceAttribute = z.infer<typeof productMaintenanceAttributeSchema>;
+
 export const productMaintenanceVariantSchema = z.object({
   id: z.string().uuid(),
   sku: z.string(),
@@ -10,6 +22,7 @@ export const productMaintenanceVariantSchema = z.object({
   minimumStock: z.number().int().nonnegative(),
   weightGrams: z.number().nonnegative().nullable(),
   dimensions: z.record(z.string(), z.union([z.string(), z.number()])),
+  attributes: z.array(productMaintenanceAttributeSchema).default([]),
   isActive: z.boolean(),
   version: z.number().int().positive(),
 });
@@ -36,6 +49,14 @@ export const productDetailSchema = z.object({
 });
 export type ProductDetail = z.infer<typeof productDetailSchema>;
 
+export const updateProductAttributeSchema = z.object({
+  attributeId: z.string().uuid(),
+  valueText: z.string().trim().max(500).nullable().optional(),
+  valueNumber: z.number().nullable().optional(),
+  valueBoolean: z.boolean().nullable().optional(),
+  valueDate: z.string().nullable().optional(),
+});
+
 export const updateProductVariantSchema = z.object({
   id: z.string().uuid(),
   variantName: z.string().trim().min(1).max(160),
@@ -45,6 +66,7 @@ export const updateProductVariantSchema = z.object({
   minimumStock: z.number().int().nonnegative(),
   weightGrams: z.number().nonnegative().nullable().optional(),
   dimensions: z.record(z.string(), z.union([z.string(), z.number()])).default({}),
+  attributes: z.array(updateProductAttributeSchema).default([]),
   isActive: z.boolean(),
   version: z.number().int().positive(),
 });
@@ -74,6 +96,17 @@ export const updateProductSchema = z
         });
       }
       ids.add(variant.id);
+      const attributeIds = new Set<string>();
+      variant.attributes.forEach((attribute, attributeIndex) => {
+        if (attributeIds.has(attribute.attributeId)) {
+          context.addIssue({
+            code: 'custom',
+            path: ['variants', index, 'attributes', attributeIndex, 'attributeId'],
+            message: 'Un atributo no puede repetirse dentro de la misma variante.',
+          });
+        }
+        attributeIds.add(attribute.attributeId);
+      });
     });
   });
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
