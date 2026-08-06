@@ -2,7 +2,7 @@
 
 ## Alcance
 
-Esta entrega consolida los hallazgos de la revisión manual realizada después de la revalidación general y del ajuste urgente de entregas.
+Esta entrega consolida los hallazgos de la revisión manual realizada después de la revalidación general y del ajuste urgente de entregas. La integración se dirige exclusivamente a `version-1-1`; `main` permanece sin cambios.
 
 ## Inicio
 
