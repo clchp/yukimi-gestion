@@ -3,6 +3,12 @@
 
 begin;
 
+select pg_catalog.set_config(
+  'app.audit_reason',
+  'Normalización de costos de entrega pagados directamente por clientes',
+  true
+);
+
 update public.deliveries
 set shipping_cost = 0,
     updated_at = now(),
