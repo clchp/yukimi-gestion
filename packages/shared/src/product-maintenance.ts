@@ -66,7 +66,7 @@ export const updateProductVariantSchema = z.object({
   minimumStock: z.number().int().nonnegative(),
   weightGrams: z.number().nonnegative().nullable().optional(),
   dimensions: z.record(z.string(), z.union([z.string(), z.number()])).default({}),
-  attributes: z.array(updateProductAttributeSchema).default([]),
+  attributes: z.array(updateProductAttributeSchema).optional(),
   isActive: z.boolean(),
   version: z.number().int().positive(),
 });
@@ -97,7 +97,7 @@ export const updateProductSchema = z
       }
       ids.add(variant.id);
       const attributeIds = new Set<string>();
-      variant.attributes.forEach((attribute, attributeIndex) => {
+      (variant.attributes ?? []).forEach((attribute, attributeIndex) => {
         if (attributeIds.has(attribute.attributeId)) {
           context.addIssue({
             code: 'custom',
