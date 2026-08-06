@@ -8,6 +8,7 @@ import { installDeliveryPartnerOptions } from './app/delivery-partner-options';
 import { installFinalPendingCorrections } from './app/final-pending-corrections';
 import { installImportReconciliationFinalFixes } from './app/import-reconciliation-final-fixes';
 import { installPendingWorkflowEnhancements } from './app/pending-workflow-enhancements';
+import { installPostMergeReviewFixes } from './app/post-merge-review-fixes';
 import { installRuntimeUxEnhancements } from './app/runtime-ux-enhancements';
 import { installSaleWizardSummaryEnhancement } from './app/sale-wizard-summary-enhancement';
 import { router } from './app/router';
@@ -53,6 +54,7 @@ installImportReconciliationFinalFixes();
 installDeliveryCostLock();
 installDeliveryDetailCost();
 installDeliveryPartnerOptions();
+installPostMergeReviewFixes();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
