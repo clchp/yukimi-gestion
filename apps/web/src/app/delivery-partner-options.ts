@@ -21,9 +21,15 @@ function partners(force = false) {
   return loading;
 }
 
+function fieldLabel(field: HTMLElement | undefined) {
+  return field?.querySelector<HTMLElement>(
+    ':scope > span, .final-operator-field-title > span',
+  );
+}
+
 function partnerField() {
   return [...document.querySelectorAll<HTMLElement>('.field')].find((candidate) => {
-    const text = candidate.querySelector(':scope > span')?.textContent?.trim() ?? '';
+    const text = fieldLabel(candidate)?.textContent?.trim() ?? '';
     return text.startsWith('Agencia') || text.startsWith('Courier o motorizado');
   });
 }
@@ -31,7 +37,7 @@ function partnerField() {
 function applyPartners(items: DeliveryPartner[]) {
   if (!/^\/entregas\/(nueva|[0-9a-f-]+\/editar)$/i.test(location.pathname)) return;
   const field = partnerField();
-  const label = field?.querySelector<HTMLElement>(':scope > span');
+  const label = fieldLabel(field);
   const hiddenSelect = field?.querySelector<HTMLSelectElement>('select.searchable-native-hidden');
   const wrapper = field?.querySelector<HTMLElement>('.searchable-native-select');
   if (!field || !label || !hiddenSelect || !wrapper) return;
