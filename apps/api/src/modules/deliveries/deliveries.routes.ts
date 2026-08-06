@@ -5,6 +5,7 @@ import {
   deliveryFilterSchema,
   updateDeliverySchema,
   updateDeliveryStateSchema,
+  upsertDeliveryPartnerSchema,
 } from '@yukimi/shared';
 import { z } from 'zod';
 import { AppError } from '../../shared/errors/app-error.js';
@@ -74,6 +75,33 @@ export function createDeliveriesRouter(
         ? z.string().uuid().parse(request.query.deliveryId)
         : undefined;
       response.json({ data: await serviceFor(request).getSupportData(saleId, deliveryId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/partners', async (request, response, next) => {
+    try {
+      response.json({ data: await serviceFor(request).listPartners() });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/partners', async (request, response, next) => {
+    try {
+      const input = upsertDeliveryPartnerSchema.parse(request.body);
+      response.status(201).json({ data: await serviceFor(request).upsertPartner(input) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch('/partners/:partnerId', async (request, response, next) => {
+    try {
+      const partnerId = z.string().uuid().parse(request.params.partnerId);
+      const input = upsertDeliveryPartnerSchema.parse({ ...request.body, id: partnerId });
+      response.json({ data: await serviceFor(request).upsertPartner(input) });
     } catch (error) {
       next(error);
     }

@@ -4,9 +4,12 @@ import type {
   DeliveryFilter,
   DeliveryListResponse,
   DeliveryMutationResult,
+  DeliveryPartner,
+  DeliveryPartnerListResponse,
   DeliverySupportData,
   UpdateDeliveryInput,
   UpdateDeliveryStateInput,
+  UpsertDeliveryPartnerInput,
 } from '@yukimi/shared';
 
 export interface DeliveryListQuery {
@@ -18,6 +21,8 @@ export interface DeliveryListQuery {
 
 export interface DeliveriesRepository {
   list(query: DeliveryListQuery): Promise<DeliveryListResponse>;
+  listPartners(): Promise<DeliveryPartnerListResponse>;
+  upsertPartner(input: UpsertDeliveryPartnerInput): Promise<DeliveryPartner>;
   getSupportData(
     saleId?: string | undefined,
     deliveryId?: string | undefined,

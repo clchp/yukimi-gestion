@@ -4,11 +4,19 @@ import type {
   DeliveryFilter,
   DeliveryListResponse,
   DeliveryMutationResult,
+  DeliveryPartner,
+  DeliveryPartnerListResponse,
   DeliverySupportData,
   UpdateDeliveryInput,
   UpdateDeliveryStateInput,
+  UpsertDeliveryPartnerInput,
 } from '@yukimi/shared';
 import { apiRequest } from '../../app/api-client';
+
+type DeliveryPartnerRequest = Omit<UpsertDeliveryPartnerInput, 'id' | 'version'> & {
+  id?: string | undefined;
+  version?: number | undefined;
+};
 
 export function getDeliveries(filters: {
   search?: string | undefined;
@@ -22,6 +30,27 @@ export function getDeliveries(filters: {
   params.set('page', String(filters.page ?? 1));
   params.set('pageSize', String(filters.pageSize ?? 20));
   return apiRequest<DeliveryListResponse>(`/deliveries?${params.toString()}`);
+}
+
+export function getDeliveryPartners(): Promise<DeliveryPartnerListResponse> {
+  return apiRequest<DeliveryPartnerListResponse>('/deliveries/partners');
+}
+
+export function createDeliveryPartner(input: DeliveryPartnerRequest): Promise<DeliveryPartner> {
+  return apiRequest<DeliveryPartner>('/deliveries/partners', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateDeliveryPartner(
+  partnerId: string,
+  input: DeliveryPartnerRequest,
+): Promise<DeliveryPartner> {
+  return apiRequest<DeliveryPartner>(`/deliveries/partners/${partnerId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
 }
 
 export function getDeliverySupportData(

@@ -5,6 +5,7 @@ import type {
   DeliveryStateCode,
   UpdateDeliveryInput,
   UpdateDeliveryStateInput,
+  UpsertDeliveryPartnerInput,
 } from '@yukimi/shared';
 import { AppError } from '../../shared/errors/app-error.js';
 import type { DeliveriesRepository, DeliveryListQuery } from './deliveries.repository.js';
@@ -21,6 +22,13 @@ const stateNames: Record<DeliveryStateCode, string> = {
 };
 
 const terminalStates = new Set<DeliveryStateCode>(['DELIVERED_TO_CLIENT', 'CANCELLED']);
+
+function normalizedDeliveryCost<T extends CreateDeliveryInput | UpdateDeliveryInput>(input: T): T {
+  if (input.costPayer === 'CLIENT' || input.costPayer === 'NOT_APPLICABLE') {
+    return { ...input, shippingCost: 0 } as T;
+  }
+  return input;
+}
 
 function agencyTransitions(state: DeliveryStateCode): DeliveryStateCode[] {
   switch (state) {
@@ -74,7 +82,6 @@ export function getAllowedDeliveryTransitionCodes(
   state: DeliveryStateCode,
 ): DeliveryStateCode[] {
   if (terminalStates.has(state)) return [];
-
   switch (method) {
     case 'AGENCY':
       return agencyTransitions(state);
@@ -93,7 +100,6 @@ function normalizeAllowedTransitions(detail: DeliveryDetail): DeliveryDetail['al
   const repositoryTransitions = new Map(
     detail.allowedTransitions.map((transition) => [transition.stateCode, transition]),
   );
-
   return allowedCodes.map(
     (stateCode) =>
       repositoryTransitions.get(stateCode) ?? {
@@ -111,30 +117,34 @@ export class DeliveriesService {
     return this.repository.list(query);
   }
 
+  public listPartners() {
+    return this.repository.listPartners();
+  }
+
+  public upsertPartner(input: UpsertDeliveryPartnerInput) {
+    return this.repository.upsertPartner(input);
+  }
+
   public getSupportData(saleId?: string | undefined, deliveryId?: string | undefined) {
     return this.repository.getSupportData(saleId, deliveryId);
   }
 
   public async getById(deliveryId: string): Promise<DeliveryDetail> {
     const detail = await this.repository.getById(deliveryId);
-    return {
-      ...detail,
-      allowedTransitions: normalizeAllowedTransitions(detail),
-    };
+    return { ...detail, allowedTransitions: normalizeAllowedTransitions(detail) };
   }
 
   public create(input: CreateDeliveryInput, idempotencyKey: string) {
-    return this.repository.create(input, idempotencyKey);
+    return this.repository.create(normalizedDeliveryCost(input), idempotencyKey);
   }
 
   public update(deliveryId: string, input: UpdateDeliveryInput) {
-    return this.repository.update(deliveryId, input);
+    return this.repository.update(deliveryId, normalizedDeliveryCost(input));
   }
 
   public async advance(deliveryId: string, input: UpdateDeliveryStateInput) {
     const current = await this.repository.getById(deliveryId);
     const allowed = getAllowedDeliveryTransitionCodes(current.deliveryMethod, current.stateCode);
-
     if (!allowed.includes(input.nextStateCode)) {
       throw new AppError({
         code: 'INVALID_DELIVERY_TRANSITION',
@@ -147,7 +157,6 @@ export class DeliveriesService {
         },
       });
     }
-
     const trackingNumber = input.trackingNumber?.trim() || current.trackingNumber;
     if (input.nextStateCode === 'DELIVERED_TO_AGENCY' && !trackingNumber) {
       throw new AppError({
@@ -156,7 +165,6 @@ export class DeliveriesService {
         statusCode: 422,
       });
     }
-
     return this.repository.advance(deliveryId, {
       ...input,
       trackingNumber: trackingNumber ?? null,
