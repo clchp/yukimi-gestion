@@ -31,6 +31,45 @@ export const deliveryStateCodeSchema = z.enum([
 ]);
 export type DeliveryStateCode = z.infer<typeof deliveryStateCodeSchema>;
 
+export const deliveryPartnerTypeSchema = z.enum(['AGENCY', 'COURIER']);
+export type DeliveryPartnerType = z.infer<typeof deliveryPartnerTypeSchema>;
+
+export const deliveryPartnerSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+  legalName: z.string(),
+  tradeName: z.string().nullable(),
+  partnerTypeCode: deliveryPartnerTypeSchema,
+  contactName: z.string().nullable(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  notes: z.string().nullable(),
+  isActive: z.boolean(),
+  version: z.number().int().positive(),
+});
+export type DeliveryPartner = z.infer<typeof deliveryPartnerSchema>;
+
+export const deliveryPartnerListResponseSchema = z.object({
+  items: z.array(deliveryPartnerSchema),
+});
+export type DeliveryPartnerListResponse = z.infer<typeof deliveryPartnerListResponseSchema>;
+
+export const upsertDeliveryPartnerSchema = z.object({
+  id: z.string().uuid().optional(),
+  partnerTypeCode: deliveryPartnerTypeSchema,
+  legalName: z.string().trim().min(2).max(200),
+  tradeName: z.string().trim().max(200).nullable().optional(),
+  contactName: z.string().trim().max(150).nullable().optional(),
+  phone: z.string().trim().max(50).nullable().optional(),
+  email: z.string().email().max(200).nullable().optional(),
+  notes: z.string().trim().max(1000).nullable().optional(),
+  isActive: z.boolean().default(true),
+  version: z.number().int().positive().optional(),
+  reason: z.string().trim().min(5).max(1000),
+});
+export type UpsertDeliveryPartnerInput = z.infer<typeof upsertDeliveryPartnerSchema>;
+
 export const deliveryListItemSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
@@ -167,11 +206,7 @@ type DeliveryLogisticsValue = {
 
 function validateDeliveryLogistics(value: DeliveryLogisticsValue, context: z.RefinementCtx): void {
   if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
-    context.addIssue({
-      code: 'custom',
-      path: ['operatorPartnerId'],
-      message: 'Selecciona la agencia.',
-    });
+    context.addIssue({ code: 'custom', path: ['operatorPartnerId'], message: 'Selecciona la agencia.' });
   }
   if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
     context.addIssue({
@@ -180,7 +215,6 @@ function validateDeliveryLogistics(value: DeliveryLogisticsValue, context: z.Ref
       message: 'Selecciona el motorizado o courier.',
     });
   }
-
   if (value.deliveryMethod !== 'WAREHOUSE_ACCUMULATION' && !value.destinationAddressId) {
     context.addIssue({
       code: 'custom',
@@ -188,7 +222,6 @@ function validateDeliveryLogistics(value: DeliveryLogisticsValue, context: z.Ref
       message: 'Registra una dirección o punto de entrega.',
     });
   }
-
   if (
     ['AGENCY', 'MOTORBIKE', 'IN_PERSON'].includes(value.deliveryMethod) &&
     !value.plannedDispatchDate
@@ -199,7 +232,6 @@ function validateDeliveryLogistics(value: DeliveryLogisticsValue, context: z.Ref
       message: 'Indica la fecha planificada de despacho o entrega.',
     });
   }
-
   if (value.deliveryMethod === 'OTHER' && (!value.notes || value.notes.trim().length < 5)) {
     context.addIssue({
       code: 'custom',
@@ -207,7 +239,6 @@ function validateDeliveryLogistics(value: DeliveryLogisticsValue, context: z.Ref
       message: 'Describe el método de entrega y el acuerdo con el cliente.',
     });
   }
-
   const seen = new Set<string>();
   value.items.forEach((item, index) => {
     if (seen.has(item.saleItemId)) {
