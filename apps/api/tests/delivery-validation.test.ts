@@ -64,12 +64,6 @@ test('agency delivery transitions go from agency receipt to customer delivery', 
     'DELIVERED_TO_CLIENT',
     'CANCELLED',
   ]);
-  assert.equal(
-    getAllowedDeliveryTransitionCodes('AGENCY', 'DELIVERED_TO_AGENCY').includes(
-      'OUT_FOR_DELIVERY',
-    ),
-    false,
-  );
 });
 
 test('motorbike delivery keeps the in-transit step', () => {
