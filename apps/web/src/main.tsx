@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { installDeliveryCostLock } from './app/delivery-cost-lock';
+import { installDeliveryDetailCost } from './app/delivery-detail-cost';
 import { installFinalPendingCorrections } from './app/final-pending-corrections';
 import { installImportReconciliationFinalFixes } from './app/import-reconciliation-final-fixes';
 import { installPendingWorkflowEnhancements } from './app/pending-workflow-enhancements';
@@ -50,6 +51,7 @@ installPendingWorkflowEnhancements();
 installSaleWizardSummaryEnhancement();
 installImportReconciliationFinalFixes();
 installDeliveryCostLock();
+installDeliveryDetailCost();
 installSettingsCourierCreate();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
