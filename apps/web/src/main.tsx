@@ -9,7 +9,6 @@ import { installImportReconciliationFinalFixes } from './app/import-reconciliati
 import { installPendingWorkflowEnhancements } from './app/pending-workflow-enhancements';
 import { installRuntimeUxEnhancements } from './app/runtime-ux-enhancements';
 import { installSaleWizardSummaryEnhancement } from './app/sale-wizard-summary-enhancement';
-import { installSettingsCourierCreate } from './app/settings-courier-create';
 import { router } from './app/router';
 import { FeedbackProvider } from './components/ui/feedback-provider';
 import { GlobalFormValidationBridge } from './components/ui/global-form-validation-bridge';
@@ -52,7 +51,6 @@ installSaleWizardSummaryEnhancement();
 installImportReconciliationFinalFixes();
 installDeliveryCostLock();
 installDeliveryDetailCost();
-installSettingsCourierCreate();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
