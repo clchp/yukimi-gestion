@@ -5,24 +5,18 @@ set local search_path = extensions, public, pg_catalog;
 
 select plan(7);
 
-select has_function(
-  'public',
-  'list_delivery_partners_v1',
-  array[]::text[],
+select ok(
+  to_regprocedure('public.list_delivery_partners_v1()') is not null,
   'Existe la consulta administrable de agencias y couriers'
 );
 
-select has_function(
-  'public',
-  'upsert_delivery_partner_v1',
-  array['jsonb'],
+select ok(
+  to_regprocedure('public.upsert_delivery_partner_v1(jsonb)') is not null,
   'Existe el alta y edición auditada de agencias y couriers'
 );
 
-select has_function(
-  'public',
-  'update_product_bundle_v2',
-  array['uuid', 'jsonb'],
+select ok(
+  to_regprocedure('public.update_product_bundle_v2(uuid,jsonb)') is not null,
   'Existe la edición de producto con atributos de variante'
 );
 
