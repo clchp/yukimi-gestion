@@ -38,6 +38,22 @@ Esta entrega consolida los hallazgos de la revisión manual realizada después d
 - Rótulos como `En tránsito`, `Costo actual` y `Stock mínimo` pueden dividirse entre sus palabras para evitar que se choquen.
 - El cambio afecta únicamente los rótulos y no modifica los valores de las filas.
 
+## Importaciones
+
+- La tabla, el avance y las acciones de cada caja permanecen contenidos dentro de su propia tarjeta.
+- Los menús de `Vincular preventa` se muestran completos, con altura máxima, scroll interno y prioridad visual sobre las tarjetas inferiores.
+- Cuando no existe una preventa compatible se muestra un mensaje explícito y no un selector aparentemente vacío.
+- `Diferencia no recibida` se reemplaza visualmente por `Valor pendiente de recibir`.
+- Una caja que ya está `Recibida en Perú` puede iniciar una recepción parcial aunque otra caja continúe en tránsito.
+- Antes de abrir la recepción, el sistema sincroniza el estado general a `Recibida en Perú` cuando aún estaba almacenado como `En tránsito`; las demás cajas conservan su estado y el resumen continúa mostrando avance parcial.
+
+## Conciliación bancaria
+
+- La X cierra el lote actualmente abierto, pero no elimina el archivo importado ni sus movimientos.
+- La vista vacía se conserva al recargar la pestaña mediante estado de sesión.
+- El usuario puede volver a abrir el mismo lote o seleccionar otro desde `Archivo importado`.
+- Al elegir un lote se restablecen los pasos, contadores y movimientos correspondientes.
+
 ## Entregas y costo logístico
 
 - Cliente significa pago directo a la agencia o motorizado, sin afectar saldo ni cuentas de Yukimi.
@@ -60,3 +76,4 @@ Esta entrega consolida los hallazgos de la revisión manual realizada después d
 - Pruebas Node, incluida la validación del adelanto VIP.
 - Pruebas estáticas y pgTAP de migraciones.
 - Build completo.
+- Revisión manual de recepción parcial, preventa y persistencia de la selección bancaria.
