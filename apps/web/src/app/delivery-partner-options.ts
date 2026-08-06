@@ -80,14 +80,20 @@ function applyPartners(items: DeliveryPartner[]) {
         currentText.textContent = partner.name;
         currentText.classList.remove('placeholder');
       }
-      wrapper.querySelector<HTMLElement>('.searchable-native-popover')?.remove();
+      wrapper.querySelector<HTMLButtonElement>('.searchable-native-trigger')?.click();
     });
     optionList.append(button);
   });
 }
 
 function refresh(force = false) {
-  void partners(force).then(applyPartners).catch(() => undefined);
+  const selectedId = partnerField()?.querySelector<HTMLSelectElement>(
+    'select.searchable-native-hidden',
+  )?.value;
+  const mustReload = Boolean(selectedId && !cached.some((partner) => partner.id === selectedId));
+  void partners(force || mustReload)
+    .then(applyPartners)
+    .catch(() => undefined);
 }
 
 export function installDeliveryPartnerOptions() {
