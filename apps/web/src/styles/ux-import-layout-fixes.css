@@ -1,0 +1,129 @@
+/* Nueva importación: cada producto debe permanecer dentro de la tarjeta de su caja. */
+.new-import-box-card,
+.new-import-box-card > .form-grid,
+.new-import-items,
+.new-import-item-card,
+.new-import-item-grid {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.new-import-item-card {
+  box-sizing: border-box;
+}
+
+.new-import-item-grid {
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1.2fr) minmax(110px, 0.7fr);
+  align-items: start;
+}
+
+.new-import-item-grid > *,
+.new-import-item-grid .field,
+.new-import-item-grid .searchable-select,
+.new-import-item-grid input,
+.new-import-item-grid select,
+.new-import-item-grid textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.new-import-item-grid input,
+.new-import-item-grid select,
+.new-import-item-grid textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.new-import-item-notes {
+  grid-column: 1 / -1;
+}
+
+/* Lista de importaciones: conserva columnas legibles y evita encabezados solapados. */
+.imports-list-table {
+  width: 100%;
+  min-width: 1240px;
+  table-layout: fixed;
+}
+
+.imports-list-table th {
+  padding: 12px 8px;
+  vertical-align: bottom;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  line-height: 1.2;
+}
+
+.imports-list-table th:nth-child(n + 3),
+.imports-list-table td:nth-child(n + 3) {
+  text-align: center;
+}
+
+.imports-list-table th:nth-child(1),
+.imports-list-table td:nth-child(1) {
+  width: 150px;
+}
+
+.imports-list-table th:nth-child(2),
+.imports-list-table td:nth-child(2) {
+  width: 130px;
+}
+
+.imports-list-table th:nth-child(3),
+.imports-list-table td:nth-child(3) {
+  width: 72px;
+}
+
+.imports-list-table th:nth-child(4),
+.imports-list-table td:nth-child(4) {
+  width: 70px;
+}
+
+.imports-list-table th:nth-child(5),
+.imports-list-table td:nth-child(5) {
+  width: 86px;
+}
+
+.imports-list-table th:nth-child(6),
+.imports-list-table td:nth-child(6) {
+  width: 112px;
+}
+
+.imports-list-table th:nth-child(7),
+.imports-list-table td:nth-child(7),
+.imports-list-table th:nth-child(8),
+.imports-list-table td:nth-child(8) {
+  width: 112px;
+}
+
+.imports-list-table th:nth-child(9),
+.imports-list-table td:nth-child(9),
+.imports-list-table th:nth-child(10),
+.imports-list-table td:nth-child(10) {
+  width: 98px;
+}
+
+.imports-list-table th:nth-child(11),
+.imports-list-table td:nth-child(11) {
+  width: 142px;
+}
+
+.imports-list-table th:nth-child(12),
+.imports-list-table td:nth-child(12) {
+  width: 44px;
+}
+
+@media (min-width: 1500px) {
+  .new-import-item-grid {
+    grid-template-columns:
+      minmax(0, 1.45fr) minmax(0, 1.2fr) minmax(90px, 0.65fr) minmax(110px, 0.75fr)
+      minmax(90px, 0.6fr) minmax(120px, 0.8fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .new-import-item-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
