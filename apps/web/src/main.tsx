@@ -6,6 +6,7 @@ import { installDeliveryCostLock } from './app/delivery-cost-lock';
 import { installDeliveryDetailCost } from './app/delivery-detail-cost';
 import { installDeliveryPartnerOptions } from './app/delivery-partner-options';
 import { installFinalPendingCorrections } from './app/final-pending-corrections';
+import { installFinanceReportsSmartCharts } from './app/finance-reports-smart-charts';
 import { installImportBoxActionClarity } from './app/import-box-action-clarity';
 import { installImportLayoutFixes } from './app/import-layout-fixes';
 import { installImportParentReceiptSync } from './app/import-parent-receipt-sync';
@@ -65,6 +66,7 @@ installDeliveryDetailCost();
 installDeliveryPartnerOptions();
 installPostMergeReviewFixes();
 installSettingsPartnerNavFinalFix();
+installFinanceReportsSmartCharts();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
