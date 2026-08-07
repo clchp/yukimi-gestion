@@ -9,6 +9,7 @@ import { installFinalPendingCorrections } from './app/final-pending-corrections'
 import { installImportLayoutFixes } from './app/import-layout-fixes';
 import { installImportParentReceiptSync } from './app/import-parent-receipt-sync';
 import { installImportReconciliationFinalFixes } from './app/import-reconciliation-final-fixes';
+import { installImportSmartWorkflow } from './app/import-smart-workflow';
 import { installPendingWorkflowEnhancements } from './app/pending-workflow-enhancements';
 import { installPostMergeReviewFixes } from './app/post-merge-review-fixes';
 import { installRuntimeUxEnhancements } from './app/runtime-ux-enhancements';
@@ -56,6 +57,7 @@ installSaleWizardSummaryEnhancement();
 installImportReconciliationFinalFixes();
 installImportParentReceiptSync();
 installImportLayoutFixes();
+installImportSmartWorkflow();
 installDeliveryCostLock();
 installDeliveryDetailCost();
 installDeliveryPartnerOptions();
