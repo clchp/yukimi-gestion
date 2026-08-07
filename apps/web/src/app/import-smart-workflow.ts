@@ -158,7 +158,7 @@ function timelineStep(
       row.classList.add('current');
       marker.textContent = String(index + 1);
     }
-    description.textContent = help[state];
+    description.textContent = help[state] ?? '';
   } else {
     const required = boxIndex(state);
     const reached = boxes.filter((box) => boxIndex(box.stateCode) >= required).length;
@@ -183,7 +183,7 @@ function timelineStep(
         boxes.every((box) => boxIndex(box.stateCode) >= previousRequired);
       if (previousReached) row.classList.add('current');
       marker.textContent = String(index + 1);
-      description.textContent = help[state];
+      description.textContent = help[state] ?? '';
     }
   }
 
