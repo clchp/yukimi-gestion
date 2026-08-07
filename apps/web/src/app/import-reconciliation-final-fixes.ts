@@ -41,6 +41,12 @@ function ensureReconciliationEmptyState(main: HTMLElement, controls: HTMLElement
   }
 }
 
+function openReconciliationSelection(main: HTMLElement) {
+  sessionStorage.removeItem(reconciliationClearedKey);
+  main.classList.remove('reconciliation-cleared');
+  main.querySelector('.runtime-reconciliation-empty')?.remove();
+}
+
 function forceClearedSelection(
   main: HTMLElement,
   controls: HTMLElement,
@@ -86,11 +92,15 @@ function enhanceReconciliationSelection() {
   if (select.dataset.finalSelectionBound !== 'true') {
     select.dataset.finalSelectionBound = 'true';
     select.addEventListener('change', () => {
-      if (select.value) {
-        sessionStorage.removeItem(reconciliationClearedKey);
-        main.classList.remove('reconciliation-cleared');
-        main.querySelector('.runtime-reconciliation-empty')?.remove();
-      }
+      if (select.value) openReconciliationSelection(main);
+    });
+  }
+
+  const fileInput = main.querySelector<HTMLInputElement>('input[type="file"][accept*=".xlsx"]');
+  if (fileInput && fileInput.dataset.finalSelectionBound !== 'true') {
+    fileInput.dataset.finalSelectionBound = 'true';
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files?.length) openReconciliationSelection(main);
     });
   }
 
