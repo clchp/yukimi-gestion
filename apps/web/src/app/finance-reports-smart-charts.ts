@@ -59,9 +59,7 @@ function shiftDays(value: string, days: number) {
 }
 
 function daysBetween(startDate: string, endDate: string) {
-  return (
-    Math.floor((dateFrom(endDate).getTime() - dateFrom(startDate).getTime()) / 86_400_000) + 1
-  );
+  return Math.floor((dateFrom(endDate).getTime() - dateFrom(startDate).getTime()) / 86_400_000) + 1;
 }
 
 function longDate(value: string) {
@@ -171,10 +169,7 @@ function lineChart(periods: PeriodValue[]) {
 
   const salesLine = svgElement('polyline');
   salesLine.classList.add('smart-line-path', 'smart-line-path-primary');
-  salesLine.setAttribute(
-    'points',
-    points.map((item) => `${item.x},${item.primaryY}`).join(' '),
-  );
+  salesLine.setAttribute('points', points.map((item) => `${item.x},${item.primaryY}`).join(' '));
   const collectionsLine = svgElement('polyline');
   collectionsLine.classList.add('smart-line-path', 'smart-line-path-secondary');
   collectionsLine.setAttribute(
@@ -331,8 +326,12 @@ async function renderFinanceChart(panel: HTMLElement, period: FinancePeriod) {
     if (summaryValues[2]) {
       summaryValues[2].querySelector('span')!.textContent = `Resultado ${label}`;
       summaryValues[2].querySelector('strong')!.textContent = money(income - expense);
-      summaryValues[2].querySelector('strong')!.classList.toggle('text-danger', income - expense < 0);
-      summaryValues[2].querySelector('strong')!.classList.toggle('text-success', income - expense >= 0);
+      summaryValues[2]
+        .querySelector('strong')!
+        .classList.toggle('text-danger', income - expense < 0);
+      summaryValues[2]
+        .querySelector('strong')!
+        .classList.toggle('text-success', income - expense >= 0);
     }
 
     let chartLegend = panel.querySelector<HTMLElement>('.smart-finance-legend');
@@ -396,15 +395,16 @@ function enhanceFinanceChart() {
     initial?.setAttribute('aria-pressed', 'true');
   }
 
-  const successNotice = document.querySelector<HTMLElement>('.alert.alert-success')?.textContent?.trim();
+  const successNotice = document
+    .querySelector<HTMLElement>('.alert.alert-success')
+    ?.textContent?.trim();
   if (successNotice && panel.dataset.smartFinanceNotice !== successNotice) {
     panel.dataset.smartFinanceNotice = successNotice;
     panel.dataset.smartFinanceKey = '';
   }
   const currentPeriod =
     (periods.querySelector<HTMLButtonElement>('.active')?.dataset.smartFinancePeriod as
-      | FinancePeriod
-      | undefined) ?? '7D';
+      FinancePeriod | undefined) ?? '7D';
   const rendered = chart.querySelector('.smart-finance-bars');
   if (panel.dataset.smartFinanceKey !== currentPeriod || !rendered) {
     void renderFinanceChart(panel, currentPeriod);
@@ -455,7 +455,11 @@ async function renderReportChart(panel: HTMLElement) {
     summary.append(
       metric('Ventas del periodo', money(data.summary.netSales)),
       metric('Cobros del periodo', money(data.summary.collected)),
-      metric('Ventas registradas', String(data.summary.salesCount), `${data.summary.unitsSold} unidades`),
+      metric(
+        'Ventas registradas',
+        String(data.summary.salesCount),
+        `${data.summary.unitsSold} unidades`,
+      ),
     );
     const top = element('div', 'smart-report-chart-top');
     top.append(summary, legend('Ventas', 'Cobros'));
@@ -492,7 +496,9 @@ async function renderReportChart(panel: HTMLElement) {
       shell = element('div', 'smart-report-chart-shell');
       originalChart?.after(shell);
     }
-    shell.replaceChildren(element('div', 'empty-state', 'No se pudo actualizar el gráfico del reporte.'));
+    shell.replaceChildren(
+      element('div', 'empty-state', 'No se pudo actualizar el gráfico del reporte.'),
+    );
   } finally {
     delete panel.dataset.smartReportLoading;
   }
