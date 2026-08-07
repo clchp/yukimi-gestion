@@ -48,16 +48,23 @@
   background: #91adca;
 }
 
-.smart-finance-chart-host {
-  min-height: 300px;
+.dual-bar-chart.smart-finance-chart-host {
+  display: block;
+  height: auto;
+  min-height: 0;
+  margin-top: 18px;
+  padding: 0;
   overflow: visible;
+  border-bottom: 0;
+  background: none;
 }
 
 .smart-finance-bars {
   position: relative;
   display: grid;
+  width: 100%;
   min-width: 0;
-  min-height: 290px;
+  min-height: 300px;
   align-items: end;
   gap: clamp(10px, 2vw, 24px);
   padding: 16px 8px 0;
@@ -70,7 +77,7 @@
   position: relative;
   display: grid;
   min-width: 0;
-  grid-template-rows: 238px auto;
+  grid-template-rows: 248px auto;
   gap: 9px;
   align-items: end;
   text-align: center;
@@ -124,8 +131,8 @@
   top: 4px;
   left: 50%;
   display: grid;
-  min-width: 170px;
-  gap: 3px;
+  min-width: 184px;
+  gap: 4px;
   border-radius: 10px;
   padding: 10px 12px;
   color: white;
@@ -139,6 +146,10 @@
   transition:
     opacity 140ms ease,
     transform 140ms ease;
+}
+
+.smart-finance-tooltip strong {
+  margin-bottom: 2px;
 }
 
 .smart-finance-column:hover .smart-finance-tooltip,
@@ -280,7 +291,9 @@
   content: attr(data-tooltip);
   font-size: 0.7rem;
   font-weight: 650;
-  line-height: 1.35;
+  line-height: 1.45;
+  text-align: left;
+  white-space: pre-line;
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, -7px);
@@ -325,6 +338,103 @@
   display: none !important;
 }
 
+.smart-dashboard-panel .chart-periods button[hidden] {
+  display: none !important;
+}
+
+.smart-dashboard-column {
+  position: relative;
+}
+
+.smart-dashboard-tooltip {
+  position: absolute;
+  z-index: 10;
+  top: 4px;
+  left: 50%;
+  display: grid;
+  min-width: 190px;
+  gap: 4px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: white;
+  background: #2c222d;
+  box-shadow: var(--shadow-md);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -8px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.smart-dashboard-tooltip strong {
+  margin-bottom: 2px;
+}
+
+.smart-dashboard-column:hover .smart-dashboard-tooltip,
+.smart-dashboard-column:focus-within .smart-dashboard-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.smart-dashboard-transient-error {
+  visibility: hidden !important;
+}
+
+.smart-inventory-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.smart-inventory-table th {
+  height: 48px;
+  padding: 8px 5px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+}
+
+.smart-inventory-table th:nth-child(1),
+.smart-inventory-table th:nth-child(2) {
+  text-align: left;
+}
+
+.smart-inventory-table th:nth-child(1) {
+  width: 16%;
+}
+
+.smart-inventory-table th:nth-child(2) {
+  width: 8%;
+}
+
+.smart-inventory-table th:nth-child(3),
+.smart-inventory-table th:nth-child(4),
+.smart-inventory-table th:nth-child(5),
+.smart-inventory-table th:nth-child(6),
+.smart-inventory-table th:nth-child(7),
+.smart-inventory-table th:nth-child(8) {
+  width: 6.3%;
+}
+
+.smart-inventory-table th:nth-child(9) {
+  width: 9%;
+}
+
+.smart-inventory-table th:nth-child(10) {
+  width: 8%;
+}
+
+.smart-inventory-table th:nth-child(11) {
+  width: 9%;
+}
+
+.smart-inventory-table th:nth-child(12) {
+  width: 12%;
+}
+
 @media (max-width: 900px) {
   .smart-report-chart-top {
     align-items: stretch;
@@ -337,6 +447,10 @@
 
   .smart-finance-bars {
     overflow-x: auto;
+  }
+
+  .smart-inventory-table {
+    min-width: 980px;
   }
 }
 
