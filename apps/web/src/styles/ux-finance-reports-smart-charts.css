@@ -2,6 +2,10 @@
   overflow: visible;
 }
 
+.runtime-finance-periods.smart-legacy-periods-hidden {
+  display: none !important;
+}
+
 .smart-finance-periods {
   margin-bottom: 14px;
 }
