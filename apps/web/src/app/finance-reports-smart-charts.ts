@@ -362,7 +362,11 @@ function enhanceFinanceChart() {
 
   panel.classList.add('smart-analytics-panel');
   panel.dataset.runtimeFinanceInitialized = 'true';
-  panel.querySelector('.runtime-finance-periods')?.remove();
+  const legacyPeriods = panel.querySelector<HTMLElement>('.runtime-finance-periods');
+  if (legacyPeriods) {
+    legacyPeriods.hidden = true;
+    legacyPeriods.classList.add('smart-legacy-periods-hidden');
+  }
 
   let periods = panel.querySelector<HTMLElement>('.smart-finance-periods');
   if (!periods) {
