@@ -1,0 +1,119 @@
+.import-smart-flow-panel > .flow-timeline:not(.import-smart-timeline),
+.import-smart-action-panel > :not(.panel-heading):not(.import-smart-action-body) {
+  display: none !important;
+}
+
+.import-smart-timeline .flow-step-marker {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  font-size: 0.62rem;
+}
+
+.import-smart-timeline .flow-step.partial .flow-step-marker {
+  border-color: color-mix(in srgb, var(--primary) 55%, white);
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-size: 0.56rem;
+}
+
+.import-smart-timeline .flow-step.partial strong {
+  color: var(--primary);
+}
+
+.import-smart-action-body {
+  display: grid;
+  gap: 12px;
+}
+
+.import-smart-action-title {
+  font-size: 0.88rem;
+}
+
+.import-smart-action-copy {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.import-smart-action-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.import-smart-action-summary span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--text-soft);
+  background: var(--surface-soft);
+  font-size: 0.64rem;
+}
+
+.import-smart-action-summary strong {
+  color: var(--primary);
+}
+
+.import-box-next-step {
+  display: grid;
+  gap: 4px;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 10px 10px 0;
+  padding: 10px 12px;
+  color: var(--text-soft);
+  background: var(--primary-pale);
+}
+
+.import-box-next-step strong {
+  color: var(--primary);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.import-box-next-step span {
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.import-box-focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px var(--primary-soft);
+  animation: import-box-focus-pulse 700ms ease-out;
+}
+
+.import-smart-bulk-modal {
+  width: min(620px, 100%);
+}
+
+.import-smart-bulk-modal .context-note {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--text-soft);
+  background: var(--surface-soft);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+@keyframes import-box-focus-pulse {
+  from {
+    transform: scale(0.995);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 720px) {
+  .import-smart-action-summary {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .import-smart-action-summary span {
+    border-radius: 10px;
+  }
+}
