@@ -40,22 +40,13 @@
 }
 
 /* Lista de importaciones: conserva columnas legibles y evita encabezados solapados. */
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child) {
+.imports-list-table {
   width: 100%;
   min-width: 1240px;
   table-layout: fixed;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th {
+.imports-list-table th {
   padding: 12px 8px;
   vertical-align: bottom;
   white-space: normal;
@@ -64,192 +55,62 @@ main.page
   line-height: 1.2;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(n + 3),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(n + 3) {
+.imports-list-table th:nth-child(n + 3),
+.imports-list-table td:nth-child(n + 3) {
   text-align: center;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(1),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(1) {
+.imports-list-table th:nth-child(1),
+.imports-list-table td:nth-child(1) {
   width: 150px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(2),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(2) {
+.imports-list-table th:nth-child(2),
+.imports-list-table td:nth-child(2) {
   width: 130px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(3),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(3) {
+.imports-list-table th:nth-child(3),
+.imports-list-table td:nth-child(3) {
   width: 72px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(4),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(4) {
+.imports-list-table th:nth-child(4),
+.imports-list-table td:nth-child(4) {
   width: 70px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(5),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(5) {
+.imports-list-table th:nth-child(5),
+.imports-list-table td:nth-child(5) {
   width: 86px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(6),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(6) {
+.imports-list-table th:nth-child(6),
+.imports-list-table td:nth-child(6) {
   width: 112px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(7),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(7),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(8),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(8) {
+.imports-list-table th:nth-child(7),
+.imports-list-table td:nth-child(7),
+.imports-list-table th:nth-child(8),
+.imports-list-table td:nth-child(8) {
   width: 112px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(9),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(9),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(10),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(10) {
+.imports-list-table th:nth-child(9),
+.imports-list-table td:nth-child(9),
+.imports-list-table th:nth-child(10),
+.imports-list-table td:nth-child(10) {
   width: 98px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(11),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(11) {
+.imports-list-table th:nth-child(11),
+.imports-list-table td:nth-child(11) {
   width: 142px;
 }
 
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  th:nth-child(12),
-main.page
-  > .table-panel
-  > .filter-chips
-  + .responsive-table-wrap
-  > table.data-table:has(thead > tr > th:nth-child(12):last-child)
-  td:nth-child(12) {
+.imports-list-table th:nth-child(12),
+.imports-list-table td:nth-child(12) {
   width: 44px;
 }
 
