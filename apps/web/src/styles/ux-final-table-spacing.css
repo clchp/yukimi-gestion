@@ -1,0 +1,171 @@
+/* Inicio: el tooltip debe leerse como tres renglones independientes. */
+.smart-dashboard-tooltip {
+  display: flex !important;
+  min-width: 210px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  white-space: normal;
+}
+
+.smart-dashboard-tooltip > strong,
+.smart-dashboard-tooltip > span {
+  display: block !important;
+  width: 100%;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+/* Reportes: conserva solo la leyenda integrada en la cabecera del gráfico nuevo. */
+.reports-page .smart-analytics-panel > .chart-legend {
+  display: none !important;
+}
+
+/* Inventario: prioriza legibilidad en laptop y usa scroll horizontal si no entra. */
+.smart-inventory-table {
+  width: 100% !important;
+  min-width: 1430px !important;
+  table-layout: fixed !important;
+}
+
+.smart-inventory-table th {
+  height: 50px;
+  padding: 9px 12px !important;
+  line-height: 1.25;
+  vertical-align: middle;
+  white-space: normal !important;
+}
+
+.smart-inventory-table td {
+  padding: 12px !important;
+  vertical-align: middle;
+}
+
+.smart-inventory-table th:nth-child(1),
+.smart-inventory-table td:nth-child(1) {
+  width: 230px !important;
+  text-align: left;
+}
+
+.smart-inventory-table th:nth-child(2),
+.smart-inventory-table td:nth-child(2) {
+  width: 150px !important;
+  text-align: left;
+}
+
+.smart-inventory-table th:nth-child(3),
+.smart-inventory-table td:nth-child(3),
+.smart-inventory-table th:nth-child(4),
+.smart-inventory-table td:nth-child(4),
+.smart-inventory-table th:nth-child(5),
+.smart-inventory-table td:nth-child(5),
+.smart-inventory-table th:nth-child(6),
+.smart-inventory-table td:nth-child(6),
+.smart-inventory-table th:nth-child(7),
+.smart-inventory-table td:nth-child(7),
+.smart-inventory-table th:nth-child(8),
+.smart-inventory-table td:nth-child(8) {
+  width: 90px !important;
+  text-align: center;
+}
+
+.smart-inventory-table th:nth-child(9),
+.smart-inventory-table td:nth-child(9) {
+  width: 120px !important;
+  text-align: center;
+}
+
+.smart-inventory-table th:nth-child(10),
+.smart-inventory-table td:nth-child(10) {
+  width: 110px !important;
+  text-align: center;
+}
+
+.smart-inventory-table th:nth-child(11),
+.smart-inventory-table td:nth-child(11) {
+  width: 130px !important;
+  text-align: center;
+}
+
+.smart-inventory-table th:nth-child(12),
+.smart-inventory-table td:nth-child(12) {
+  width: 110px !important;
+  text-align: center;
+}
+
+/* Importaciones: evita comprimir las columnas; en pantallas menores se desplaza la tabla. */
+.imports-list-table {
+  width: 100% !important;
+  min-width: 1500px !important;
+  table-layout: fixed !important;
+}
+
+.imports-list-table th {
+  height: 50px;
+  padding: 9px 12px !important;
+  line-height: 1.25;
+  vertical-align: middle;
+  white-space: normal !important;
+}
+
+.imports-list-table td {
+  padding: 12px !important;
+  vertical-align: middle;
+}
+
+.imports-list-table th:nth-child(1),
+.imports-list-table td:nth-child(1) {
+  width: 165px !important;
+}
+
+.imports-list-table th:nth-child(2),
+.imports-list-table td:nth-child(2) {
+  width: 145px !important;
+}
+
+.imports-list-table th:nth-child(3),
+.imports-list-table td:nth-child(3) {
+  width: 90px !important;
+}
+
+.imports-list-table th:nth-child(4),
+.imports-list-table td:nth-child(4) {
+  width: 80px !important;
+}
+
+.imports-list-table th:nth-child(5),
+.imports-list-table td:nth-child(5) {
+  width: 100px !important;
+}
+
+.imports-list-table th:nth-child(6),
+.imports-list-table td:nth-child(6) {
+  width: 125px !important;
+}
+
+.imports-list-table th:nth-child(7),
+.imports-list-table td:nth-child(7),
+.imports-list-table th:nth-child(8),
+.imports-list-table td:nth-child(8) {
+  width: 135px !important;
+}
+
+.imports-list-table th:nth-child(9),
+.imports-list-table td:nth-child(9) {
+  width: 110px !important;
+}
+
+.imports-list-table th:nth-child(10),
+.imports-list-table td:nth-child(10) {
+  width: 120px !important;
+}
+
+.imports-list-table th:nth-child(11),
+.imports-list-table td:nth-child(11) {
+  width: 155px !important;
+}
+
+.imports-list-table th:nth-child(12),
+.imports-list-table td:nth-child(12) {
+  width: 50px !important;
+}
