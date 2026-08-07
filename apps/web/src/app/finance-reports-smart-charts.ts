@@ -478,8 +478,7 @@ function enhanceFinanceChart() {
   }
   const currentPeriod =
     (periods.querySelector<HTMLButtonElement>('.active')?.dataset.smartFinancePeriod as
-      | FinancePeriod
-      | undefined) ?? '7D';
+      FinancePeriod | undefined) ?? '7D';
   const rendered = chart.querySelector('.smart-finance-bars');
   if (panel.dataset.smartFinanceKey !== currentPeriod || !rendered) {
     void renderFinanceChart(panel, currentPeriod);
@@ -596,7 +595,9 @@ function validDashboardCollection(row: FinanceTransaction) {
   if (row.stateCode === 'REVERSED' || row.transactionTypeCode !== 'INCOME') return false;
   const description = row.description.toLocaleLowerCase('es');
   const category = row.categoryName?.toLocaleLowerCase('es') ?? '';
-  return category.includes('venta') || description.includes('pago') || description.includes('venta');
+  return (
+    category.includes('venta') || description.includes('pago') || description.includes('venta')
+  );
 }
 
 async function dashboardRange(period: DashboardPeriod) {
@@ -738,7 +739,9 @@ function enhanceDashboardChart() {
     const code = dashboardPeriodFromButton(button);
     if (code) button.dataset.smartDashboardPeriod = code;
   });
-  let totalButton = periods.querySelector<HTMLButtonElement>('[data-smart-dashboard-period="TOTAL"]');
+  let totalButton = periods.querySelector<HTMLButtonElement>(
+    '[data-smart-dashboard-period="TOTAL"]',
+  );
   if (!totalButton) {
     totalButton = element('button', 'chart-period-button', 'Total');
     totalButton.type = 'button';
@@ -775,9 +778,9 @@ function enhanceDashboardErrorDelay() {
 
 function enhanceInventoryTable() {
   if (location.pathname !== '/inventario') return;
-  const table = [...document.querySelectorAll<HTMLTableElement>('.table-panel table.data-table')].find(
-    (candidate) => candidate.querySelector('th')?.textContent?.trim() === 'Producto',
-  );
+  const table = [
+    ...document.querySelectorAll<HTMLTableElement>('.table-panel table.data-table'),
+  ].find((candidate) => candidate.querySelector('th')?.textContent?.trim() === 'Producto');
   table?.classList.add('smart-inventory-table');
 }
 
