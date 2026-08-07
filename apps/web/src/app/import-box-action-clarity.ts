@@ -50,8 +50,9 @@ function applyBoxActionLabels() {
     if (!footer) return;
 
     if (stateLabel === 'Recibida en Perú') {
-      const receiveButton = [...footer.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
-        button.textContent?.includes('ingresar') || button.textContent?.includes('Recibir'),
+      const receiveButton = [...footer.querySelectorAll<HTMLButtonElement>('button')].find(
+        (button) =>
+          button.textContent?.includes('ingresar') || button.textContent?.includes('Recibir'),
       );
       if (receiveButton && receiveButton.textContent?.trim() !== desiredLabel) {
         receiveButton.textContent = desiredLabel;
