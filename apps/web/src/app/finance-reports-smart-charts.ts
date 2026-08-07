@@ -1,8 +1,11 @@
 import { getFinanceTransactions } from '../features/finance/finance-api';
 import { getReports } from '../features/insights/insights-api';
+import { getSales } from '../features/sales/sales-api';
 
 type FinancePeriod = 'TODAY' | '7D' | 'MONTH' | 'TOTAL';
+type DashboardPeriod = 'TODAY' | '7D' | 'MONTH' | 'TOTAL';
 type FinanceTransaction = Awaited<ReturnType<typeof getFinanceTransactions>>['items'][number];
+type SaleRow = Awaited<ReturnType<typeof getSales>>['items'][number];
 type SeriesValue = {
   date: string;
   primary: number;
@@ -70,6 +73,12 @@ function longDate(value: string) {
   }).format(dateFrom(value));
 }
 
+function shortDate(value: string) {
+  return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short' })
+    .format(dateFrom(value))
+    .replace('.', '');
+}
+
 function monthLabel(value: string) {
   return new Intl.DateTimeFormat('es-PE', { month: 'short' })
     .format(dateFrom(value))
@@ -94,6 +103,30 @@ function smartGroupCount(totalDays: number, maxPoints: number) {
   return Math.max(1, Math.min(maxPoints, desired, Math.floor(totalDays / 2)));
 }
 
+function groupFixedCount(
+  values: SeriesValue[],
+  startDate: string,
+  endDate: string,
+  requestedCount: number,
+): PeriodValue[] {
+  const totalDays = Math.max(1, daysBetween(startDate, endDate));
+  const count = Math.max(1, Math.min(requestedCount, totalDays));
+  return Array.from({ length: count }, (_, index) => {
+    const startOffset = Math.floor((index * totalDays) / count);
+    const nextOffset = Math.floor(((index + 1) * totalDays) / count);
+    const groupStart = shiftDays(startDate, startOffset);
+    const groupEnd = shiftDays(startDate, Math.max(startOffset, nextOffset - 1));
+    const selected = values.filter((item) => item.date >= groupStart && item.date <= groupEnd);
+    return {
+      startDate: groupStart,
+      endDate: groupEnd,
+      label: rangeLabel(groupStart, groupEnd),
+      primary: selected.reduce((sum, item) => sum + item.primary, 0),
+      secondary: selected.reduce((sum, item) => sum + item.secondary, 0),
+    };
+  });
+}
+
 function groupIntoPeriods(
   values: SeriesValue[],
   startDate: string,
@@ -101,21 +134,23 @@ function groupIntoPeriods(
   maxPoints = 10,
 ): PeriodValue[] {
   const totalDays = Math.max(1, daysBetween(startDate, endDate));
-  const groupCount = smartGroupCount(totalDays, maxPoints);
-  return Array.from({ length: groupCount }, (_, index) => {
-    const startOffset = Math.floor((index * totalDays) / groupCount);
-    const nextOffset = Math.floor(((index + 1) * totalDays) / groupCount);
-    const groupStart = shiftDays(startDate, startOffset);
-    const groupEnd = shiftDays(startDate, Math.max(startOffset, nextOffset - 1));
-    const selected = values.filter((item) => item.date >= groupStart && item.date <= groupEnd);
-    return {
-      startDate: groupStart,
-      endDate: groupEnd,
-      label: totalDays === 1 ? 'Hoy' : rangeLabel(groupStart, groupEnd),
-      primary: selected.reduce((sum, item) => sum + item.primary, 0),
-      secondary: selected.reduce((sum, item) => sum + item.secondary, 0),
-    };
-  });
+  return groupFixedCount(values, startDate, endDate, smartGroupCount(totalDays, maxPoints));
+}
+
+function dailyPeriods(values: SeriesValue[], startDate: string, endDate: string): PeriodValue[] {
+  const byDate = new Map(values.map((item) => [item.date, item]));
+  const periods: PeriodValue[] = [];
+  for (let date = startDate; date <= endDate; date = shiftDays(date, 1)) {
+    const current = byDate.get(date);
+    periods.push({
+      startDate: date,
+      endDate: date,
+      label: shortDate(date),
+      primary: current?.primary ?? 0,
+      secondary: current?.secondary ?? 0,
+    });
+  }
+  return periods;
 }
 
 function metric(label: string, value: string, detail?: string) {
@@ -194,9 +229,12 @@ function lineChart(periods: PeriodValue[]) {
     const hit = element('button', 'smart-line-hit');
     hit.type = 'button';
     hit.style.left = `${(item.x / 1000) * 100}%`;
-    const tooltip = `${item.label} · Ventas ${money(item.primary)} · Cobros ${money(item.secondary)}`;
+    const tooltip = `Fecha: ${item.label}\nVentas: ${money(item.primary)}\nCobros: ${money(item.secondary)}`;
     hit.dataset.tooltip = tooltip;
-    hit.setAttribute('aria-label', tooltip);
+    hit.setAttribute(
+      'aria-label',
+      `Fecha ${item.label}. Ventas ${money(item.primary)}. Cobros ${money(item.secondary)}.`,
+    );
     stage.append(hit);
   });
 
@@ -215,12 +253,17 @@ function financeBars(periods: PeriodValue[]) {
     ...periods.flatMap((item) => [Math.max(0, item.primary), Math.max(0, item.secondary)]),
   );
   const chart = element('div', 'smart-finance-bars');
+  chart.dataset.columns = String(periods.length);
   chart.style.gridTemplateColumns = `repeat(${Math.max(periods.length, 1)}, minmax(52px, 1fr))`;
   periods.forEach((item) => {
     const column = element('div', 'smart-finance-column');
     const tooltip = element('span', 'smart-finance-tooltip');
     tooltip.append(
-      element('strong', '', item.label),
+      element(
+        'strong',
+        '',
+        `${item.startDate === item.endDate ? 'Fecha' : 'Intervalo'}: ${item.label}`,
+      ),
       element('span', '', `Ingresos: ${money(item.primary)}`),
       element('span', '', `Gastos: ${money(item.secondary)}`),
     );
@@ -244,14 +287,33 @@ function updatePanelHeading(panel: HTMLElement, title: string, subtitle: string)
   if (headingSubtitle) headingSubtitle.textContent = subtitle;
 }
 
+let financeTransactionsPromise: Promise<FinanceTransaction[]> | null = null;
+let salesRowsPromise: Promise<SaleRow[]> | null = null;
+
 async function allFinanceTransactions() {
-  const first = await getFinanceTransactions({ type: 'ALL', page: 1, pageSize: 100 });
-  const rows = [...first.items];
-  const pages = Math.ceil(first.total / first.pageSize);
-  for (let page = 2; page <= pages; page += 1) {
-    rows.push(...(await getFinanceTransactions({ type: 'ALL', page, pageSize: 100 })).items);
-  }
-  return rows;
+  financeTransactionsPromise ??= (async () => {
+    const first = await getFinanceTransactions({ type: 'ALL', page: 1, pageSize: 100 });
+    const rows = [...first.items];
+    const pages = Math.ceil(first.total / first.pageSize);
+    for (let page = 2; page <= pages; page += 1) {
+      rows.push(...(await getFinanceTransactions({ type: 'ALL', page, pageSize: 100 })).items);
+    }
+    return rows;
+  })();
+  return financeTransactionsPromise;
+}
+
+async function allSalesRows() {
+  salesRowsPromise ??= (async () => {
+    const first = await getSales({ filter: 'ALL', page: 1, pageSize: 100 });
+    const rows = [...first.items];
+    const pages = Math.ceil(first.total / first.pageSize);
+    for (let page = 2; page <= pages; page += 1) {
+      rows.push(...(await getSales({ filter: 'ALL', page, pageSize: 100 })).items);
+    }
+    return rows;
+  })();
+  return salesRowsPromise;
 }
 
 function financeSeries(rows: FinanceTransaction[], startDate: string, endDate: string) {
@@ -273,7 +335,7 @@ function financeDateRange(rows: FinanceTransaction[], period: FinancePeriod) {
   const endDate = inputDate(new Date());
   if (period === 'TODAY') return { startDate: endDate, endDate };
   if (period === '7D') return { startDate: shiftDays(endDate, -6), endDate };
-  if (period === 'MONTH') return { startDate: `${endDate.slice(0, 8)}01`, endDate };
+  if (period === 'MONTH') return { startDate: shiftDays(endDate, -29), endDate };
   const dates = rows
     .filter(
       (item) =>
@@ -288,8 +350,19 @@ function financeDateRange(rows: FinanceTransaction[], period: FinancePeriod) {
 function financePeriodLabel(period: FinancePeriod) {
   if (period === 'TODAY') return 'de hoy';
   if (period === '7D') return 'de 7 días';
-  if (period === 'MONTH') return 'del mes';
+  if (period === 'MONTH') return 'de 1 mes';
   return 'del histórico';
+}
+
+function financePeriods(
+  series: SeriesValue[],
+  startDate: string,
+  endDate: string,
+  period: FinancePeriod,
+) {
+  if (period === 'TODAY' || period === '7D') return dailyPeriods(series, startDate, endDate);
+  if (period === 'MONTH') return groupFixedCount(series, startDate, endDate, 5);
+  return groupFixedCount(series, startDate, endDate, Math.min(8, daysBetween(startDate, endDate)));
 }
 
 async function renderFinanceChart(panel: HTMLElement, period: FinancePeriod) {
@@ -304,7 +377,7 @@ async function renderFinanceChart(panel: HTMLElement, period: FinancePeriod) {
     const rows = await allFinanceTransactions();
     const { startDate, endDate } = financeDateRange(rows, period);
     const series = financeSeries(rows, startDate, endDate);
-    const periods = groupIntoPeriods(series, startDate, endDate, 8);
+    const periods = financePeriods(series, startDate, endDate, period);
     chart.replaceChildren(financeBars(periods));
     chart.classList.add('smart-finance-chart-host');
     const subtitle =
@@ -401,10 +474,12 @@ function enhanceFinanceChart() {
   if (successNotice && panel.dataset.smartFinanceNotice !== successNotice) {
     panel.dataset.smartFinanceNotice = successNotice;
     panel.dataset.smartFinanceKey = '';
+    financeTransactionsPromise = null;
   }
   const currentPeriod =
     (periods.querySelector<HTMLButtonElement>('.active')?.dataset.smartFinancePeriod as
-      FinancePeriod | undefined) ?? '7D';
+      | FinancePeriod
+      | undefined) ?? '7D';
   const rendered = chart.querySelector('.smart-finance-bars');
   if (panel.dataset.smartFinanceKey !== currentPeriod || !rendered) {
     void renderFinanceChart(panel, currentPeriod);
@@ -513,6 +588,199 @@ function enhanceReportChart() {
   void renderReportChart(panel);
 }
 
+function validDashboardSale(row: SaleRow) {
+  return !['CANCELLED', 'ANNULLED'].includes(row.commercialStateCode);
+}
+
+function validDashboardCollection(row: FinanceTransaction) {
+  if (row.stateCode === 'REVERSED' || row.transactionTypeCode !== 'INCOME') return false;
+  const description = row.description.toLocaleLowerCase('es');
+  const category = row.categoryName?.toLocaleLowerCase('es') ?? '';
+  return category.includes('venta') || description.includes('pago') || description.includes('venta');
+}
+
+async function dashboardRange(period: DashboardPeriod) {
+  const endDate = inputDate(new Date());
+  if (period === 'TODAY') return { startDate: endDate, endDate };
+  if (period === '7D') return { startDate: shiftDays(endDate, -6), endDate };
+  if (period === 'MONTH') return { startDate: shiftDays(endDate, -29), endDate };
+  const [sales, finance] = await Promise.all([allSalesRows(), allFinanceTransactions()]);
+  const dates = [
+    ...sales.filter(validDashboardSale).map((item) => item.createdAt.slice(0, 10)),
+    ...finance.filter(validDashboardCollection).map((item) => item.occurredAt.slice(0, 10)),
+  ].sort();
+  return { startDate: dates[0] ?? endDate, endDate };
+}
+
+function dashboardPeriods(
+  series: SeriesValue[],
+  startDate: string,
+  endDate: string,
+  period: DashboardPeriod,
+) {
+  if (period === 'TODAY' || period === '7D') return dailyPeriods(series, startDate, endDate);
+  if (period === 'MONTH') return groupFixedCount(series, startDate, endDate, 5);
+  return groupFixedCount(series, startDate, endDate, Math.min(5, daysBetween(startDate, endDate)));
+}
+
+function renderDashboardBars(chart: HTMLElement, periods: PeriodValue[]) {
+  chart.replaceChildren();
+  chart.style.gridTemplateColumns = `repeat(${Math.max(periods.length, 1)}, minmax(48px, 1fr))`;
+  const maximum = Math.max(
+    1,
+    ...periods.flatMap((value) => [Math.max(0, value.primary), Math.max(0, value.secondary)]),
+  );
+  periods.forEach((value) => {
+    const column = element('div', 'bar-column smart-dashboard-column');
+    const tooltip = element('span', 'chart-tooltip smart-dashboard-tooltip');
+    tooltip.append(
+      element(
+        'strong',
+        '',
+        `${value.startDate === value.endDate ? 'Fecha' : 'Intervalo'}: ${value.label}`,
+      ),
+      element('span', '', `Ventas: ${money(value.primary)}`),
+      element('span', '', `Cobros: ${money(value.secondary)}`),
+    );
+    const button = element('button', 'bar-track dual-bar-track chart-bar-button');
+    button.type = 'button';
+    button.setAttribute(
+      'aria-label',
+      `${value.label}. Ventas ${money(value.primary)}. Cobros ${money(value.secondary)}.`,
+    );
+    const sales = element('span', 'sales-bar');
+    sales.style.height = `${Math.max(value.primary > 0 ? 5 : 0, (value.primary / maximum) * 100)}%`;
+    const collections = element('span', 'collections-bar');
+    collections.style.height = `${Math.max(
+      value.secondary > 0 ? 5 : 0,
+      (value.secondary / maximum) * 100,
+    )}%`;
+    button.append(sales, collections);
+    column.append(tooltip, button, element('small', '', value.label));
+    chart.append(column);
+  });
+}
+
+let dashboardRequest = 0;
+
+async function renderDashboardChart(panel: HTMLElement, period: DashboardPeriod) {
+  const chart = panel.querySelector<HTMLElement>('.dashboard-real-chart');
+  if (!chart) return;
+  const request = ++dashboardRequest;
+  panel.dataset.smartDashboardLoading = period;
+  try {
+    const { startDate, endDate } = await dashboardRange(period);
+    const report = await getReports({ startDate, endDate });
+    if (request !== dashboardRequest || location.pathname !== '/') return;
+    const series: SeriesValue[] = report.daily.map((item) => ({
+      date: item.date.slice(0, 10),
+      primary: item.salesAmount,
+      secondary: item.collectionsAmount,
+    }));
+    const periods = dashboardPeriods(series, startDate, endDate, period);
+    renderDashboardBars(chart, periods);
+    const title =
+      period === 'TODAY'
+        ? 'Rendimiento de hoy'
+        : period === '7D'
+          ? 'Rendimiento de los últimos 7 días'
+          : period === 'MONTH'
+            ? 'Rendimiento de 1 mes en 5 intervalos'
+            : 'Rendimiento histórico en 5 intervalos';
+    updatePanelHeading(
+      panel,
+      title,
+      startDate === endDate ? longDate(startDate) : `${longDate(startDate)} — ${longDate(endDate)}`,
+    );
+    const summary = panel.querySelector<HTMLElement>('.chart-summary');
+    const label = summary?.querySelector<HTMLElement>('span');
+    const total = summary?.querySelector<HTMLElement>('strong');
+    if (label)
+      label.textContent =
+        period === 'TODAY'
+          ? 'Total de hoy'
+          : period === '7D'
+            ? 'Total de 7 días'
+            : period === 'MONTH'
+              ? 'Total de 1 mes'
+              : 'Total histórico';
+    if (total) total.textContent = money(series.reduce((sum, item) => sum + item.primary, 0));
+    panel.dataset.smartDashboardKey = period;
+  } catch {
+    if (request !== dashboardRequest) return;
+    chart.replaceChildren(element('div', 'empty-state', 'No se pudo actualizar el gráfico.'));
+  } finally {
+    delete panel.dataset.smartDashboardLoading;
+  }
+}
+
+function dashboardPeriodFromButton(button: HTMLButtonElement): DashboardPeriod | null {
+  const label = button.textContent?.trim();
+  if (label === 'Hoy') return 'TODAY';
+  if (label === '7 días') return '7D';
+  if (label === 'Mes' || label === '1 mes') return 'MONTH';
+  if (label === 'Total') return 'TOTAL';
+  return null;
+}
+
+function enhanceDashboardChart() {
+  if (location.pathname !== '/') return;
+  const chart = document.querySelector<HTMLElement>('.dashboard-real-chart');
+  const panel = chart?.closest<HTMLElement>('.panel');
+  const periods = panel?.querySelector<HTMLElement>('.chart-periods');
+  if (!chart || !panel || !periods) return;
+
+  panel.dataset.pendingDashboardInitialized = 'true';
+  panel.classList.add('smart-dashboard-panel');
+  periods.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
+    if (button.textContent?.trim() === 'Personalizado') button.hidden = true;
+    if (button.textContent?.trim() === 'Mes') button.textContent = '1 mes';
+    const code = dashboardPeriodFromButton(button);
+    if (code) button.dataset.smartDashboardPeriod = code;
+  });
+  let totalButton = periods.querySelector<HTMLButtonElement>('[data-smart-dashboard-period="TOTAL"]');
+  if (!totalButton) {
+    totalButton = element('button', 'chart-period-button', 'Total');
+    totalButton.type = 'button';
+    totalButton.dataset.smartDashboardPeriod = 'TOTAL';
+    periods.append(totalButton);
+  }
+
+  let active = periods.querySelector<HTMLButtonElement>('[data-smart-dashboard-period].active');
+  if (!active) {
+    active = periods.querySelector<HTMLButtonElement>('[data-smart-dashboard-period="7D"]');
+    active?.classList.add('active');
+    active?.setAttribute('aria-pressed', 'true');
+  }
+  const currentPeriod =
+    (active?.dataset.smartDashboardPeriod as DashboardPeriod | undefined) ?? '7D';
+  if (
+    panel.dataset.smartDashboardKey !== currentPeriod ||
+    !chart.querySelector('.smart-dashboard-column')
+  ) {
+    void renderDashboardChart(panel, currentPeriod);
+  }
+}
+
+function enhanceDashboardErrorDelay() {
+  if (location.pathname !== '/') return;
+  const alert = document.querySelector<HTMLElement>('.dashboard-page > .alert.alert-error');
+  if (!alert || alert.dataset.smartDelayed === 'true') return;
+  alert.dataset.smartDelayed = 'true';
+  alert.classList.add('smart-dashboard-transient-error');
+  window.setTimeout(() => {
+    if (alert.isConnected) alert.classList.remove('smart-dashboard-transient-error');
+  }, 1200);
+}
+
+function enhanceInventoryTable() {
+  if (location.pathname !== '/inventario') return;
+  const table = [...document.querySelectorAll<HTMLTableElement>('.table-panel table.data-table')].find(
+    (candidate) => candidate.querySelector('th')?.textContent?.trim() === 'Producto',
+  );
+  table?.classList.add('smart-inventory-table');
+}
+
 let scheduled = false;
 function schedule() {
   if (scheduled) return;
@@ -521,6 +789,9 @@ function schedule() {
     scheduled = false;
     enhanceFinanceChart();
     enhanceReportChart();
+    enhanceDashboardChart();
+    enhanceDashboardErrorDelay();
+    enhanceInventoryTable();
   });
 }
 
@@ -533,6 +804,30 @@ export function installFinanceReportsSmartCharts() {
     (event) => {
       const target = event.target as HTMLElement;
       if (location.pathname === '/reportes' && target.closest('.report-filters')) schedule();
+    },
+    true,
+  );
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (location.pathname !== '/') return;
+      const target = event.target as HTMLElement;
+      const button = target.closest<HTMLButtonElement>(
+        '.dashboard-page .chart-periods button[data-smart-dashboard-period]',
+      );
+      if (!button) return;
+      const panel = button.closest<HTMLElement>('.panel');
+      const periods = button.closest<HTMLElement>('.chart-periods');
+      if (!panel || !periods) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      periods.querySelectorAll('button').forEach((candidate) => {
+        candidate.classList.toggle('active', candidate === button);
+        candidate.setAttribute('aria-pressed', String(candidate === button));
+      });
+      const period = button.dataset.smartDashboardPeriod as DashboardPeriod;
+      void renderDashboardChart(panel, period);
     },
     true,
   );
