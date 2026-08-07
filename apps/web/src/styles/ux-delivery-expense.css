@@ -1,0 +1,75 @@
+.delivery-expense-panel .panel-heading {
+  align-items: flex-start;
+}
+
+.delivery-expense-panel-body {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.delivery-expense-status {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border-color, #e4dbe2);
+  border-radius: 14px;
+}
+
+.delivery-expense-status strong {
+  font-size: 0.95rem;
+}
+
+.delivery-expense-status span {
+  line-height: 1.45;
+}
+
+.delivery-expense-status small {
+  color: var(--text-muted, #756b74);
+  line-height: 1.45;
+}
+
+.delivery-expense-status-warning {
+  border-color: #e8c97c;
+  background: #fff9e8;
+  color: #644b13;
+}
+
+.delivery-expense-status-success {
+  border-color: #afd9c8;
+  background: #effaf5;
+  color: #245e4b;
+}
+
+.delivery-expense-modal {
+  width: min(820px, calc(100vw - 2rem));
+}
+
+.delivery-expense-error,
+.delivery-expense-category-warning,
+.delivery-expense-prefill-summary {
+  margin-inline: 1.5rem;
+}
+
+.delivery-expense-prefill-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #decbd9;
+  border-radius: 14px;
+  background: #faf5f9;
+  color: #5e4059;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.final-runtime-notice.warning {
+  border-left-color: #c78a18;
+}
+
+@media (max-width: 620px) {
+  .delivery-expense-prefill-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
