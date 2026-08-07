@@ -17,12 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - name: Mostrar diferencias de formato del gráfico
-        run: |
-          npx prettier apps/web/src/app/finance-reports-smart-charts.ts > /tmp/finance-reports-smart-charts.ts
-          diff -u apps/web/src/app/finance-reports-smart-charts.ts /tmp/finance-reports-smart-charts.ts || true
       - run: npm run format:check
-        continue-on-error: true
       - run: npm run build:shared
       - run: npm run typecheck
       - run: npm test
