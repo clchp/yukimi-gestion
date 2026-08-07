@@ -169,3 +169,42 @@
 .imports-list-table td:nth-child(12) {
   width: 50px !important;
 }
+
+/* Inventario e Importaciones: la tabla puede desplazarse explícitamente a izquierda y derecha. */
+.responsive-table-wrap:has(> .smart-inventory-table),
+.responsive-table-wrap:has(> .imports-list-table) {
+  width: 100%;
+  max-width: 100%;
+  padding-bottom: 4px;
+  overflow-x: scroll !important;
+  overscroll-behavior-x: contain;
+  scrollbar-color: #9f7d99 #eee9ed;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.responsive-table-wrap:has(> .smart-inventory-table)::-webkit-scrollbar,
+.responsive-table-wrap:has(> .imports-list-table)::-webkit-scrollbar {
+  height: 12px;
+}
+
+.responsive-table-wrap:has(> .smart-inventory-table)::-webkit-scrollbar-track,
+.responsive-table-wrap:has(> .imports-list-table)::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #eee9ed;
+}
+
+.responsive-table-wrap:has(> .smart-inventory-table)::-webkit-scrollbar-thumb,
+.responsive-table-wrap:has(> .imports-list-table)::-webkit-scrollbar-thumb {
+  min-width: 56px;
+  border: 3px solid #eee9ed;
+  border-radius: 999px;
+  background: #9f7d99;
+}
+
+.responsive-table-wrap:has(> .smart-inventory-table)::-webkit-scrollbar-thumb:hover,
+.responsive-table-wrap:has(> .imports-list-table)::-webkit-scrollbar-thumb:hover {
+  background: #7c5d76;
+}
