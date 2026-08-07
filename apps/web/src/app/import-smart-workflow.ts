@@ -1,9 +1,5 @@
 import type { ImportBoxStateCode, ImportDetail, ImportStateCode } from '@yukimi/shared';
-import {
-  advanceImport,
-  advanceImportBox,
-  getImport,
-} from '../features/imports/imports-api';
+import { advanceImport, advanceImportBox, getImport } from '../features/imports/imports-api';
 
 const importFlow: ImportStateCode[] = [
   'QUOTATION',
@@ -103,8 +99,7 @@ function boxIndex(state: string) {
 
 function nextBoxTransition(box: ImportDetail['boxes'][number]) {
   return box.allowedTransitions.find(
-    (transition) =>
-      transition.stateCode !== 'CANCELLED' && transition.stateCode !== 'STOCKED',
+    (transition) => transition.stateCode !== 'CANCELLED' && transition.stateCode !== 'STOCKED',
   );
 }
 
@@ -179,8 +174,7 @@ function timelineStep(
       const previousState = importFlow[index - 1];
       const previousRequired = previousState ? boxIndex(previousState) : -1;
       const previousReached =
-        previousRequired < 0 ||
-        boxes.every((box) => boxIndex(box.stateCode) >= previousRequired);
+        previousRequired < 0 || boxes.every((box) => boxIndex(box.stateCode) >= previousRequired);
       if (previousReached) row.classList.add('current');
       marker.textContent = String(index + 1);
       description.textContent = help[state] ?? '';
@@ -298,11 +292,7 @@ function createBulkDialog(
   headerCopy.append(
     node('span', 'eyebrow', 'Acción masiva'),
     node('h2', '', `Avanzar ${boxes.length} cajas a ${transition.name}`),
-    node(
-      'p',
-      '',
-      `Se actualizarán: ${boxes.map((box) => box.code).join(', ')}.`,
-    ),
+    node('p', '', `Se actualizarán: ${boxes.map((box) => box.code).join(', ')}.`),
   );
   const close = node('button', 'icon-button', '×');
   close.type = 'button';
@@ -408,7 +398,8 @@ function renderActionPanel(data: ImportDetail) {
   if (!panel) return;
   panel.classList.add('import-smart-action-panel');
   const subtitle = panel.querySelector<HTMLElement>('.panel-heading p');
-  if (subtitle) subtitle.textContent = 'La acción superior orienta; las cajas guardan el avance real.';
+  if (subtitle)
+    subtitle.textContent = 'La acción superior orienta; las cajas guardan el avance real.';
   panel.querySelector('.import-smart-action-body')?.remove();
   const body = node('div', 'import-smart-action-body');
   const boxes = activeBoxes(data);
@@ -425,9 +416,7 @@ function renderActionPanel(data: ImportDetail) {
     );
     const button = node('button', 'button button-primary button-full', 'Confirmar compra');
     button.type = 'button';
-    button.addEventListener('click', () =>
-      findOriginalButton(panel, 'Compra confirmada')?.click(),
-    );
+    button.addEventListener('click', () => findOriginalButton(panel, 'Compra confirmada')?.click());
     body.append(button);
   } else if (boxes.length === 0) {
     body.append(node('div', 'empty-state', 'No hay cajas activas para continuar.'));
