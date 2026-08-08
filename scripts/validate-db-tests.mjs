@@ -16,7 +16,9 @@ for (const filename of filenames) {
   const contents = await readFile(path.join(testsDirectory, filename), 'utf8');
   const planMatch = /select\s+plan\((\d+)\)/i.exec(contents);
   const assertionCount = (
-    contents.match(/^select\s+(?:ok|is|isnt|results_eq|lives_ok|throws_ok)\s*\(/gim) ?? []
+    contents.match(
+      /^select\s+(?:ok|is|isnt|results_eq|lives_ok|throws_ok|has_column)\s*\(/gim,
+    ) ?? []
   ).length;
 
   if (!planMatch) {
