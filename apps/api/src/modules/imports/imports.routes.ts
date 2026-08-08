@@ -13,6 +13,7 @@ import {
   receiveImportBoxSchema,
   registerImportDniUsageSchema,
   updateImportBoxStateSchema,
+  updateImportDniPersonSchema,
   updateImportStateSchema,
   updateInsuranceClaimSchema,
 } from '@yukimi/shared';
@@ -76,6 +77,20 @@ export function createImportsRouter(
   router.get('/dni-people', async (request, response, next) => {
     try {
       response.json({ data: await serviceFor(request).listDniPeople() });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch('/dni-people/:personId', async (request, response, next) => {
+    try {
+      const personId = z.string().uuid().parse(request.params.personId);
+      response.json({
+        data: await serviceFor(request).updateDniPerson(
+          personId,
+          updateImportDniPersonSchema.parse(request.body),
+        ),
+      });
     } catch (error) {
       next(error);
     }
