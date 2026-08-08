@@ -12,6 +12,7 @@ export * from './payments.js';
 export * from './deliveries.js';
 
 export * from './imports.js';
+export * from './import-dni.js';
 
 export * from './finance.js';
 
