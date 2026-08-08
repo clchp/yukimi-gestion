@@ -224,7 +224,10 @@ async function sendPush(payload) {
 }
 
 await rpc('run_notification_scheduler_v1', { p_now: new Date().toISOString() });
-const events = await rpc('claim_outbox_events_v1', { p_worker: workerId, p_limit: batchSize });
+const events = await rpc('claim_notification_outbox_events_v1', {
+  p_worker: workerId,
+  p_limit: batchSize,
+});
 let processed = 0;
 let failed = 0;
 let deferred = 0;
