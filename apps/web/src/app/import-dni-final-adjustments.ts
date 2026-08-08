@@ -64,7 +64,10 @@ function field(label: string, value: string, dni = false) {
 
 function openEditor(person: ImportDniPerson, onSaved: (value: ImportDniPerson) => void) {
   const backdrop = node('div', 'app-modal-backdrop import-dni-modal-backdrop');
-  const card = node('section', 'app-modal-card modal-card-wide import-dni-modal import-dni-edit-modal');
+  const card = node(
+    'section',
+    'app-modal-card modal-card-wide import-dni-modal import-dni-edit-modal',
+  );
   const header = node('header', 'app-modal-header');
   const title = node('div');
   title.append(
@@ -128,7 +131,8 @@ function openEditor(person: ImportDniPerson, onSaved: (value: ImportDniPerson) =
       onSaved(updated);
       dismiss();
     } catch (caught) {
-      error.textContent = caught instanceof Error ? caught.message : 'No se pudieron guardar los cambios.';
+      error.textContent =
+        caught instanceof Error ? caught.message : 'No se pudieron guardar los cambios.';
       error.hidden = false;
       save.disabled = false;
       save.textContent = 'Guardar cambios';
@@ -137,7 +141,9 @@ function openEditor(person: ImportDniPerson, onSaved: (value: ImportDniPerson) =
 }
 
 async function patchRegistrationModal() {
-  const modal = document.querySelector<HTMLElement>('.import-dni-modal:not(.import-dni-edit-modal)');
+  const modal = document.querySelector<HTMLElement>(
+    '.import-dni-modal:not(.import-dni-edit-modal)',
+  );
   const summary = modal?.querySelector<HTMLElement>('.import-dni-person-summary:not([hidden])');
   const select = modal?.querySelector<HTMLSelectElement>('.import-dni-form select');
   if (!summary || !select || !select.value || select.value === NEW_PERSON) return;
@@ -145,14 +151,21 @@ async function patchRegistrationModal() {
   if (!person) return;
   updateSummary(summary, person);
   if (summary.querySelector('[data-import-dni-edit-person]')) return;
-  const button = node('button', 'button button-secondary button-compact import-dni-edit-person', 'Editar datos');
+  const button = node(
+    'button',
+    'button button-secondary button-compact import-dni-edit-person',
+    'Editar datos',
+  );
   button.type = 'button';
   button.dataset.importDniEditPerson = person.id;
   button.addEventListener('click', () => {
     openEditor(edited.get(person.id) ?? person, (updated) => {
       updateSummary(summary, updated);
       const option = select.querySelector<HTMLOptionElement>(`option[value="${updated.id}"]`);
-      setText(option, `${updated.fullName} · DNI ${maskDni(updated.documentNumber)} · ${usd(updated.accumulatedUsd)}`);
+      setText(
+        option,
+        `${updated.fullName} · DNI ${maskDni(updated.documentNumber)} · ${usd(updated.accumulatedUsd)}`,
+      );
     });
   });
   summary.append(button);
@@ -171,7 +184,11 @@ async function patchDetail() {
     if (!person) continue;
     const identity = row.firstElementChild;
     if (!(identity instanceof HTMLElement)) continue;
-    const button = node('button', 'button button-secondary button-compact import-dni-edit-person', 'Editar persona');
+    const button = node(
+      'button',
+      'button button-secondary button-compact import-dni-edit-person',
+      'Editar persona',
+    );
     button.type = 'button';
     button.dataset.importDniEditPerson = person.id;
     button.addEventListener('click', () => {
@@ -185,16 +202,21 @@ async function patchDetail() {
 }
 
 function patchCopy() {
-  for (const preview of document.querySelectorAll<HTMLElement>('.import-dni-purchase-preview span')) {
+  for (const preview of document.querySelectorAll<HTMLElement>(
+    '.import-dni-purchase-preview span',
+  )) {
     const text = preview.textContent?.trim() ?? '';
     if (text.startsWith('Compra detectada en')) {
       preview.textContent = `${text.replace('Compra detectada', 'Compra base detectada')} · sin gastos adicionales`;
     }
   }
-  const modal = document.querySelector<HTMLElement>('.import-dni-modal:not(.import-dni-edit-modal)');
+  const modal = document.querySelector<HTMLElement>(
+    '.import-dni-modal:not(.import-dni-edit-modal)',
+  );
   if (!modal) return;
   for (const wrapper of modal.querySelectorAll<HTMLLabelElement>('label.field')) {
-    if (!wrapper.querySelector('span')?.textContent?.startsWith('Monto de compra asociado')) continue;
+    if (!wrapper.querySelector('span')?.textContent?.startsWith('Monto de compra asociado'))
+      continue;
     setText(
       wrapper.querySelector('small'),
       'Solo corresponde al valor de los productos. No incluye flete, comisiones ni otros gastos adicionales.',

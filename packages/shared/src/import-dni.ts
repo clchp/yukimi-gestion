@@ -3,7 +3,10 @@ import { createImportSchema } from './imports.js';
 
 export const importDniPersonDraftSchema = z.object({
   fullName: z.string().trim().min(3).max(200),
-  documentNumber: z.string().trim().regex(/^\d{8}$/, 'El DNI debe tener 8 dígitos.'),
+  documentNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{8}$/, 'El DNI debe tener 8 dígitos.'),
   address: z.string().trim().min(3).max(500),
   postalCode: z.string().trim().min(3).max(20),
 });
