@@ -102,6 +102,93 @@ function normalizePushSubscription(subscription) {
   return { endpoint, keys: { p256dh, auth } };
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function resolveActionUrl(actionUrl) {
+  if (!actionUrl) return null;
+  try {
+    return new URL(actionUrl).toString();
+  } catch {
+    const baseUrl = process.env.PUBLIC_APP_URL?.trim().replace(/\/+$/, '');
+    if (!baseUrl) return null;
+    const path = String(actionUrl).startsWith('/') ? String(actionUrl) : `/${actionUrl}`;
+    return `${baseUrl}${path}`;
+  }
+}
+
+function buildEmailText(payload) {
+  const actionUrl = resolveActionUrl(payload.actionUrl);
+  return `${payload.body ?? ''}${actionUrl ? `\n\nAbrir en Yukimi: ${actionUrl}` : ''}`;
+}
+
+function buildEmailHtml(payload) {
+  const title = escapeHtml(payload.title || 'Notificación de Yukimi Gestión');
+  const body = escapeHtml(payload.body || '').replaceAll('\n', '<br>');
+  const typeLabel = escapeHtml(String(payload.typeCode || 'NOTIFICACIÓN').replaceAll('_', ' '));
+  const actionUrl = resolveActionUrl(payload.actionUrl);
+  const actionButton = actionUrl
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:28px"><tr><td bgcolor="#6d3b5c" style="border-radius:10px"><a href="${escapeHtml(actionUrl)}" style="display:inline-block;padding:13px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none">Abrir en Yukimi</a></td></tr></table>`
+    : '';
+
+  return `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>${title}</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f6f2f4;color:#2d2430;font-family:Arial,Helvetica,sans-serif">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6f2f4;padding:36px 16px">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background:#ffffff;border:1px solid #eadfe5;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(63,38,54,.08)">
+            <tr>
+              <td style="height:6px;background:#6d3b5c;font-size:0;line-height:0">&nbsp;</td>
+            </tr>
+            <tr>
+              <td style="padding:30px 32px 8px">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td width="52" valign="middle">
+                      <div style="width:44px;height:44px;line-height:44px;text-align:center;border-radius:13px;background:#6d3b5c;color:#ffffff;font-size:20px;font-weight:700">Y</div>
+                    </td>
+                    <td valign="middle">
+                      <div style="font-size:18px;font-weight:700;color:#3b2b38">Yukimi Gestión</div>
+                      <div style="margin-top:3px;font-size:12px;color:#8a7684">Notificación del sistema</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:22px 32px 34px">
+                <div style="display:inline-block;padding:6px 10px;border-radius:999px;background:#f2e8ee;color:#6d3b5c;font-size:11px;font-weight:700;letter-spacing:.35px">${typeLabel}</div>
+                <h1 style="margin:18px 0 12px;font-size:25px;line-height:1.25;color:#2d2430">${title}</h1>
+                <div style="font-size:16px;line-height:1.65;color:#5e505a">${body}</div>
+                ${actionButton}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px;background:#fbf8fa;border-top:1px solid #eee4e9">
+                <div style="font-size:12px;line-height:1.55;color:#927f8b">Este correo fue generado automáticamente por Yukimi Gestión. Puedes administrar tus canales de notificación desde Configuración.</div>
+              </td>
+            </tr>
+          </table>
+          <div style="max-width:620px;padding:16px 8px 0;text-align:center;font-size:11px;line-height:1.5;color:#a28f9b">Yukimi Gestión · Aviso operativo</div>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 async function sendEmail(payload) {
   if (!payload.emailEnabled) return false;
   if (!payload.email) throw new Error('La persona destinataria no tiene correo configurado.');
@@ -118,7 +205,8 @@ async function sendEmail(payload) {
         from,
         to: [payload.email],
         subject: payload.title,
-        text: `${payload.body}${payload.actionUrl ? `\n\nAbrir: ${process.env.PUBLIC_APP_URL ?? ''}${payload.actionUrl}` : ''}`,
+        text: buildEmailText(payload),
+        html: buildEmailHtml(payload),
       }),
     });
     if (!response.ok)
