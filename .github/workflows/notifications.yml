@@ -31,6 +31,9 @@ jobs:
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Instalar cliente Web Push
+        if: steps.config.outputs.ready == 'true'
+        run: npm install --no-save --ignore-scripts web-push@3.6.7
       - name: Ejecutar scheduler y worker de notificaciones
         if: steps.config.outputs.ready == 'true'
         env:
@@ -40,6 +43,9 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_WEBHOOK_URL: ${{ secrets.EMAIL_WEBHOOK_URL }}
+          WEB_PUSH_PUBLIC_KEY: ${{ secrets.WEB_PUSH_PUBLIC_KEY }}
+          WEB_PUSH_PRIVATE_KEY: ${{ secrets.WEB_PUSH_PRIVATE_KEY }}
+          WEB_PUSH_SUBJECT: ${{ secrets.WEB_PUSH_SUBJECT }}
           PUSH_GATEWAY_URL: ${{ secrets.PUSH_GATEWAY_URL }}
           PUSH_GATEWAY_TOKEN: ${{ secrets.PUSH_GATEWAY_TOKEN }}
           NOTIFICATION_WORKER_ID: github-${{ github.run_id }}-${{ github.run_attempt }}
