@@ -68,7 +68,7 @@ export function registerProductAttachment(
 export function getInventory(filters: {
   search?: string;
   warehouseId?: string | undefined;
-  includeVirtual?: boolean;
+  includeVirtual?: boolean | undefined;
 }): Promise<InventoryResponse> {
   const params = new URLSearchParams();
   if (filters.search) params.set('search', filters.search);
@@ -79,7 +79,7 @@ export function getInventory(filters: {
 
 export function createInventoryMovement(
   input: CreateInventoryMovementInput,
-  idempotencyKey = crypto.randomUUID(),
+  idempotencyKey: string = crypto.randomUUID(),
 ): Promise<InventoryMovementResult> {
   return apiRequest<InventoryMovementResult>('/products/inventory/movements', {
     method: 'POST',
