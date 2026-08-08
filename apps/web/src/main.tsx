@@ -14,6 +14,7 @@ import { installImportLayoutFixes } from './app/import-layout-fixes';
 import { installImportParentReceiptSync } from './app/import-parent-receipt-sync';
 import { installImportReconciliationFinalFixes } from './app/import-reconciliation-final-fixes';
 import { installImportSmartWorkflow } from './app/import-smart-workflow';
+import { installNotificationSettingsRuntime } from './app/notification-settings-runtime';
 import { installPendingWorkflowEnhancements } from './app/pending-workflow-enhancements';
 import { installPostMergeReviewFixes } from './app/post-merge-review-fixes';
 import { installRuntimeUxEnhancements } from './app/runtime-ux-enhancements';
@@ -71,8 +72,10 @@ installDeliveryPartnerOptions();
 installPostMergeReviewFixes();
 installSettingsPartnerNavFinalFix();
 installFinanceReportsSmartCharts();
+installNotificationSettingsRuntime();
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+const isLocalPushHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+if ('serviceWorker' in navigator && (import.meta.env.PROD || isLocalPushHost)) {
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register('/sw.js');
   });
