@@ -10,6 +10,7 @@ import { installFinanceReportsSmartCharts } from './app/finance-reports-smart-ch
 import { installImportBoxActionClarity } from './app/import-box-action-clarity';
 import { installImportDniFinalAdjustments } from './app/import-dni-final-adjustments';
 import { installImportDniManagementRuntime } from './app/import-dni-management-runtime';
+import { installImportFinalPolish } from './app/import-final-polish';
 import { installImportLayoutFixes } from './app/import-layout-fixes';
 import { installImportParentReceiptSync } from './app/import-parent-receipt-sync';
 import { installImportReconciliationFinalFixes } from './app/import-reconciliation-final-fixes';
@@ -66,6 +67,7 @@ installImportSmartWorkflow();
 installImportBoxActionClarity();
 installImportDniManagementRuntime();
 installImportDniFinalAdjustments();
+installImportFinalPolish();
 installDeliveryCostLock();
 installDeliveryDetailCost();
 installDeliveryPartnerOptions();
