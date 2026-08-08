@@ -2,18 +2,18 @@ import type { ImportDniPerson, UpdateImportDniPersonInput } from '@yukimi/shared
 import { getImportDniPeople, updateImportDniPerson } from '../features/imports/imports-api';
 
 const NEW_PERSON = '__NEW__';
-const editedPeople = new Map<string, ImportDniPerson>();
+const edited = new Map<string, ImportDniPerson>();
 let peopleRequest: Promise<ImportDniPerson[]> | null = null;
 
-function node<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className = '',
-  text = '',
-): HTMLElementTagNameMap[K] {
+function node<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') {
   const result = document.createElement(tag);
   if (className) result.className = className;
   if (text) result.textContent = text;
   return result;
+}
+
+function setText(target: Element | null | undefined, text: string) {
+  if (target && target.textContent !== text) target.textContent = text;
 }
 
 function maskDni(value: string) {
@@ -29,41 +29,40 @@ function usd(value: number) {
   }).format(value);
 }
 
-async function loadPeople() {
+async function people() {
   peopleRequest ??= getImportDniPeople().then((response) => response.items);
-  const people = await peopleRequest;
-  return people.map((person) => editedPeople.get(person.id) ?? person);
+  return (await peopleRequest).map((person) => edited.get(person.id) ?? person);
 }
 
-function setPersonSummary(summary: HTMLElement, person: ImportDniPerson) {
-  const strong = summary.querySelector('strong');
+function updateSummary(summary: HTMLElement, person: ImportDniPerson) {
   const spans = summary.querySelectorAll('span');
-  if (strong) strong.textContent = person.fullName;
-  if (spans[0]) spans[0].textContent = `DNI ${maskDni(person.documentNumber)}`;
-  if (spans[1]) spans[1].textContent = `${person.address} · C.P. ${person.postalCode}`;
-  if (spans[2]) {
-    spans[2].textContent = `${usd(person.accumulatedUsd)} acumulados · ${person.usageCount} ${person.usageCount === 1 ? 'uso' : 'usos'}`;
-  }
+  setText(summary.querySelector('strong'), person.fullName);
+  setText(spans[0], `DNI ${maskDni(person.documentNumber)}`);
+  setText(spans[1], `${person.address} · C.P. ${person.postalCode}`);
+  setText(
+    spans[2],
+    `${usd(person.accumulatedUsd)} acumulados · ${person.usageCount} ${person.usageCount === 1 ? 'uso' : 'usos'}`,
+  );
 }
 
-function personField(labelText: string, value: string, numeric = false) {
-  const field = node('label', 'field');
-  field.append(node('span', '', `${labelText} *`));
+function field(label: string, value: string, dni = false) {
+  const wrapper = node('label', 'field');
+  wrapper.append(node('span', '', `${label} *`));
   const input = node('input');
   input.type = 'text';
   input.value = value;
-  if (numeric) {
+  if (dni) {
     input.inputMode = 'numeric';
     input.maxLength = 8;
     input.addEventListener('input', () => {
       input.value = input.value.replace(/\D/g, '').slice(0, 8);
     });
   }
-  field.append(input);
-  return { field, input };
+  wrapper.append(input);
+  return { wrapper, input };
 }
 
-function openPersonEditor(person: ImportDniPerson, onSaved: (person: ImportDniPerson) => void) {
+function openEditor(person: ImportDniPerson, onSaved: (value: ImportDniPerson) => void) {
   const backdrop = node('div', 'app-modal-backdrop import-dni-modal-backdrop');
   const card = node('section', 'app-modal-card modal-card-wide import-dni-modal import-dni-edit-modal');
   const header = node('header', 'app-modal-header');
@@ -71,7 +70,7 @@ function openPersonEditor(person: ImportDniPerson, onSaved: (person: ImportDniPe
   title.append(
     node('span', 'eyebrow', 'Persona asociada'),
     node('h2', '', 'Editar datos de la persona'),
-    node('p', '', 'Los cambios se guardarán para las próximas importaciones que usen este DNI.'),
+    node('p', '', 'Los cambios quedarán guardados para las próximas importaciones.'),
   );
   const close = node('button', 'icon-button', '×');
   close.type = 'button';
@@ -80,20 +79,17 @@ function openPersonEditor(person: ImportDniPerson, onSaved: (person: ImportDniPe
   const form = node('form', 'import-dni-form import-dni-edit-form');
   const error = node('div', 'form-error-summary import-dni-form-error');
   error.hidden = true;
-
-  const name = personField('Nombre completo', person.fullName);
-  const dni = personField('DNI', person.documentNumber, true);
-  const address = personField('Dirección', person.address);
-  const postal = personField('Código postal', person.postalCode);
-
+  const name = field('Nombre completo', person.fullName);
+  const dni = field('DNI', person.documentNumber, true);
+  const address = field('Dirección', person.address);
+  const postal = field('Código postal', person.postalCode);
   const actions = node('div', 'app-modal-actions field-span-2');
   const cancel = node('button', 'button button-secondary', 'Cancelar');
   cancel.type = 'button';
   const save = node('button', 'button button-primary', 'Guardar cambios');
   save.type = 'submit';
   actions.append(cancel, save);
-
-  form.append(error, name.field, dni.field, address.field, postal.field, actions);
+  form.append(error, name.wrapper, dni.wrapper, address.wrapper, postal.wrapper, actions);
   card.append(header, form);
   backdrop.append(card);
   document.body.append(backdrop);
@@ -124,12 +120,11 @@ function openPersonEditor(person: ImportDniPerson, onSaved: (person: ImportDniPe
       error.hidden = false;
       return;
     }
-
     save.disabled = true;
     save.textContent = 'Guardando…';
     try {
       const updated = await updateImportDniPerson(person.id, input);
-      editedPeople.set(updated.id, updated);
+      edited.set(updated.id, updated);
       onSaved(updated);
       dismiss();
     } catch (caught) {
@@ -141,85 +136,74 @@ function openPersonEditor(person: ImportDniPerson, onSaved: (person: ImportDniPe
   });
 }
 
-async function patchRegistrationPersonEditor() {
+async function patchRegistrationModal() {
   const modal = document.querySelector<HTMLElement>('.import-dni-modal:not(.import-dni-edit-modal)');
-  if (!modal) return;
-  const summary = modal.querySelector<HTMLElement>('.import-dni-person-summary:not([hidden])');
-  const select = modal.querySelector<HTMLSelectElement>('.import-dni-form select');
+  const summary = modal?.querySelector<HTMLElement>('.import-dni-person-summary:not([hidden])');
+  const select = modal?.querySelector<HTMLSelectElement>('.import-dni-form select');
   if (!summary || !select || !select.value || select.value === NEW_PERSON) return;
-
-  const person = (await loadPeople()).find((item) => item.id === select.value);
+  const person = (await people()).find((item) => item.id === select.value);
   if (!person) return;
-  setPersonSummary(summary, person);
-
+  updateSummary(summary, person);
   if (summary.querySelector('[data-import-dni-edit-person]')) return;
-  const edit = node('button', 'button button-secondary button-compact import-dni-edit-person', 'Editar datos');
-  edit.type = 'button';
-  edit.dataset.importDniEditPerson = person.id;
-  edit.addEventListener('click', () => {
-    const current = editedPeople.get(person.id) ?? person;
-    openPersonEditor(current, (updated) => {
-      setPersonSummary(summary, updated);
+  const button = node('button', 'button button-secondary button-compact import-dni-edit-person', 'Editar datos');
+  button.type = 'button';
+  button.dataset.importDniEditPerson = person.id;
+  button.addEventListener('click', () => {
+    openEditor(edited.get(person.id) ?? person, (updated) => {
+      updateSummary(summary, updated);
       const option = select.querySelector<HTMLOptionElement>(`option[value="${updated.id}"]`);
-      if (option) {
-        option.textContent = `${updated.fullName} · DNI ${maskDni(updated.documentNumber)} · ${usd(updated.accumulatedUsd)}`;
-      }
+      setText(option, `${updated.fullName} · DNI ${maskDni(updated.documentNumber)} · ${usd(updated.accumulatedUsd)}`);
     });
   });
-  summary.append(edit);
+  summary.append(button);
 }
 
-async function patchDetailPersonEditors() {
-  const importId = location.pathname.match(/^\/importaciones\/([0-9a-f-]{36})$/i)?.[1];
-  if (!importId) return;
-  const rows = [...document.querySelectorAll<HTMLElement>('.import-dni-detail-usage')];
-  if (rows.length === 0) return;
-  const people = await loadPeople();
-
-  for (const row of rows) {
+async function patchDetail() {
+  if (!/^\/importaciones\/[0-9a-f-]{36}$/i.test(location.pathname)) return;
+  const allPeople = await people();
+  for (const row of document.querySelectorAll<HTMLElement>('.import-dni-detail-usage')) {
     if (row.querySelector('[data-import-dni-edit-person]')) continue;
-    const name = row.querySelector('strong')?.textContent?.trim();
-    const person = people.find((item) => item.fullName === name);
+    const name = row.querySelector('strong')?.textContent?.trim() ?? '';
+    const masked = row.querySelector('span')?.textContent?.trim() ?? '';
+    const person = allPeople.find(
+      (item) => item.fullName === name && masked.includes(maskDni(item.documentNumber)),
+    );
     if (!person) continue;
-
-    const identity = row.firstElementChild as HTMLElement | null;
-    if (!identity) continue;
-    const edit = node('button', 'button button-secondary button-compact import-dni-edit-person', 'Editar persona');
-    edit.type = 'button';
-    edit.dataset.importDniEditPerson = person.id;
-    edit.addEventListener('click', () => {
-      const current = editedPeople.get(person.id) ?? person;
-      openPersonEditor(current, (updated) => {
-        const strong = identity.querySelector('strong');
-        const span = identity.querySelector('span');
-        if (strong) strong.textContent = updated.fullName;
-        if (span) span.textContent = `DNI ${maskDni(updated.documentNumber)}`;
+    const identity = row.firstElementChild;
+    if (!(identity instanceof HTMLElement)) continue;
+    const button = node('button', 'button button-secondary button-compact import-dni-edit-person', 'Editar persona');
+    button.type = 'button';
+    button.dataset.importDniEditPerson = person.id;
+    button.addEventListener('click', () => {
+      openEditor(edited.get(person.id) ?? person, (updated) => {
+        setText(identity.querySelector('strong'), updated.fullName);
+        setText(identity.querySelector('span'), `DNI ${maskDni(updated.documentNumber)}`);
       });
     });
-    identity.append(edit);
+    identity.append(button);
   }
 }
 
-function patchPurchaseCopy() {
+function patchCopy() {
   for (const preview of document.querySelectorAll<HTMLElement>('.import-dni-purchase-preview span')) {
     const text = preview.textContent?.trim() ?? '';
     if (text.startsWith('Compra detectada en')) {
       preview.textContent = `${text.replace('Compra detectada', 'Compra base detectada')} · sin gastos adicionales`;
     }
   }
-
   const modal = document.querySelector<HTMLElement>('.import-dni-modal:not(.import-dni-edit-modal)');
   if (!modal) return;
-  for (const field of modal.querySelectorAll<HTMLLabelElement>('label.field')) {
-    const label = field.querySelector('span')?.textContent?.trim() ?? '';
-    if (!label.startsWith('Monto de compra asociado')) continue;
-    const help = field.querySelector('small');
-    if (help) {
-      help.textContent = 'Solo corresponde al valor de los productos. No incluye flete, comisiones ni otros gastos adicionales.';
-    }
+  for (const wrapper of modal.querySelectorAll<HTMLLabelElement>('label.field')) {
+    if (!wrapper.querySelector('span')?.textContent?.startsWith('Monto de compra asociado')) continue;
+    setText(
+      wrapper.querySelector('small'),
+      'Solo corresponde al valor de los productos. No incluye flete, comisiones ni otros gastos adicionales.',
+    );
   }
-  const equivalentLabel = modal.querySelector<HTMLElement>('.import-dni-equivalent span');
-  if (equivalentLabel) equivalentLabel.textContent = 'Equivalente del monto de compra para control por DNI';
+  setText(
+    modal.querySelector('.import-dni-equivalent span'),
+    'Equivalente del monto de compra para control por DNI',
+  );
 }
 
 let scheduled = false;
@@ -228,9 +212,9 @@ function schedule() {
   scheduled = true;
   window.requestAnimationFrame(() => {
     scheduled = false;
-    patchPurchaseCopy();
-    void patchRegistrationPersonEditor();
-    void patchDetailPersonEditors();
+    patchCopy();
+    void patchRegistrationModal();
+    void patchDetail();
   });
 }
 
