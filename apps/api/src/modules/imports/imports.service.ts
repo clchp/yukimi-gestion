@@ -3,10 +3,12 @@ import type {
   CreateImportCostInput,
   CreateImportIncidentInput,
   CreateImportInput,
+  CreateImportWithDniInput,
   CreateInsuranceClaimInput,
   CreateImportPartnerInput,
   CreatePreorderSaleInput,
   ReceiveImportBoxInput,
+  RegisterImportDniUsageInput,
   UpdateImportBoxStateInput,
   UpdateImportStateInput,
   UpdateInsuranceClaimInput,
@@ -26,6 +28,18 @@ export class ImportsService {
   }
   public create(input: CreateImportInput, idempotencyKey: string) {
     return this.repository.create(input, idempotencyKey);
+  }
+  public createWithDni(input: CreateImportWithDniInput, idempotencyKey: string) {
+    return this.repository.createWithDni(input, idempotencyKey);
+  }
+  public listDniPeople() {
+    return this.repository.listDniPeople();
+  }
+  public getDniUsages(importId: string) {
+    return this.repository.getDniUsages(importId);
+  }
+  public registerDniUsage(importId: string, input: RegisterImportDniUsageInput) {
+    return this.repository.registerDniUsage(importId, input);
   }
   public createPartner(input: CreateImportPartnerInput) {
     return this.repository.createPartner(input);

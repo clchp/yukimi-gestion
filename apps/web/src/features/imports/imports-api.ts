@@ -3,10 +3,13 @@ import type {
   CreateImportCostInput,
   CreateImportIncidentInput,
   CreateImportInput,
+  CreateImportWithDniInput,
   CreateInsuranceClaimInput,
   CreateImportPartnerInput,
   CreatePreorderSaleInput,
   ImportDetail,
+  ImportDniPeopleResponse,
+  ImportDniUsagesResponse,
   ImportFilter,
   ImportGenericResult,
   ImportListResponse,
@@ -14,6 +17,8 @@ import type {
   ImportSupportData,
   PreorderSaleResult,
   ReceiveImportBoxInput,
+  RegisterImportDniUsageInput,
+  RegisterImportDniUsageResult,
   UpdateImportBoxStateInput,
   UpdateImportStateInput,
   UpdateInsuranceClaimInput,
@@ -42,6 +47,14 @@ export function getImport(importId: string): Promise<ImportDetail> {
   return apiRequest<ImportDetail>(`/imports/${importId}`);
 }
 
+export function getImportDniPeople(): Promise<ImportDniPeopleResponse> {
+  return apiRequest<ImportDniPeopleResponse>('/imports/dni-people');
+}
+
+export function getImportDniUsages(importId: string): Promise<ImportDniUsagesResponse> {
+  return apiRequest<ImportDniUsagesResponse>(`/imports/${importId}/dni-usages`);
+}
+
 export function createImport(
   input: CreateImportInput,
   idempotencyKey: string,
@@ -49,6 +62,27 @@ export function createImport(
   return apiRequest<ImportMutationResult>('/imports', {
     method: 'POST',
     headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
+}
+
+export function createImportWithDni(
+  input: CreateImportWithDniInput,
+  idempotencyKey: string,
+): Promise<ImportMutationResult> {
+  return apiRequest<ImportMutationResult>('/imports/with-dni', {
+    method: 'POST',
+    headers: { 'idempotency-key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
+}
+
+export function registerImportDniUsage(
+  importId: string,
+  input: RegisterImportDniUsageInput,
+): Promise<RegisterImportDniUsageResult> {
+  return apiRequest<RegisterImportDniUsageResult>(`/imports/${importId}/dni-usages`, {
+    method: 'POST',
     body: JSON.stringify(input),
   });
 }

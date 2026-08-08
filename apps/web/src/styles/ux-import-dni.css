@@ -1,0 +1,184 @@
+.import-dni-panel {
+  overflow: hidden;
+}
+
+.import-dni-panel .panel-heading {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.import-dni-panel .panel-heading h2 {
+  margin: 0;
+}
+
+.import-dni-purchase-preview,
+.import-dni-equivalent {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #eadfe7;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fbf8fa;
+}
+
+.import-dni-purchase-preview span,
+.import-dni-equivalent span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.import-dni-purchase-preview strong,
+.import-dni-equivalent strong {
+  font-size: 0.96rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.import-dni-usage-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.import-dni-usage-row,
+.import-dni-detail-usage {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 13px;
+  background: white;
+}
+
+.import-dni-usage-row > div,
+.import-dni-detail-usage > div {
+  min-width: 0;
+}
+
+.import-dni-usage-row strong,
+.import-dni-usage-row small,
+.import-dni-detail-usage strong,
+.import-dni-detail-usage span {
+  display: block;
+}
+
+.import-dni-usage-row small {
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.import-dni-detail-usage {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.import-dni-detail-usage > div:first-child {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.import-dni-detail-usage > div:first-child span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.import-dni-detail-amounts {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 14px;
+  color: var(--text-soft);
+  font-size: 0.72rem;
+}
+
+.import-dni-detail-amounts strong {
+  color: var(--primary);
+}
+
+.import-dni-empty,
+.import-dni-panel-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.import-dni-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.import-dni-new-person {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.import-dni-new-person[hidden],
+.import-dni-person-summary[hidden] {
+  display: none !important;
+}
+
+.import-dni-person-summary {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e6dbe3;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fbf8fa;
+}
+
+.import-dni-person-summary > span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.import-dni-form-error {
+  margin: 0;
+}
+
+.import-dni-modal .app-modal-actions {
+  margin-top: 4px;
+}
+
+.import-dni-runtime-error {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 720px) {
+  .import-dni-panel .panel-heading,
+  .import-dni-usage-row,
+  .import-dni-detail-usage > div:first-child {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .import-dni-panel .panel-heading .button,
+  .import-dni-usage-row .button {
+    width: 100%;
+  }
+
+  .import-dni-form,
+  .import-dni-new-person,
+  .import-dni-detail-amounts {
+    grid-template-columns: 1fr;
+  }
+
+  .import-dni-purchase-preview,
+  .import-dni-equivalent {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

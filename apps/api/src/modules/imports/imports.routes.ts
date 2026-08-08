@@ -4,12 +4,14 @@ import {
   allocatePreorderSchema,
   createImportCostSchema,
   createImportIncidentSchema,
+  createImportWithDniSchema,
   createInsuranceClaimSchema,
   createImportPartnerSchema,
   createImportSchema,
   createPreorderSaleSchema,
   importFilterSchema,
   receiveImportBoxSchema,
+  registerImportDniUsageSchema,
   updateImportBoxStateSchema,
   updateImportStateSchema,
   updateInsuranceClaimSchema,
@@ -71,6 +73,14 @@ export function createImportsRouter(
     }
   });
 
+  router.get('/dni-people', async (request, response, next) => {
+    try {
+      response.json({ data: await serviceFor(request).listDniPeople() });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post('/partners', async (request, response, next) => {
     try {
       response.status(201).json({
@@ -109,6 +119,16 @@ export function createImportsRouter(
     }
   });
 
+  router.post('/with-dni', async (request, response, next) => {
+    try {
+      const input = createImportWithDniSchema.parse(request.body);
+      const key = request.header('idempotency-key')?.trim() || randomUUID();
+      response.status(201).json({ data: await serviceFor(request).createWithDni(input, key) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post('/', async (request, response, next) => {
     try {
       const input = createImportSchema.parse(request.body);
@@ -123,6 +143,29 @@ export function createImportsRouter(
     try {
       response.json({
         data: await serviceFor(request).getById(z.string().uuid().parse(request.params.importId)),
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/:importId/dni-usages', async (request, response, next) => {
+    try {
+      const importId = z.string().uuid().parse(request.params.importId);
+      response.json({ data: await serviceFor(request).getDniUsages(importId) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/:importId/dni-usages', async (request, response, next) => {
+    try {
+      const importId = z.string().uuid().parse(request.params.importId);
+      response.status(201).json({
+        data: await serviceFor(request).registerDniUsage(
+          importId,
+          registerImportDniUsageSchema.parse(request.body),
+        ),
       });
     } catch (error) {
       next(error);

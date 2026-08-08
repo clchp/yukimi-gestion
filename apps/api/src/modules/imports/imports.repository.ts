@@ -3,10 +3,13 @@ import type {
   CreateImportCostInput,
   CreateImportIncidentInput,
   CreateImportInput,
+  CreateImportWithDniInput,
   CreateInsuranceClaimInput,
   CreateImportPartnerInput,
   CreatePreorderSaleInput,
   ImportDetail,
+  ImportDniPeopleResponse,
+  ImportDniUsagesResponse,
   ImportFilter,
   ImportGenericResult,
   ImportListResponse,
@@ -14,6 +17,8 @@ import type {
   ImportSupportData,
   PreorderSaleResult,
   ReceiveImportBoxInput,
+  RegisterImportDniUsageInput,
+  RegisterImportDniUsageResult,
   UpdateImportBoxStateInput,
   UpdateImportStateInput,
   UpdateInsuranceClaimInput,
@@ -31,6 +36,16 @@ export interface ImportsRepository {
   getSupportData(): Promise<ImportSupportData>;
   getById(importId: string): Promise<ImportDetail>;
   create(input: CreateImportInput, idempotencyKey: string): Promise<ImportMutationResult>;
+  createWithDni(
+    input: CreateImportWithDniInput,
+    idempotencyKey: string,
+  ): Promise<ImportMutationResult>;
+  listDniPeople(): Promise<ImportDniPeopleResponse>;
+  getDniUsages(importId: string): Promise<ImportDniUsagesResponse>;
+  registerDniUsage(
+    importId: string,
+    input: RegisterImportDniUsageInput,
+  ): Promise<RegisterImportDniUsageResult>;
   createPartner(input: CreateImportPartnerInput): Promise<ImportGenericResult>;
   createPreorder(
     input: CreatePreorderSaleInput,
