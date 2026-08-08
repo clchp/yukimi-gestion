@@ -51,6 +51,26 @@ function isQuietHours(payload) {
   return start <= end ? current >= start && current < end : current >= start || current < end;
 }
 
+function notificationPayload(payload) {
+  return {
+    title: payload.title,
+    body: payload.body,
+    actionUrl: payload.actionUrl ?? '/',
+    tag: payload.notificationId ? `yukimi-${payload.notificationId}` : undefined,
+    notificationId: payload.notificationId,
+    typeCode: payload.typeCode,
+  };
+}
+
+function normalizePushSubscription(subscription) {
+  const endpoint = subscription?.endpoint;
+  const p256dh =
+    subscription?.keys?.p256dh ?? subscription?.p256dhKey ?? subscription?.p256dh_key ?? null;
+  const auth = subscription?.keys?.auth ?? subscription?.authKey ?? subscription?.auth_key ?? null;
+  if (!endpoint || !p256dh || !auth) return null;
+  return { endpoint, keys: { p256dh, auth } };
+}
+
 async function sendEmail(payload) {
   if (!payload.emailEnabled) return false;
   if (!payload.email) throw new Error('La persona destinataria no tiene correo configurado.');
@@ -92,12 +112,52 @@ async function sendEmail(payload) {
   throw new Error('Correo habilitado, pero no se configuró RESEND_API_KEY ni EMAIL_WEBHOOK_URL.');
 }
 
-async function sendPush(payload) {
-  if (!payload.pushEnabled) return false;
-  const subscriptions = Array.isArray(payload.pushSubscriptions) ? payload.pushSubscriptions : [];
-  if (subscriptions.length === 0) return false;
-  if (!process.env.PUSH_GATEWAY_URL)
-    throw new Error('Push habilitado, pero falta PUSH_GATEWAY_URL.');
+async function sendPushWithVapid(subscriptions, payload) {
+  const publicKey = process.env.WEB_PUSH_PUBLIC_KEY;
+  const privateKey = process.env.WEB_PUSH_PRIVATE_KEY;
+  const subject = process.env.WEB_PUSH_SUBJECT;
+  if (!publicKey || !privateKey || !subject) return null;
+
+  let webPushModule;
+  try {
+    webPushModule = await import('web-push');
+  } catch {
+    throw new Error(
+      'Falta el paquete web-push. Instálalo para el worker con npm install --no-save web-push@3.6.7.',
+    );
+  }
+  const webPush = webPushModule.default ?? webPushModule;
+  webPush.setVapidDetails(subject, publicKey, privateKey);
+
+  let sent = 0;
+  let expired = 0;
+  let lastError = null;
+  const body = JSON.stringify(notificationPayload(payload));
+
+  for (const rawSubscription of subscriptions) {
+    const subscription = normalizePushSubscription(rawSubscription);
+    if (!subscription) continue;
+    try {
+      await webPush.sendNotification(subscription, body, { TTL: 60 * 60 });
+      sent += 1;
+    } catch (error) {
+      const statusCode = Number(error?.statusCode ?? error?.status ?? 0);
+      if (statusCode === 404 || statusCode === 410) {
+        expired += 1;
+        continue;
+      }
+      lastError = error;
+    }
+  }
+
+  if (sent > 0) return true;
+  if (lastError) throw lastError;
+  if (expired > 0) return false;
+  return false;
+}
+
+async function sendPushWithGateway(subscriptions, payload) {
+  if (!process.env.PUSH_GATEWAY_URL) return null;
   const response = await fetch(process.env.PUSH_GATEWAY_URL, {
     method: 'POST',
     headers: {
@@ -108,22 +168,28 @@ async function sendPush(payload) {
     },
     body: JSON.stringify({
       subscriptions,
-      notification: {
-        title: payload.title,
-        body: payload.body,
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
-        data: {
-          url: payload.actionUrl ?? '/',
-          notificationId: payload.notificationId,
-          typeCode: payload.typeCode,
-        },
-      },
+      notification: notificationPayload(payload),
     }),
   });
   if (!response.ok)
     throw new Error(`Gateway push respondió ${response.status}: ${await response.text()}`);
   return true;
+}
+
+async function sendPush(payload) {
+  if (!payload.pushEnabled) return false;
+  const subscriptions = Array.isArray(payload.pushSubscriptions) ? payload.pushSubscriptions : [];
+  if (subscriptions.length === 0) return false;
+
+  const directResult = await sendPushWithVapid(subscriptions, payload);
+  if (directResult !== null) return directResult;
+
+  const gatewayResult = await sendPushWithGateway(subscriptions, payload);
+  if (gatewayResult !== null) return gatewayResult;
+
+  throw new Error(
+    'Push habilitado, pero faltan WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY y WEB_PUSH_SUBJECT.',
+  );
 }
 
 await rpc('run_notification_scheduler_v1', { p_now: new Date().toISOString() });
