@@ -383,6 +383,21 @@ async function renderNewImport() {
   const { currency, amount } = newImportContext();
   const store = readStore();
   const allocated = store.usages.reduce((sum, usage) => sum + usage.input.purchaseAmount, 0);
+  const renderSignature = JSON.stringify({
+    currency,
+    amount,
+    usages: store.usages.map((usage) => ({
+      key: usage.key,
+      personId: usage.input.personId,
+      purchaseAmount: usage.input.purchaseAmount,
+      exchangeRateToUsd: usage.input.exchangeRateToUsd,
+      managementFeePen: usage.input.managementFeePen,
+      name: usage.name,
+      dni: usage.dni,
+    })),
+  });
+  if (panel.dataset.renderSignature === renderSignature) return;
+  panel.dataset.renderSignature = renderSignature;
 
   panel.replaceChildren();
   const heading = node('div', 'panel-heading');
