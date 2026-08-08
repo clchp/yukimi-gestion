@@ -381,12 +381,6 @@ async function renderNewImport() {
 
   const { currency, amount } = newImportContext();
   const store = readStore();
-  let people: ImportDniPerson[] = [];
-  try {
-    people = (await getImportDniPeople()).items;
-  } catch {
-    // El modal muestra un error si la carga sigue fallando al abrirlo.
-  }
   const allocated = store.usages.reduce((sum, usage) => sum + usage.input.purchaseAmount, 0);
 
   panel.replaceChildren();
@@ -400,7 +394,10 @@ async function renderNewImport() {
   add.type = 'button';
   heading.append(copy, add);
   const preview = node('div', 'import-dni-purchase-preview');
-  preview.append(node('span', '', `Compra detectada en ${currency}`), node('strong', '', money(amount, currency)));
+  preview.append(
+    node('span', '', `Compra detectada en ${currency}`),
+    node('strong', '', money(amount, currency)),
+  );
   panel.append(heading, preview);
 
   if (store.usages.length === 0) {
@@ -511,7 +508,9 @@ async function attachPending(importId: string) {
   }
   if (failed.length > 0) {
     writeStore({ usages: failed, armedAt: undefined });
-    showError('La importación se creó, pero una gestión por DNI quedó pendiente. Regístrala nuevamente desde este detalle.');
+    showError(
+      'La importación se creó, pero una gestión por DNI quedó pendiente. Regístrala nuevamente desde este detalle.',
+    );
     return false;
   }
   sessionStorage.removeItem(STORAGE_KEY);
@@ -566,7 +565,9 @@ async function renderDetail() {
     panel.append(heading);
 
     if (usages.length === 0) {
-      panel.append(node('p', 'import-dni-empty', 'Todavía no hay una persona asociada a esta importación.'));
+      panel.append(
+        node('p', 'import-dni-empty', 'Todavía no hay una persona asociada a esta importación.'),
+      );
     } else {
       const list = node('div', 'import-dni-usage-list');
       for (const usage of usages) {
@@ -578,7 +579,11 @@ async function renderDetail() {
         );
         const amounts = node('div', 'import-dni-detail-amounts');
         amounts.append(
-          node('span', '', `${money(usage.purchaseAmount, usage.sourceCurrencyCode)} → ${usd(usage.equivalentUsd)}`),
+          node(
+            'span',
+            '',
+            `${money(usage.purchaseAmount, usage.sourceCurrencyCode)} → ${usd(usage.equivalentUsd)}`,
+          ),
           node('span', '', `TC ${usage.sourceCurrencyCode} → USD: ${usage.exchangeRateToUsd}`),
           node('span', '', `Costo de gestión: S/ ${usage.managementFeePen.toFixed(2)}`),
           node('strong', '', `Acumulado histórico: ${usd(usage.personAccumulatedUsd)}`),
