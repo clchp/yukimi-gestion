@@ -75,8 +75,8 @@ function enhanceVipHelp() {
     if (alert.textContent?.includes('El adelanto mínimo se acuerda en cada venta')) alert.remove();
   });
 
-  const checkbox = [...modal.querySelectorAll<HTMLLabelElement>('label.checkbox-field')].find((label) =>
-    label.textContent?.includes('Puede negociarse una separación sin adelanto'),
+  const checkbox = [...modal.querySelectorAll<HTMLLabelElement>('label.checkbox-field')].find(
+    (label) => label.textContent?.includes('Puede negociarse una separación sin adelanto'),
   );
   if (!checkbox || checkbox.querySelector('.final-info-tip')) return;
 
@@ -94,8 +94,9 @@ function enhanceVipHelp() {
 
 function enhanceVipDepositDeadline() {
   if (!/^\/ventas\/(nueva|borradores\/)/i.test(location.pathname)) return;
-  const minimumLabel = [...document.querySelectorAll<HTMLLabelElement>('label.field')].find((label) =>
-    label.querySelector(':scope > span')?.textContent?.includes('Adelanto mínimo acordado'),
+  const minimumLabel = [...document.querySelectorAll<HTMLLabelElement>('label.field')].find(
+    (label) =>
+      label.querySelector(':scope > span')?.textContent?.includes('Adelanto mínimo acordado'),
   );
   const minimumInput = minimumLabel?.querySelector<HTMLInputElement>('input[type="number"]');
   const grid = minimumLabel?.parentElement;
@@ -143,11 +144,14 @@ function enhancePaymentProofUx() {
   if (!/^\/ventas\/[0-9a-f-]+$/i.test(location.pathname)) return;
   const form = document.querySelector<HTMLFormElement>('form.payment-form');
   if (form) {
-    const methodSelects = [...form.querySelectorAll<HTMLSelectElement>('.payment-part-row select')].filter(
-      (select) => select.closest('.field')?.querySelector(':scope > span')?.textContent?.trim() === 'Medio',
+    const methodSelects = [
+      ...form.querySelectorAll<HTMLSelectElement>('.payment-part-row select'),
+    ].filter(
+      (select) =>
+        select.closest('.field')?.querySelector(':scope > span')?.textContent?.trim() === 'Medio',
     );
-    const proofField = [...form.querySelectorAll<HTMLLabelElement>('label.field')].find(
-      (label) => label.querySelector(':scope > span')?.textContent?.trim().startsWith('Constancia'),
+    const proofField = [...form.querySelectorAll<HTMLLabelElement>('label.field')].find((label) =>
+      label.querySelector(':scope > span')?.textContent?.trim().startsWith('Constancia'),
     );
     const requiresProof = methodSelects.some(paymentMethodRequiresProof);
     if (proofField) {

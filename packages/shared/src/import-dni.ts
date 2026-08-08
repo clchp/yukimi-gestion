@@ -41,14 +41,23 @@ export const createImportWithDniSchema = createImportSchema.extend({
 });
 export type CreateImportWithDniInput = z.infer<typeof createImportWithDniSchema>;
 
+export const importDniYearSummarySchema = z.object({
+  year: z.number().int().min(2000).max(9999),
+  accumulatedUsd: z.number().nonnegative(),
+  usageCount: z.number().int().nonnegative(),
+});
+export type ImportDniYearSummary = z.infer<typeof importDniYearSummarySchema>;
+
 export const importDniPersonSchema = z.object({
   id: z.string().uuid(),
   fullName: z.string(),
   documentNumber: z.string(),
   address: z.string(),
   postalCode: z.string(),
+  accumulationYear: z.number().int().min(2000).max(9999).default(new Date().getFullYear()),
   accumulatedUsd: z.number().nonnegative(),
   usageCount: z.number().int().nonnegative(),
+  yearlyHistory: z.array(importDniYearSummarySchema).default([]),
 });
 export type ImportDniPerson = z.infer<typeof importDniPersonSchema>;
 export const updateImportDniPersonResultSchema = importDniPersonSchema;

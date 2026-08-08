@@ -1,0 +1,69 @@
+.import-insurance-resolution-modal {
+  width: min(920px, 100%);
+}
+
+.claim-resolution-summary {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-soft);
+}
+
+.claim-resolution-summary strong,
+.claim-resolution-summary span {
+  display: block;
+}
+
+.claim-resolution-summary span,
+.claim-resolution-help,
+.insurance-claim-resolution-help {
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.claim-resolution-error[hidden],
+.claim-resolution-section[hidden],
+.claim-resolution-grid > .field[hidden] {
+  display: none !important;
+}
+
+.claim-resolution-section {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface-soft) 72%, white);
+}
+
+.claim-resolution-section h3,
+.claim-resolution-section p {
+  margin: 0;
+}
+
+.claim-resolution-section h3 {
+  font-size: 0.82rem;
+}
+
+.claim-resolution-action-note {
+  grid-column: 1 / -1;
+}
+
+.insurance-claim-row {
+  flex-wrap: wrap;
+}
+
+.insurance-claim-resolution-help {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .import-insurance-resolution-modal .claim-resolution-grid,
+  .import-insurance-resolution-modal .claim-resolution-section .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

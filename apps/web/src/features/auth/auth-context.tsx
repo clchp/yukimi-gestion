@@ -52,6 +52,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let mounted = true;
+    let authRefreshTimer: number | null = null;
 
     void (async () => {
       try {
@@ -63,13 +64,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      queueMicrotask(() => {
+      if (!nextSession) {
+        setCurrentUser(null);
+        setAccessError(null);
+        return;
+      }
+      if (authRefreshTimer !== null) window.clearTimeout(authRefreshTimer);
+      authRefreshTimer = window.setTimeout(() => {
+        authRefreshTimer = null;
         void refreshAccess();
-      });
+      }, 0);
     });
 
     return () => {
       mounted = false;
+      if (authRefreshTimer !== null) window.clearTimeout(authRefreshTimer);
       data.subscription.unsubscribe();
     };
   }, [refreshAccess]);

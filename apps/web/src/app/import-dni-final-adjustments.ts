@@ -29,20 +29,48 @@ function usd(value: number) {
   }).format(value);
 }
 
+function yearHistoryText(person: ImportDniPerson) {
+  if (person.yearlyHistory.length === 0) return '';
+  return `Historial anual: ${person.yearlyHistory
+    .map(
+      (item) =>
+        `${item.year} — ${usd(item.accumulatedUsd)} · ${item.usageCount} ${item.usageCount === 1 ? 'uso' : 'usos'}`,
+    )
+    .join(' | ')}`;
+}
+
+function updateYearHistory(container: HTMLElement, person: ImportDniPerson) {
+  const text = yearHistoryText(person);
+  let history = container.querySelector<HTMLElement>('[data-import-dni-year-history]');
+  if (!text) {
+    history?.remove();
+    return;
+  }
+  if (!history) {
+    history = node('span');
+    history.dataset.importDniYearHistory = 'true';
+    const editButton = container.querySelector('[data-import-dni-edit-person]');
+    if (editButton) container.insertBefore(history, editButton);
+    else container.append(history);
+  }
+  setText(history, text);
+}
+
 async function people() {
   peopleRequest ??= getImportDniPeople().then((response) => response.items);
   return (await peopleRequest).map((person) => edited.get(person.id) ?? person);
 }
 
 function updateSummary(summary: HTMLElement, person: ImportDniPerson) {
-  const spans = summary.querySelectorAll('span');
+  const spans = summary.querySelectorAll('span:not([data-import-dni-year-history])');
   setText(summary.querySelector('strong'), person.fullName);
   setText(spans[0], `DNI ${maskDni(person.documentNumber)}`);
   setText(spans[1], `${person.address} · C.P. ${person.postalCode}`);
   setText(
     spans[2],
-    `${usd(person.accumulatedUsd)} acumulados · ${person.usageCount} ${person.usageCount === 1 ? 'uso' : 'usos'}`,
+    `${usd(person.accumulatedUsd)} acumulados en ${person.accumulationYear} · ${person.usageCount} ${person.usageCount === 1 ? 'uso' : 'usos'}`,
   );
+  updateYearHistory(summary, person);
 }
 
 function field(label: string, value: string, dni = false) {
@@ -150,6 +178,10 @@ async function patchRegistrationModal() {
   const person = (await people()).find((item) => item.id === select.value);
   if (!person) return;
   updateSummary(summary, person);
+  setText(
+    select.selectedOptions[0],
+    `${person.fullName} · DNI ${maskDni(person.documentNumber)} · ${person.accumulationYear} ${usd(person.accumulatedUsd)}`,
+  );
   if (summary.querySelector('[data-import-dni-edit-person]')) return;
   const button = node(
     'button',
@@ -164,7 +196,7 @@ async function patchRegistrationModal() {
       const option = select.querySelector<HTMLOptionElement>(`option[value="${updated.id}"]`);
       setText(
         option,
-        `${updated.fullName} · DNI ${maskDni(updated.documentNumber)} · ${usd(updated.accumulatedUsd)}`,
+        `${updated.fullName} · DNI ${maskDni(updated.documentNumber)} · ${updated.accumulationYear} ${usd(updated.accumulatedUsd)}`,
       );
     });
   });
@@ -175,13 +207,23 @@ async function patchDetail() {
   if (!/^\/importaciones\/[0-9a-f-]{36}$/i.test(location.pathname)) return;
   const allPeople = await people();
   for (const row of document.querySelectorAll<HTMLElement>('.import-dni-detail-usage')) {
-    if (row.querySelector('[data-import-dni-edit-person]')) continue;
     const name = row.querySelector('strong')?.textContent?.trim() ?? '';
     const masked = row.querySelector('span')?.textContent?.trim() ?? '';
     const person = allPeople.find(
       (item) => item.fullName === name && masked.includes(maskDni(item.documentNumber)),
     );
     if (!person) continue;
+
+    const amounts = row.querySelector<HTMLElement>('.import-dni-detail-amounts');
+    if (amounts) {
+      setText(
+        amounts.querySelector('strong'),
+        `Acumulado ${person.accumulationYear}: ${usd(person.accumulatedUsd)}`,
+      );
+      updateYearHistory(amounts, person);
+    }
+
+    if (row.querySelector('[data-import-dni-edit-person]')) continue;
     const identity = row.firstElementChild;
     if (!(identity instanceof HTMLElement)) continue;
     const button = node(
@@ -195,6 +237,13 @@ async function patchDetail() {
       openEditor(edited.get(person.id) ?? person, (updated) => {
         setText(identity.querySelector('strong'), updated.fullName);
         setText(identity.querySelector('span'), `DNI ${maskDni(updated.documentNumber)}`);
+        if (amounts) {
+          setText(
+            amounts.querySelector('strong'),
+            `Acumulado ${updated.accumulationYear}: ${usd(updated.accumulatedUsd)}`,
+          );
+          updateYearHistory(amounts, updated);
+        }
       });
     });
     identity.append(button);

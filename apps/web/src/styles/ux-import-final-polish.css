@@ -1,0 +1,51 @@
+.import-box-purchase-locked {
+  border-color: color-mix(in srgb, var(--warning) 32%, var(--border));
+  background: color-mix(in srgb, var(--warning-soft) 22%, white);
+}
+
+.import-box-purchase-lock-note {
+  display: grid;
+  gap: 4px;
+  border-color: color-mix(in srgb, var(--warning) 28%, var(--border));
+}
+
+.import-box-purchase-lock-note strong,
+.import-box-purchase-lock-note span {
+  display: block;
+}
+
+.import-box-purchase-lock-note span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.import-box-purchase-locked .import-box-actions {
+  opacity: 0.58;
+}
+
+.import-cost-summary {
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  overflow-x: auto;
+}
+
+.import-cost-summary .import-total-to-pay {
+  background: color-mix(in srgb, var(--primary-soft) 58%, white);
+}
+
+.import-cost-summary .import-total-to-pay span,
+.import-cost-summary .import-total-to-pay strong {
+  color: var(--primary-strong);
+}
+
+@media (max-width: 1280px) {
+  .import-cost-summary {
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .import-cost-summary {
+    grid-template-columns: repeat(2, minmax(145px, 1fr));
+  }
+}

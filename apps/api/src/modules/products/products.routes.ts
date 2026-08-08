@@ -19,7 +19,10 @@ import { SupabaseProductRepository } from './supabase-products.repository.js';
 const productListQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
   categoryId: z.string().uuid().optional(),
-  isActive: z.enum(['true', 'false']).transform((value) => value === 'true').optional(),
+  isActive: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
@@ -27,7 +30,10 @@ const productListQuerySchema = z.object({
 const inventoryQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
   warehouseId: z.string().uuid().optional(),
-  includeVirtual: z.enum(['true', 'false']).transform((value) => value === 'true').default(false),
+  includeVirtual: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .default(false),
 });
 
 function actorIdOrThrow(id: string | undefined): string {
@@ -189,7 +195,10 @@ export function createProductsRouter(
       if (values.error)
         throw mapSupabaseError(values.error, 'No se pudieron cargar los atributos guardados.');
       if (definitions.error)
-        throw mapSupabaseError(definitions.error, 'No se pudieron cargar los atributos disponibles.');
+        throw mapSupabaseError(
+          definitions.error,
+          'No se pudieron cargar los atributos disponibles.',
+        );
       response.json({
         data: {
           definitions: (definitions.data ?? []).map((item) => ({
@@ -215,7 +224,8 @@ export function createProductsRouter(
         p_product_id: productId,
         p_payload: updatePayload(input),
       });
-      if (error) throw mapSupabaseError(error, 'No se pudo actualizar el producto y sus atributos.');
+      if (error)
+        throw mapSupabaseError(error, 'No se pudo actualizar el producto y sus atributos.');
       response.json({ data: updateProductResultSchema.parse(data) });
     } catch (error) {
       next(error);

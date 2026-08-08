@@ -25,7 +25,8 @@ async function enhanceDeliveryDetailCost() {
       if (detail) detail.textContent = 'Sin costo para Yukimi';
     } else {
       if (title) title.textContent = 'Costo asumido por Yukimi';
-      if (detail) detail.textContent = delivery.costPayer === 'SHARED' ? 'Parte de Yukimi' : 'Yukimi';
+      if (detail)
+        detail.textContent = delivery.costPayer === 'SHARED' ? 'Parte de Yukimi' : 'Yukimi';
     }
     summary.dataset.finalDeliveryCost = 'true';
   } catch {

@@ -206,7 +206,11 @@ type DeliveryLogisticsValue = {
 
 function validateDeliveryLogistics(value: DeliveryLogisticsValue, context: z.RefinementCtx): void {
   if (value.deliveryMethod === 'AGENCY' && !value.operatorPartnerId) {
-    context.addIssue({ code: 'custom', path: ['operatorPartnerId'], message: 'Selecciona la agencia.' });
+    context.addIssue({
+      code: 'custom',
+      path: ['operatorPartnerId'],
+      message: 'Selecciona la agencia.',
+    });
   }
   if (value.deliveryMethod === 'MOTORBIKE' && !value.operatorPartnerId) {
     context.addIssue({

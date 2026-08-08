@@ -168,7 +168,10 @@ function columnName(index: number): string {
 }
 
 function safeSheetName(value: string, index: number): string {
-  const cleaned = value.replace(/[\\/?*:[\]]/g, ' ').trim().slice(0, 31);
+  const cleaned = value
+    .replace(/[\\/?*:[\]]/g, ' ')
+    .trim()
+    .slice(0, 31);
   return cleaned || `Hoja ${index + 1}`;
 }
 
@@ -456,7 +459,9 @@ export function downloadBusinessPdf(filename: string, report: BusinessPdfReport)
       y -= line.kind === 'title' ? 30 : line.kind === 'section' ? 23 : 16;
     }
     const stream = commands.join('\n');
-    const contentId = add(`<< /Length ${new TextEncoder().encode(stream).length} >>\nstream\n${stream}\nendstream`);
+    const contentId = add(
+      `<< /Length ${new TextEncoder().encode(stream).length} >>\nstream\n${stream}\nendstream`,
+    );
     const pageId = add(
       `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${regularFontId} 0 R /F2 ${boldFontId} 0 R >> >> /Contents ${contentId} 0 R >>`,
     );
@@ -464,7 +469,8 @@ export function downloadBusinessPdf(filename: string, report: BusinessPdfReport)
   });
 
   objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
-  objects[pagesId - 1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
+  objects[pagesId - 1] =
+    `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
   let pdf = '%PDF-1.4\n';
   const offsets = [0];
   objects.forEach((body, index) => {
@@ -475,7 +481,9 @@ export function downloadBusinessPdf(filename: string, report: BusinessPdfReport)
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets
     .slice(1)
     .map((offset) => `${String(offset).padStart(10, '0')} 00000 n `)
-    .join('\n')}\ntrailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+    .join(
+      '\n',
+    )}\ntrailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
   downloadBlob(filename, new Blob([pdf], { type: 'application/pdf' }));
 }
 
