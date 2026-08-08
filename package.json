@@ -22,7 +22,7 @@
     "test:db:concurrency": "node scripts/test-db-concurrency.mjs",
     "test:db:lint": "node scripts/run-db-lint.mjs",
     "test:db": "npm run db:reset && npm run test:db:unit && npm run test:db:concurrency && npm run test:db:lint",
-    "lint": "prettier apps/web/src/app/notification-settings-runtime.ts && eslint .",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "dev:api": "npm run dev -w @yukimi/api",
