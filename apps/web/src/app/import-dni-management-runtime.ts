@@ -220,6 +220,7 @@ async function openDialog(options: DialogOptions) {
     return input;
   });
   const [nameInput, dniInput, addressInput, postalInput] = inputs;
+  if (!nameInput || !dniInput || !addressInput || !postalInput) return;
 
   const amountLabel = node('label', 'field');
   amountLabel.append(node('span', '', `Monto de compra asociado (${options.currency}) *`));
