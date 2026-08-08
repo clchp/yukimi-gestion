@@ -9,6 +9,9 @@ export const importDniPersonDraftSchema = z.object({
 });
 export type ImportDniPersonDraft = z.infer<typeof importDniPersonDraftSchema>;
 
+export const updateImportDniPersonSchema = importDniPersonDraftSchema;
+export type UpdateImportDniPersonInput = z.infer<typeof updateImportDniPersonSchema>;
+
 export const registerImportDniUsageSchema = z
   .object({
     personId: z.string().uuid().nullable().optional(),
@@ -45,6 +48,8 @@ export const importDniPersonSchema = z.object({
   usageCount: z.number().int().nonnegative(),
 });
 export type ImportDniPerson = z.infer<typeof importDniPersonSchema>;
+export const updateImportDniPersonResultSchema = importDniPersonSchema;
+export type UpdateImportDniPersonResult = z.infer<typeof updateImportDniPersonResultSchema>;
 
 export const importDniPeopleResponseSchema = z.object({
   items: z.array(importDniPersonSchema),
