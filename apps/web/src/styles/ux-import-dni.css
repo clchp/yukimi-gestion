@@ -126,7 +126,8 @@
 }
 
 .import-dni-new-person[hidden],
-.import-dni-person-summary[hidden] {
+.import-dni-person-summary[hidden],
+.import-dni-form-error[hidden] {
   display: none !important;
 }
 
@@ -143,6 +144,15 @@
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.35;
+}
+
+.import-dni-edit-person {
+  justify-self: start;
+  margin-top: 6px;
+}
+
+.import-dni-detail-usage > div:first-child .import-dni-edit-person {
+  margin: 0 0 0 auto;
 }
 
 .import-dni-form-error {
@@ -166,8 +176,13 @@
   }
 
   .import-dni-panel .panel-heading .button,
-  .import-dni-usage-row .button {
+  .import-dni-usage-row .button,
+  .import-dni-detail-usage .import-dni-edit-person {
     width: 100%;
+  }
+
+  .import-dni-detail-usage > div:first-child .import-dni-edit-person {
+    margin-left: 0;
   }
 
   .import-dni-form,

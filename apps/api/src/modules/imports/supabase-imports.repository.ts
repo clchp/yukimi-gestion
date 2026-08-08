@@ -9,6 +9,7 @@ import {
   importSupportDataSchema,
   preorderSaleResultSchema,
   registerImportDniUsageResultSchema,
+  updateImportDniPersonResultSchema,
   type AllocatePreorderInput,
   type CreateImportCostInput,
   type CreateImportIncidentInput,
@@ -29,6 +30,8 @@ import {
   type RegisterImportDniUsageInput,
   type RegisterImportDniUsageResult,
   type UpdateImportBoxStateInput,
+  type UpdateImportDniPersonInput,
+  type UpdateImportDniPersonResult,
   type UpdateImportStateInput,
   type UpdateInsuranceClaimInput,
 } from '@yukimi/shared';
@@ -83,21 +86,36 @@ export class SupabaseImportsRepository implements ImportsRepository {
       p_input: input,
       p_idempotency_key: idempotencyKey,
     });
-    if (error) throw mapSupabaseError(error, 'No se pudo crear la importación con su gestión por DNI.');
+    if (error)
+      throw mapSupabaseError(error, 'No se pudo crear la importación con su gestión por DNI.');
     return importMutationResultSchema.parse(data);
   }
 
   public async listDniPeople(): Promise<ImportDniPeopleResponse> {
     const { data, error } = await this.client.rpc('list_import_dni_people_v1');
-    if (error) throw mapSupabaseError(error, 'No se pudieron cargar las personas registradas por DNI.');
+    if (error)
+      throw mapSupabaseError(error, 'No se pudieron cargar las personas registradas por DNI.');
     return importDniPeopleResponseSchema.parse(data);
+  }
+
+  public async updateDniPerson(
+    personId: string,
+    input: UpdateImportDniPersonInput,
+  ): Promise<UpdateImportDniPersonResult> {
+    const { data, error } = await this.client.rpc('update_import_dni_person_v1', {
+      p_person_id: personId,
+      p_input: input,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudieron actualizar los datos de la persona.');
+    return updateImportDniPersonResultSchema.parse(data);
   }
 
   public async getDniUsages(importId: string): Promise<ImportDniUsagesResponse> {
     const { data, error } = await this.client.rpc('get_import_dni_usages_v1', {
       p_import_id: importId,
     });
-    if (error) throw mapSupabaseError(error, 'No se pudo cargar la gestión por DNI de la importación.');
+    if (error)
+      throw mapSupabaseError(error, 'No se pudo cargar la gestión por DNI de la importación.');
     return importDniUsagesResponseSchema.parse(data);
   }
 
@@ -109,7 +127,8 @@ export class SupabaseImportsRepository implements ImportsRepository {
       p_import_id: importId,
       p_input: input,
     });
-    if (error) throw mapSupabaseError(error, 'No se pudo registrar la gestión de importación por DNI.');
+    if (error)
+      throw mapSupabaseError(error, 'No se pudo registrar la gestión de importación por DNI.');
     return registerImportDniUsageResultSchema.parse(data);
   }
 

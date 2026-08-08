@@ -3,11 +3,17 @@ import { createImportSchema } from './imports.js';
 
 export const importDniPersonDraftSchema = z.object({
   fullName: z.string().trim().min(3).max(200),
-  documentNumber: z.string().trim().regex(/^\d{8}$/, 'El DNI debe tener 8 dígitos.'),
+  documentNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{8}$/, 'El DNI debe tener 8 dígitos.'),
   address: z.string().trim().min(3).max(500),
   postalCode: z.string().trim().min(3).max(20),
 });
 export type ImportDniPersonDraft = z.infer<typeof importDniPersonDraftSchema>;
+
+export const updateImportDniPersonSchema = importDniPersonDraftSchema;
+export type UpdateImportDniPersonInput = z.infer<typeof updateImportDniPersonSchema>;
 
 export const registerImportDniUsageSchema = z
   .object({
@@ -45,6 +51,8 @@ export const importDniPersonSchema = z.object({
   usageCount: z.number().int().nonnegative(),
 });
 export type ImportDniPerson = z.infer<typeof importDniPersonSchema>;
+export const updateImportDniPersonResultSchema = importDniPersonSchema;
+export type UpdateImportDniPersonResult = z.infer<typeof updateImportDniPersonResultSchema>;
 
 export const importDniPeopleResponseSchema = z.object({
   items: z.array(importDniPersonSchema),

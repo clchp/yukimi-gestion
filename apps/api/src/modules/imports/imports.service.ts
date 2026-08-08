@@ -10,6 +10,7 @@ import type {
   ReceiveImportBoxInput,
   RegisterImportDniUsageInput,
   UpdateImportBoxStateInput,
+  UpdateImportDniPersonInput,
   UpdateImportStateInput,
   UpdateInsuranceClaimInput,
 } from '@yukimi/shared';
@@ -34,6 +35,9 @@ export class ImportsService {
   }
   public listDniPeople() {
     return this.repository.listDniPeople();
+  }
+  public updateDniPerson(personId: string, input: UpdateImportDniPersonInput) {
+    return this.repository.updateDniPerson(personId, input);
   }
   public getDniUsages(importId: string) {
     return this.repository.getDniUsages(importId);

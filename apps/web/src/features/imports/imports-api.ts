@@ -20,6 +20,8 @@ import type {
   RegisterImportDniUsageInput,
   RegisterImportDniUsageResult,
   UpdateImportBoxStateInput,
+  UpdateImportDniPersonInput,
+  UpdateImportDniPersonResult,
   UpdateImportStateInput,
   UpdateInsuranceClaimInput,
 } from '@yukimi/shared';
@@ -49,6 +51,16 @@ export function getImport(importId: string): Promise<ImportDetail> {
 
 export function getImportDniPeople(): Promise<ImportDniPeopleResponse> {
   return apiRequest<ImportDniPeopleResponse>('/imports/dni-people');
+}
+
+export function updateImportDniPerson(
+  personId: string,
+  input: UpdateImportDniPersonInput,
+): Promise<UpdateImportDniPersonResult> {
+  return apiRequest<UpdateImportDniPersonResult>(`/imports/dni-people/${personId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
 }
 
 export function getImportDniUsages(importId: string): Promise<ImportDniUsagesResponse> {
