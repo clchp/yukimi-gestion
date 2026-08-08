@@ -36,9 +36,9 @@ function fieldIsResolved(field: HTMLElement) {
     return Boolean(selected && !selected.classList.contains('placeholder'));
   }
 
-  const control = field.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-    'input, select, textarea',
-  );
+  const control = field.querySelector<
+    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+  >('input, select, textarea');
   if (!control) return false;
   if (control.disabled) return true;
 
@@ -81,7 +81,9 @@ function patchNewImportValidation() {
 }
 
 function lockBoxCards(locked: boolean) {
-  for (const card of document.querySelectorAll<HTMLElement>('.import-detail-page .import-box-card')) {
+  for (const card of document.querySelectorAll<HTMLElement>(
+    '.import-detail-page .import-box-card',
+  )) {
     card.classList.toggle('import-box-purchase-locked', locked);
     const footer = card.querySelector<HTMLElement>('.import-box-actions');
     if (!footer) continue;
@@ -187,7 +189,8 @@ function detailFingerprint() {
   const page = document.querySelector<HTMLElement>('.import-detail-page');
   if (!page) return '';
   const badge = page.querySelector<HTMLElement>('.page-actions .status-badge')?.textContent ?? '';
-  const summary = page.querySelector<HTMLElement>('.summary-strip.import-cost-summary')?.textContent ?? '';
+  const summary =
+    page.querySelector<HTMLElement>('.summary-strip.import-cost-summary')?.textContent ?? '';
   return `${location.pathname}|${badge}|${summary}`;
 }
 
