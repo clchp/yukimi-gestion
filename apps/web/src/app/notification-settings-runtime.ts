@@ -195,9 +195,7 @@ async function saveQuietHours(
     const admin = await getAdminSettings();
     await Promise.all(
       admin.notificationTypes.map((type) => {
-        const current = admin.preferences.find(
-          (item) => item.notificationTypeCode === type.code,
-        );
+        const current = admin.preferences.find((item) => item.notificationTypeCode === type.code);
         return upsertNotificationPreference({
           notificationTypeCode: type.code,
           inAppEnabled: current?.inAppEnabled ?? true,
@@ -302,8 +300,10 @@ function enhanceNotificationSettings() {
     feedback.className = 'notification-runtime-feedback';
     feedback.setAttribute('aria-live', 'polite');
 
-    saveButton.addEventListener('click', () =>
-      void saveQuietHours(root, card as HTMLElement, startInput, endInput, saveButton, feedback),
+    saveButton.addEventListener(
+      'click',
+      () =>
+        void saveQuietHours(root, card as HTMLElement, startInput, endInput, saveButton, feedback),
     );
 
     grid.append(startLabel, endLabel, saveButton);
