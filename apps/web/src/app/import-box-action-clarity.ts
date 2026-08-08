@@ -33,7 +33,8 @@ function lockButton(button: HTMLButtonElement) {
   button.dataset.importBoxActionLabel = button.textContent?.trim() ?? '';
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
-  unlockTimer = window.setTimeout(releaseLockedButton, 20_000);
+  // Emergency fallback only. Normal release happens as soon as success/error is rendered.
+  unlockTimer = window.setTimeout(releaseLockedButton, 60_000);
 }
 
 function stateLabelForCard(card: HTMLElement) {
@@ -109,13 +110,19 @@ function handleMutations(records: MutationRecord[]) {
     return;
   }
 
-  const hasFailureOrCancellation = records.some((record) =>
-    [...record.addedNodes].some((addedNode) => {
-      const text = addedNode.textContent ?? '';
-      return text.includes('No se pudo actualizar la caja') || text.includes('Acción cancelada');
-    }),
+  const addedText = records.flatMap((record) =>
+    [...record.addedNodes].map((addedNode) => addedNode.textContent ?? ''),
   );
-  if (hasFailureOrCancellation) releaseLockedButton();
+  const hasCompletion = addedText.some(
+    (text) =>
+      text.includes('Estado de caja actualizado') ||
+      text.includes('Caja cancelada') ||
+      text.includes('Caja recibida e ingresada a stock'),
+  );
+  const hasFailureOrCancellation = addedText.some(
+    (text) => text.includes('No se pudo actualizar la caja') || text.includes('Acción cancelada'),
+  );
+  if (hasCompletion || hasFailureOrCancellation) releaseLockedButton();
 }
 
 export function installImportBoxActionClarity() {
