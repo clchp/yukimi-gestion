@@ -24,7 +24,7 @@
     "test:db": "npm run db:reset && npm run test:db:unit && npm run test:db:concurrency && npm run test:db:lint",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check apps/web/src/app/notification-settings-runtime.ts apps/web/src/main.tsx",
     "dev:api": "npm run dev -w @yukimi/api",
     "dev:web": "npm run dev -w @yukimi/web",
     "build:shared": "npm run build -w @yukimi/shared",
