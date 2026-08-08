@@ -98,8 +98,8 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
     queryFn: () => getSaleFinancials(saleId),
   });
   const support = useQuery({ queryKey: ['payment-support'], queryFn: getPaymentSupportData });
-  const invalidate = async () => {
-    await Promise.all([
+  const invalidate = () => {
+    void Promise.all([
       queryClient.invalidateQueries({ queryKey: ['sale-financials', saleId] }),
       queryClient.invalidateQueries({ queryKey: ['sale', saleId] }),
       queryClient.invalidateQueries({ queryKey: ['sales'] }),
@@ -143,8 +143,7 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
       }
       return result;
     },
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
       setShowPaymentForm(false);
       setReceivedAt(nowLocalInput());
       setPaymentNotes('');
@@ -153,6 +152,7 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
         { paymentMethodCode: '', financialAccountId: '', amount: '', referenceNumber: '' },
       ]);
       setPaymentKey(crypto.randomUUID());
+      invalidate();
     },
   });
 
@@ -184,11 +184,11 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
       if (type === 'WAIVE') return waivePenalty(id, normalizedReason);
       return annulReceipt(id, normalizedReason);
     },
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
       setSensitiveAction(null);
       setActionReason('');
       setPaymentActionError(null);
+      invalidate();
     },
     onError: (error, variables) => {
       if (variables.type === 'CONFIRM') {
@@ -205,11 +205,11 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
       if (!proofTargetId || !proofEditFile) throw new Error('Selecciona una constancia.');
       await uploadPaymentProof(proofTargetId, proofEditFile);
     },
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
       setProofTargetId(null);
       setProofEditFile(null);
       setPaymentActionError(null);
+      invalidate();
     },
     onError: (error) => {
       if (proofTargetId) {
@@ -255,14 +255,14 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
       }
       return result;
     },
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
       setShowReceiptForm(false);
       setReceiptNumber('');
       setReceiptPaymentId('');
       setReceiptAmount('');
       setReceiptFile(null);
       setReceiptKey(crypto.randomUUID());
+      invalidate();
     },
   });
 
@@ -277,13 +277,13 @@ export function SalePaymentsSection({ saleId, closed }: { saleId: string; closed
         reason: creditNoteReason.trim(),
       });
     },
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
       setCreditNoteTarget(null);
       setCreditNoteSeries('BC01');
       setCreditNoteNumber('');
       setCreditNoteAmount('');
       setCreditNoteReason('');
+      invalidate();
     },
   });
 
