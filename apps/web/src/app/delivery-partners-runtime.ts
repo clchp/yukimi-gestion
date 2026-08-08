@@ -33,7 +33,11 @@ function closePartnerModal() {
   document.querySelector('.final-partner-modal-backdrop')?.remove();
 }
 
-function partnerRequest(existing: DeliveryPartner | undefined, type: DeliveryPartnerType, form: HTMLFormElement) {
+function partnerRequest(
+  existing: DeliveryPartner | undefined,
+  type: DeliveryPartnerType,
+  form: HTMLFormElement,
+) {
   const data = new FormData(form);
   return {
     id: existing?.id,
@@ -237,7 +241,9 @@ function openPartnerStatusModal(partner: DeliveryPartner) {
       .catch((requestError: unknown) => {
         error.hidden = false;
         error.textContent =
-          requestError instanceof Error ? requestError.message : 'No se pudo actualizar el operador.';
+          requestError instanceof Error
+            ? requestError.message
+            : 'No se pudo actualizar el operador.';
         confirm.disabled = false;
         confirm.textContent = nextActive ? 'Reactivar' : 'Desactivar';
       });
@@ -328,7 +334,9 @@ async function renderSettingsPartners() {
       list.append(row);
     });
     if (response.items.length === 0) {
-      list.append(node('div', 'empty-state', 'Todavía no hay agencias ni motorizados registrados.'));
+      list.append(
+        node('div', 'empty-state', 'Todavía no hay agencias ni motorizados registrados.'),
+      );
     }
   } catch (error) {
     panel

@@ -51,7 +51,16 @@ function expenseCategories(support: FinanceSupportData) {
 }
 
 function preferredCategory(categories: FinanceCategory[]) {
-  const terms = ['envío', 'envio', 'delivery', 'flete', 'transporte', 'reparto', 'logística', 'logistica'];
+  const terms = [
+    'envío',
+    'envio',
+    'delivery',
+    'flete',
+    'transporte',
+    'reparto',
+    'logística',
+    'logistica',
+  ];
   return (
     categories.find((category) => {
       const value = `${category.name} ${category.description ?? ''}`.toLocaleLowerCase('es-PE');
@@ -220,7 +229,9 @@ async function openExpenseModal(delivery: DeliveryDetail, onSaved: () => void) {
         const duplicate = transactions.items.some(
           (transaction) =>
             transaction.stateCode !== 'REVERSED' &&
-            transaction.description.toLocaleLowerCase('es-PE').includes(delivery.code.toLocaleLowerCase('es-PE')),
+            transaction.description
+              .toLocaleLowerCase('es-PE')
+              .includes(delivery.code.toLocaleLowerCase('es-PE')),
         );
         if (duplicate) throw new Error('Esta entrega ya tiene un gasto registrado en Finanzas.');
         return createManualFinanceTransaction(
@@ -308,7 +319,11 @@ function renderExpensePanel(
       ),
       node('small', '', 'Regístralo cuando el pago al operador se haya realizado.'),
     );
-    const register = node('button', 'button button-primary button-full', 'Registrar gasto de envío');
+    const register = node(
+      'button',
+      'button button-primary button-full',
+      'Registrar gasto de envío',
+    );
     register.type = 'button';
     register.addEventListener('click', () => {
       void openExpenseModal(delivery, () => {
@@ -355,7 +370,9 @@ async function enhanceDeliveryExpense() {
     const expense = transactions.items.find(
       (transaction) =>
         transaction.stateCode !== 'REVERSED' &&
-        transaction.description.toLocaleLowerCase('es-PE').includes(delivery.code.toLocaleLowerCase('es-PE')),
+        transaction.description
+          .toLocaleLowerCase('es-PE')
+          .includes(delivery.code.toLocaleLowerCase('es-PE')),
     );
     renderExpensePanel(sidebar, delivery, expense);
   } catch (error) {
@@ -394,7 +411,10 @@ function queueDeliveryExpense() {
 export function installDeliveryExpenseRuntime() {
   if (document.documentElement.dataset.deliveryExpenseRuntime === 'true') return;
   document.documentElement.dataset.deliveryExpenseRuntime = 'true';
-  new MutationObserver(queueDeliveryExpense).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver(queueDeliveryExpense).observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
   window.addEventListener('popstate', queueDeliveryExpense);
   queueDeliveryExpense();
 }

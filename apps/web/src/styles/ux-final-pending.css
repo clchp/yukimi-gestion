@@ -12,7 +12,9 @@
   box-shadow: 0 18px 45px rgb(33 22 31 / 18%);
   font-weight: 700;
 }
-.final-runtime-notice.error { border-left-color: #c43e57; }
+.final-runtime-notice.error {
+  border-left-color: #c43e57;
+}
 
 .final-info-tip {
   display: inline-grid;
@@ -78,7 +80,9 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.final-attribute-grid { margin-bottom: 0; }
+.final-attribute-grid {
+  margin-bottom: 0;
+}
 
 .final-delivery-cost-note {
   padding: 0.75rem 0.9rem;
@@ -89,21 +93,35 @@
   font-size: 0.88rem;
   line-height: 1.45;
 }
-.pending-delivery-cost-note[hidden] { display: none !important; }
+.pending-delivery-cost-note[hidden] {
+  display: none !important;
+}
 .final-operator-field-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }
-.final-quick-partner-button { flex: 0 0 auto; }
+.final-quick-partner-button {
+  flex: 0 0 auto;
+}
 
-.final-partner-modal { width: min(720px, calc(100vw - 2rem)); }
-.final-partner-error { margin: 0 1.5rem 1rem; }
-.final-delivery-partners-panel .panel-heading { align-items: center; }
-.final-partner-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+.final-partner-modal {
+  width: min(720px, calc(100vw - 2rem));
+}
+.final-partner-error {
+  margin: 0 1.5rem 1rem;
+}
+.final-delivery-partners-panel .panel-heading {
+  align-items: center;
+}
+.final-partner-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
 
-.final-catalog-report-panel { margin-bottom: 1.25rem; }
+.final-catalog-report-panel {
+  margin-bottom: 1.25rem;
+}
 .final-catalog-report-panel .panel-heading {
   align-items: center;
   gap: 1rem;
@@ -140,10 +158,18 @@
   .final-profit-card .runtime-profit-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .final-partner-row { grid-template-columns: 1fr; }
-  .final-catalog-report-panel .panel-heading { align-items: stretch; }
-  .final-catalog-report-panel .row-actions { width: 100%; }
-  .final-catalog-report-panel .row-actions .button { flex: 1; }
+  .final-partner-row {
+    grid-template-columns: 1fr;
+  }
+  .final-catalog-report-panel .panel-heading {
+    align-items: stretch;
+  }
+  .final-catalog-report-panel .row-actions {
+    width: 100%;
+  }
+  .final-catalog-report-panel .row-actions .button {
+    flex: 1;
+  }
 }
 
 @media (max-width: 480px) {

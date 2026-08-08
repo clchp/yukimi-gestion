@@ -52,14 +52,13 @@ function normalizePayerOptions(payerField: HTMLElement, payer: HTMLSelectElement
       button.remove();
       return;
     }
-    const replacement =
-      current.startsWith('Cliente')
-        ? 'Cliente'
-        : current.startsWith('Yukimi')
-          ? 'Yukimi'
-          : current.startsWith('Compartido')
-            ? 'Compartido'
-            : null;
+    const replacement = current.startsWith('Cliente')
+      ? 'Cliente'
+      : current.startsWith('Yukimi')
+        ? 'Yukimi'
+        : current.startsWith('Compartido')
+          ? 'Compartido'
+          : null;
     if (replacement && label) label.textContent = replacement;
   });
 }
@@ -105,9 +104,9 @@ function applyDeliveryCostRules() {
         ? 'Indica únicamente lo que Yukimi pagará al operador. El gasto se registra en Finanzas cuando se pague.'
         : 'Indica únicamente la parte que asumirá Yukimi. La parte pagada directamente por el cliente no se registra.';
 
-    const summary = [...document.querySelectorAll<HTMLElement>('.delivery-summary-list > div')].find(
-      (row) => row.querySelector('span')?.textContent?.trim() === 'Costo',
-    );
+    const summary = [
+      ...document.querySelectorAll<HTMLElement>('.delivery-summary-list > div'),
+    ].find((row) => row.querySelector('span')?.textContent?.trim() === 'Costo');
     const summaryValue = summary?.querySelector<HTMLElement>('strong');
     if (summaryValue && clientPays) summaryValue.textContent = 'Pago directo al operador';
   };

@@ -131,7 +131,9 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
 
   const [finance, importSupport] = await Promise.all([getFinanceSupport(), getImportSupportData()]);
   const claimCurrency = claim.currencyCode ?? 'PEN';
-  const incomeAccounts = finance.accounts.filter((account) => account.currencyCode === claimCurrency);
+  const incomeAccounts = finance.accounts.filter(
+    (account) => account.currencyCode === claimCurrency,
+  );
   const incomeCategories = finance.categories.filter(
     (category) => category.isActive && ['INCOME', 'BOTH'].includes(category.nature),
   );
@@ -143,10 +145,7 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
     : undefined;
 
   const backdrop = node('div', 'app-modal-backdrop import-insurance-resolution-backdrop');
-  const card = node(
-    'form',
-    'app-modal-card modal-card-wide import-insurance-resolution-modal',
-  );
+  const card = node('form', 'app-modal-card modal-card-wide import-insurance-resolution-modal');
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-modal', 'true');
 
@@ -204,7 +203,10 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
     `Cuenta de ingreso (${claimCurrency}) *`,
     [
       { value: '', label: 'Seleccionar cuenta' },
-      ...incomeAccounts.map((item) => ({ value: item.id, label: `${item.name} · ${item.currencyCode}` })),
+      ...incomeAccounts.map((item) => ({
+        value: item.id,
+        label: `${item.name} · ${item.currencyCode}`,
+      })),
     ],
     '',
   );
@@ -346,7 +348,8 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
       actionNote.textContent =
         'El crédito a favor quedará documentado en el reclamo. No se crea un movimiento de dinero o stock hasta que ese crédito se utilice.';
     } else {
-      actionNote.textContent = 'Se actualizará el estado y la resolución sin generar movimientos nuevos.';
+      actionNote.textContent =
+        'Se actualizará el estado y la resolución sin generar movimientos nuevos.';
     }
   }
 
@@ -371,10 +374,14 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
       problems.push('El monto aprobado no es válido.');
     }
     if (mode === 'REPLACEMENT' && targetStatus === 'PAID') {
-      problems.push('Una reposición no se marca como Pagada; déjala Aprobada o ciérrala cuando llegue.');
+      problems.push(
+        'Una reposición no se marca como Pagada; déjala Aprobada o ciérrala cuando llegue.',
+      );
     }
     if (mode === 'CREDIT' && targetStatus === 'PAID') {
-      problems.push('Un crédito a favor no se marca como Pagado; documenta el crédito o cierra el reclamo.');
+      problems.push(
+        'Un crédito a favor no se marca como Pagado; documenta el crédito o cierra el reclamo.',
+      );
     }
 
     const createsRefund =
@@ -389,7 +396,8 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
     const actualRefund = Number(refundAmount.input.value);
     if (createsRefund) {
       if (!account.select.value) problems.push('Selecciona la cuenta donde ingresó el reembolso.');
-      if (!category.select.value) problems.push('Selecciona la categoría financiera del reembolso.');
+      if (!category.select.value)
+        problems.push('Selecciona la categoría financiera del reembolso.');
       if (!Number.isFinite(actualRefund) || actualRefund <= 0)
         problems.push('Ingresa el monto realmente recibido.');
       if (!refundDate.input.value) problems.push('Selecciona la fecha real del reembolso.');
@@ -398,7 +406,8 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
     const quantity = Number(replacementQuantity.input.value);
     if (createsReplacement) {
       if (!replacementItem.select.value) problems.push('Selecciona el producto que fue repuesto.');
-      if (!warehouse.select.value) problems.push('Selecciona el almacén donde llegó la reposición.');
+      if (!warehouse.select.value)
+        problems.push('Selecciona el almacén donde llegó la reposición.');
       if (!Number.isInteger(quantity) || quantity <= 0)
         problems.push('La cantidad repuesta debe ser un entero mayor que cero.');
     }
@@ -438,7 +447,8 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
 
         if (createsReplacement) {
           const selectedItem = importItems.find((item) => item.id === replacementItem.select.value);
-          if (!selectedItem) throw new Error('No se encontró el producto seleccionado para la reposición.');
+          if (!selectedItem)
+            throw new Error('No se encontró el producto seleccionado para la reposición.');
           const movement = await createInventoryMovement(
             {
               action: 'DYNAMIC',
@@ -454,16 +464,16 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
           inventoryCode = movement.code;
         }
 
-        const trace: string[] = [
-          `Resultado: ${resolutionLabels[mode]}.`,
-          explanation,
-        ];
+        const trace: string[] = [`Resultado: ${resolutionLabels[mode]}.`, explanation];
         if (targetStatus === 'APPROVED' || targetStatus === 'PARTIALLY_APPROVED') {
-          trace.push('Movimiento real pendiente; la aprobación por sí sola no modificó Finanzas ni Inventario.');
+          trace.push(
+            'Movimiento real pendiente; la aprobación por sí sola no modificó Finanzas ni Inventario.',
+          );
         }
         if (financeCode) trace.push(`Movimiento financiero: ${financeCode}.`);
         if (inventoryCode) trace.push(`Movimiento de inventario: ${inventoryCode}.`);
-        if (mode === 'CREDIT') trace.push('Crédito a favor documentado; sin movimiento automático hasta su uso real.');
+        if (mode === 'CREDIT')
+          trace.push('Crédito a favor documentado; sin movimiento automático hasta su uso real.');
 
         await updateInsuranceClaim(claim.id, {
           status: targetStatus as
@@ -487,7 +497,9 @@ async function openResolutionModal(data: ImportDetail, incident: Incident, claim
         window.setTimeout(() => location.reload(), 650);
       } catch (caught) {
         error.textContent =
-          caught instanceof Error ? caught.message : 'No se pudo completar la resolución del reclamo.';
+          caught instanceof Error
+            ? caught.message
+            : 'No se pudo completar la resolución del reclamo.';
         error.hidden = false;
         submit.disabled = false;
         cancel.disabled = false;

@@ -58,9 +58,9 @@ function removeRedundantExports() {
 
 function enhanceVipModal() {
   if (!/^\/clientes\/[0-9a-f-]+$/i.test(location.pathname)) return;
-  const modal = [...document.querySelectorAll<HTMLElement>('[role="dialog"], .app-modal-card')].find(
-    (candidate) => candidate.textContent?.includes('Convertir en cliente VIP'),
-  );
+  const modal = [
+    ...document.querySelectorAll<HTMLElement>('[role="dialog"], .app-modal-card'),
+  ].find((candidate) => candidate.textContent?.includes('Convertir en cliente VIP'));
   if (!modal) return;
   modal.querySelectorAll<HTMLElement>('.alert.alert-info').forEach((alert) => {
     if (alert.textContent?.includes('El adelanto mínimo se acuerda en cada venta')) alert.remove();
@@ -114,7 +114,11 @@ async function renderProductProfitPanel(productId: string, panel: HTMLElement) {
     const headingText = node('div');
     headingText.append(
       node('h2', '', 'Costos, stock y rentabilidad'),
-      node('p', '', 'Costo promedio actual por almacén y ganancia estimada según el precio de venta.'),
+      node(
+        'p',
+        '',
+        'Costo promedio actual por almacén y ganancia estimada según el precio de venta.',
+      ),
     );
     heading.append(headingText);
     const cards = node('div', 'runtime-profit-grid final-profit-grid');
@@ -149,7 +153,10 @@ async function renderProductProfitPanel(productId: string, panel: HTMLElement) {
       const metrics = node('div', 'runtime-profit-metrics');
       metrics.append(
         detailRow('Precio de venta', money(variant.salePrice)),
-        detailRow('Costo promedio', averageCost == null ? 'Sin costo registrado' : money(averageCost)),
+        detailRow(
+          'Costo promedio',
+          averageCost == null ? 'Sin costo registrado' : money(averageCost),
+        ),
         detailRow('Ganancia estimada', profit == null ? '—' : money(profit)),
         detailRow('Margen estimado', margin == null ? '—' : `${margin.toFixed(1)}%`),
         detailRow('Código de barras', variant.barcode ?? 'No indicado'),
@@ -251,7 +258,10 @@ async function enhanceProductEditAttributes() {
   if (cards.length === 0 || cards.every((card) => card.dataset.finalAttributes === 'true')) return;
   const productId = match[1]!;
   try {
-    const [product, support] = await Promise.all([getProduct(productId), attributeSupport(productId)]);
+    const [product, support] = await Promise.all([
+      getProduct(productId),
+      attributeSupport(productId),
+    ]);
     cards.forEach((card, index) => {
       if (card.dataset.finalAttributes === 'true') return;
       const variant = product.variants[index];
@@ -270,7 +280,11 @@ async function enhanceProductEditAttributes() {
         let control: HTMLInputElement | HTMLSelectElement;
         if (definition.dataType === 'BOOLEAN') {
           const select = node('select');
-          select.append(new Option('Sin indicar', ''), new Option('Sí', 'true'), new Option('No', 'false'));
+          select.append(
+            new Option('Sin indicar', ''),
+            new Option('Sí', 'true'),
+            new Option('No', 'false'),
+          );
           select.value = saved?.value_boolean == null ? '' : String(saved.value_boolean);
           control = select;
         } else {
@@ -342,7 +356,8 @@ function productStatus(
 ) {
   if (!product.isActive || !variant.isActive) return 'Inactivo';
   if (variant.availableQuantity === 0 && variant.preorderExpectedQuantity > 0) return 'Preventa';
-  if (variant.minimumStock > 0 && variant.availableQuantity <= variant.minimumStock) return 'Stock bajo';
+  if (variant.minimumStock > 0 && variant.availableQuantity <= variant.minimumStock)
+    return 'Stock bajo';
   return variant.availableQuantity === 0 ? 'Agotado' : 'Disponible';
 }
 
@@ -410,7 +425,8 @@ async function exportProductCatalog(format: 'CSV' | 'XLSX') {
     item.currentUnitCostPen ?? '',
   ]);
   const profitability = inventory.items.map((item) => {
-    const profit = item.currentUnitCostPen == null ? null : item.salePrice - item.currentUnitCostPen;
+    const profit =
+      item.currentUnitCostPen == null ? null : item.salePrice - item.currentUnitCostPen;
     return [
       item.productCode,
       item.productName,
@@ -573,7 +589,9 @@ function patchProductRequests() {
     const originalUrl =
       typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const url = new URL(originalUrl, location.origin);
-    const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    const method = (
+      init?.method ?? (input instanceof Request ? input.method : 'GET')
+    ).toUpperCase();
     if (
       method === 'PATCH' &&
       /\/products\/[0-9a-f-]+$/i.test(url.pathname) &&

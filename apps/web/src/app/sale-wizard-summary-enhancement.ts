@@ -19,7 +19,9 @@ function parseMoney(value: string) {
 
 function enhanceSaleSummary() {
   if (!/^\/ventas\/(nueva|borradores\/)/.test(location.pathname)) return;
-  const rows = [...document.querySelectorAll<HTMLElement>('.review-grid > div, .summary-list > div')];
+  const rows = [
+    ...document.querySelectorAll<HTMLElement>('.review-grid > div, .summary-list > div'),
+  ];
   const minimumRow = rows.find((row) => row.textContent?.includes('Adelanto mínimo acordado'));
   const minimumText = minimumRow?.querySelector('strong')?.textContent ?? '';
   const minimum = parseMoney(minimumText);
@@ -40,7 +42,9 @@ function enhanceSaleSummary() {
     minimumRow.after(row);
   }
 
-  const deliveryRow = rows.find((row) => row.querySelector('span')?.textContent?.trim() === 'Entrega');
+  const deliveryRow = rows.find(
+    (row) => row.querySelector('span')?.textContent?.trim() === 'Entrega',
+  );
   const deliveryValue = deliveryRow?.querySelector('strong')?.textContent ?? '';
   const summaryPanel = [...document.querySelectorAll<HTMLElement>('.panel')].find(
     (panel) => panel.querySelector('h2')?.textContent?.trim() === 'Resumen',

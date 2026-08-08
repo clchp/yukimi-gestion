@@ -36,9 +36,9 @@ function fieldIsResolved(field: HTMLElement) {
     return Boolean(selected && !selected.classList.contains('placeholder'));
   }
 
-  const control = field.querySelector<
-    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-  >('input, select, textarea');
+  const control = field.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+    'input, select, textarea',
+  );
   if (!control) return false;
   if (control.disabled) return true;
 

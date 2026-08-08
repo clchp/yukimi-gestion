@@ -22,9 +22,7 @@ function partners(force = false) {
 }
 
 function fieldLabel(field: HTMLElement | undefined) {
-  return field?.querySelector<HTMLElement>(
-    ':scope > span, .final-operator-field-title > span',
-  );
+  return field?.querySelector<HTMLElement>(':scope > span, .final-operator-field-title > span');
 }
 
 function partnerField() {
@@ -41,9 +39,7 @@ function applyPartners(items: DeliveryPartner[]) {
   const hiddenSelect = field?.querySelector<HTMLSelectElement>('select.searchable-native-hidden');
   const wrapper = field?.querySelector<HTMLElement>('.searchable-native-select');
   if (!field || !label || !hiddenSelect || !wrapper) return;
-  const type: DeliveryPartnerType = label.textContent?.startsWith('Agencia')
-    ? 'AGENCY'
-    : 'COURIER';
+  const type: DeliveryPartnerType = label.textContent?.startsWith('Agencia') ? 'AGENCY' : 'COURIER';
   const matching = items.filter((item) => item.partnerTypeCode === type);
 
   matching.forEach((partner) => {
@@ -113,7 +109,9 @@ function watchPartnerMutations() {
     const rawUrl =
       typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const url = new URL(rawUrl, location.origin);
-    const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    const method = (
+      init?.method ?? (input instanceof Request ? input.method : 'GET')
+    ).toUpperCase();
     if (
       response.ok &&
       ['POST', 'PATCH'].includes(method) &&

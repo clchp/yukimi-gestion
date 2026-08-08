@@ -1,8 +1,4 @@
-import type {
-  ImportDetail,
-  ImportDniPerson,
-  RegisterImportDniUsageInput,
-} from '@yukimi/shared';
+import type { ImportDetail, ImportDniPerson, RegisterImportDniUsageInput } from '@yukimi/shared';
 import {
   getImport,
   getImportDniPeople,
@@ -88,7 +84,8 @@ function money(value: number, currency: string) {
 function searchableCode(root: ParentNode, label: string) {
   const select = [...root.querySelectorAll<HTMLElement>('.searchable-select')].find(
     (item) =>
-      item.querySelector('.searchable-select-label')?.textContent?.replace('*', '').trim() === label,
+      item.querySelector('.searchable-select-label')?.textContent?.replace('*', '').trim() ===
+      label,
   );
   return (
     select
@@ -361,7 +358,8 @@ async function openDialog(options: DialogOptions) {
       await options.onSave(input, person);
       dismiss();
     } catch (caught) {
-      error.textContent = caught instanceof Error ? caught.message : 'No se pudo registrar la gestión.';
+      error.textContent =
+        caught instanceof Error ? caught.message : 'No se pudo registrar la gestión.';
       error.hidden = false;
       save.disabled = false;
       save.textContent = 'Registrar gestión por DNI';

@@ -53,8 +53,5 @@ test('preserves the deposit deadline inside a sale draft payload', () => {
       negotiatedMinimumDepositDueAt: '2026-08-10T23:59:59-05:00',
     },
   });
-  assert.equal(
-    parsed.input.negotiatedMinimumDepositDueAt,
-    '2026-08-10T23:59:59-05:00',
-  );
+  assert.equal(parsed.input.negotiatedMinimumDepositDueAt, '2026-08-10T23:59:59-05:00');
 });

@@ -97,7 +97,9 @@ function validCollection(row: FinanceRow) {
   if (row.stateCode === 'REVERSED' || row.transactionTypeCode !== 'INCOME') return false;
   const description = row.description.toLocaleLowerCase('es');
   const category = row.categoryName?.toLocaleLowerCase('es') ?? '';
-  return category.includes('venta') || description.includes('pago') || description.includes('venta');
+  return (
+    category.includes('venta') || description.includes('pago') || description.includes('venta')
+  );
 }
 
 function chartDaily(sales: SaleRow[], finance: FinanceRow[], start: string, end: string) {
@@ -180,7 +182,10 @@ function renderDashboardBars(chart: HTMLElement, values: ChartValue[]) {
     );
     const button = node('button', 'bar-track dual-bar-track chart-bar-button');
     button.type = 'button';
-    button.setAttribute('aria-label', `Ventas ${money(value.sales)}. Cobros ${money(value.collections)}.`);
+    button.setAttribute(
+      'aria-label',
+      `Ventas ${money(value.sales)}. Cobros ${money(value.collections)}.`,
+    );
     const salesBar = node('span', 'sales-bar');
     const collectionsBar = node('span', 'collections-bar');
     salesBar.style.height = `${Math.max(value.sales > 0 ? 5 : 0, (value.sales / maximum) * 100)}%`;
@@ -353,7 +358,11 @@ async function enhanceProductAccumulated() {
     }
     if (row.querySelector('[data-accumulated-column]')) return;
     const productCode = row.textContent?.match(/PRD-\d+/)?.[0];
-    const cell = node('td', 'numeric-cell', String(productCode ? (totals.get(productCode) ?? 0) : 0));
+    const cell = node(
+      'td',
+      'numeric-cell',
+      String(productCode ? (totals.get(productCode) ?? 0) : 0),
+    );
     cell.dataset.accumulatedColumn = 'true';
     row.insertBefore(cell, row.cells[5] ?? null);
   });
@@ -379,7 +388,11 @@ function enhanceInventoryHeaders() {
     const parts = replacements.get(key);
     if (!parts || header.dataset.pendingWrapped === 'true') return;
     header.dataset.pendingWrapped = 'true';
-    header.replaceChildren(document.createTextNode(parts[0]!), document.createElement('br'), document.createTextNode(parts[1]!));
+    header.replaceChildren(
+      document.createTextNode(parts[0]!),
+      document.createElement('br'),
+      document.createTextNode(parts[1]!),
+    );
   });
 }
 
@@ -401,8 +414,8 @@ function enhanceSaleWizard() {
     }
   });
 
-  const minimumLabel = [...document.querySelectorAll<HTMLLabelElement>('label.field')].find((label) =>
-    label.textContent?.includes('Adelanto mínimo negociado'),
+  const minimumLabel = [...document.querySelectorAll<HTMLLabelElement>('label.field')].find(
+    (label) => label.textContent?.includes('Adelanto mínimo negociado'),
   );
   const minimumInput = minimumLabel?.querySelector<HTMLInputElement>('input[type="number"]');
   const grid = minimumLabel?.parentElement;
@@ -413,7 +426,11 @@ function enhanceSaleWizard() {
     input.type = 'date';
     input.min = inputDate(new Date());
     input.value = localStorage.getItem(saleDraftKey()) ?? '';
-    const help = node('small', '', 'Solo se solicita cuando el adelanto acordado es mayor que S/ 0.');
+    const help = node(
+      'small',
+      '',
+      'Solo se solicita cuando el adelanto acordado es mayor que S/ 0.',
+    );
     label.append(input, help);
     grid.append(label);
     const sync = () => {
@@ -433,13 +450,25 @@ function enhanceSaleWizard() {
     sync();
   }
 
-  const reviewRows = [...document.querySelectorAll<HTMLElement>('.review-grid > div, .summary-list > div')];
-  const minimumRow = reviewRows.find((row) => row.textContent?.includes('Adelanto mínimo acordado'));
+  const reviewRows = [
+    ...document.querySelectorAll<HTMLElement>('.review-grid > div, .summary-list > div'),
+  ];
+  const minimumRow = reviewRows.find((row) =>
+    row.textContent?.includes('Adelanto mínimo acordado'),
+  );
   const amount = Number(minimumInput?.value || 0);
   const deadline = currentDepositDeadline();
-  if (minimumRow && amount > 0 && deadline && !minimumRow.parentElement?.querySelector('.pending-deposit-review-row')) {
+  if (
+    minimumRow &&
+    amount > 0 &&
+    deadline &&
+    !minimumRow.parentElement?.querySelector('.pending-deposit-review-row')
+  ) {
     const row = node('div', 'pending-deposit-review-row');
-    row.append(node('span', '', 'Fecha límite del adelanto'), node('strong', '', longDate(deadline)));
+    row.append(
+      node('span', '', 'Fecha límite del adelanto'),
+      node('strong', '', longDate(deadline)),
+    );
     minimumRow.after(row);
   }
 
@@ -463,7 +492,9 @@ function enhanceSaleWizard() {
     (panel) => panel.querySelector('h2')?.textContent?.trim() === 'Resumen',
   );
   const subtitle = summaryPanel?.querySelector<HTMLElement>('.panel-heading p');
-  const selectedMode = document.querySelector<HTMLInputElement>('input[name="deliveryMode"]:checked')?.value;
+  const selectedMode = document.querySelector<HTMLInputElement>(
+    'input[name="deliveryMode"]:checked',
+  )?.value;
   if (subtitle) {
     subtitle.textContent =
       selectedMode === 'ACCUMULATED'
@@ -609,7 +640,10 @@ function enhanceDeliveryCostHelp() {
   update();
 
   const methodGrid = document.querySelector<HTMLElement>('.delivery-method-grid');
-  if (methodGrid && !methodGrid.previousElementSibling?.classList.contains('pending-delivery-decision-note')) {
+  if (
+    methodGrid &&
+    !methodGrid.previousElementSibling?.classList.contains('pending-delivery-decision-note')
+  ) {
     const decision = node(
       'div',
       'pending-delivery-decision-note',
@@ -626,15 +660,21 @@ function patchSaleRequests() {
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> {
-    const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.origin);
-    const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    const url = new URL(
+      typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+      location.origin,
+    );
+    const method = (
+      init?.method ?? (input instanceof Request ? input.method : 'GET')
+    ).toUpperCase();
     const isSaleCreate = method === 'POST' && /\/sales$/.test(url.pathname);
     const isDraftSave = method === 'POST' && /\/sales\/drafts$/.test(url.pathname);
     let nextInit = init;
     let deadline = '';
     if ((isSaleCreate || isDraftSave) && typeof init?.body === 'string') {
       const payload = JSON.parse(init.body) as Record<string, unknown>;
-      const commercial = (isDraftSave ? payload.input : payload) as Record<string, unknown> | undefined;
+      const commercial = (isDraftSave ? payload.input : payload) as
+        Record<string, unknown> | undefined;
       const minimum = Number(commercial?.negotiatedMinimumDepositAmount ?? 0);
       deadline = currentDepositDeadline();
       if (minimum > 0 && !deadline) {
