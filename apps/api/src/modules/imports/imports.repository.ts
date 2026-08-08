@@ -20,6 +20,8 @@ import type {
   RegisterImportDniUsageInput,
   RegisterImportDniUsageResult,
   UpdateImportBoxStateInput,
+  UpdateImportDniPersonInput,
+  UpdateImportDniPersonResult,
   UpdateImportStateInput,
   UpdateInsuranceClaimInput,
 } from '@yukimi/shared';
@@ -41,6 +43,10 @@ export interface ImportsRepository {
     idempotencyKey: string,
   ): Promise<ImportMutationResult>;
   listDniPeople(): Promise<ImportDniPeopleResponse>;
+  updateDniPerson(
+    personId: string,
+    input: UpdateImportDniPersonInput,
+  ): Promise<UpdateImportDniPersonResult>;
   getDniUsages(importId: string): Promise<ImportDniUsagesResponse>;
   registerDniUsage(
     importId: string,
