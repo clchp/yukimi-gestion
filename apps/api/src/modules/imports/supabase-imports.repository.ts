@@ -9,6 +9,7 @@ import {
   importSupportDataSchema,
   preorderSaleResultSchema,
   registerImportDniUsageResultSchema,
+  updateImportDniPersonResultSchema,
   type AllocatePreorderInput,
   type CreateImportCostInput,
   type CreateImportIncidentInput,
@@ -29,6 +30,8 @@ import {
   type RegisterImportDniUsageInput,
   type RegisterImportDniUsageResult,
   type UpdateImportBoxStateInput,
+  type UpdateImportDniPersonInput,
+  type UpdateImportDniPersonResult,
   type UpdateImportStateInput,
   type UpdateInsuranceClaimInput,
 } from '@yukimi/shared';
@@ -91,6 +94,18 @@ export class SupabaseImportsRepository implements ImportsRepository {
     const { data, error } = await this.client.rpc('list_import_dni_people_v1');
     if (error) throw mapSupabaseError(error, 'No se pudieron cargar las personas registradas por DNI.');
     return importDniPeopleResponseSchema.parse(data);
+  }
+
+  public async updateDniPerson(
+    personId: string,
+    input: UpdateImportDniPersonInput,
+  ): Promise<UpdateImportDniPersonResult> {
+    const { data, error } = await this.client.rpc('update_import_dni_person_v1', {
+      p_person_id: personId,
+      p_input: input,
+    });
+    if (error) throw mapSupabaseError(error, 'No se pudieron actualizar los datos de la persona.');
+    return updateImportDniPersonResultSchema.parse(data);
   }
 
   public async getDniUsages(importId: string): Promise<ImportDniUsagesResponse> {
