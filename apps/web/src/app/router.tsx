@@ -17,6 +17,7 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     errorElement: <RouteErrorPage />,
+    hydrateFallbackElement: <div className="route-loading">Cargando Yukimi…</div>,
     children: [
       {
         element: <AppShell />,
