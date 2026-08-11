@@ -18,22 +18,56 @@ function currentSaleId() {
   return location.pathname.match(/^\/ventas\/([0-9a-f-]{36})$/i)?.[1] ?? null;
 }
 
-function cleanSidebar() {
-  document.querySelector('.sidebar-support')?.remove();
-  document.querySelector('.sidebar-user')?.remove();
-  document.querySelector('.sidebar-profile-popover')?.remove();
-  document.querySelector('.brand-lockup .sidebar-close')?.remove();
+function installSafeVisualStyles() {
+  if (document.getElementById('production-final-polish-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'production-final-polish-styles';
+  style.textContent = `
+    .sidebar-support,
+    .sidebar-user,
+    .sidebar-profile-popover,
+    .brand-lockup .sidebar-close {
+      display: none !important;
+    }
 
-  const homeLink = document.querySelector<HTMLAnchorElement>('.sidebar-nav a[href="/"]');
-  if (homeLink && homeLink.dataset.productionHomeNavigation !== 'true') {
-    homeLink.dataset.productionHomeNavigation = 'true';
-    homeLink.addEventListener('click', (event) => {
-      if (location.pathname === '/') return;
-      event.preventDefault();
-      event.stopPropagation();
-      window.location.assign('/');
-    });
-  }
+    .payment-card[data-vip-deposit-amount] .payment-card-head > div::after {
+      content: 'Adelanto VIP';
+      display: inline-flex;
+      align-items: center;
+      margin-left: 8px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      background: #e9f4ff;
+      color: #1d5f94;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1.2;
+      vertical-align: middle;
+    }
+
+    .payment-card[data-vip-deposit-amount] .payment-part-summary::after {
+      content: 'Aplicado al adelanto VIP: ' attr(data-vip-deposit-amount) '.';
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 1.4;
+    }
+
+    .sale-financial-stack .panel[data-vip-deposit-summary] .panel-body::before {
+      content: attr(data-vip-deposit-summary);
+      display: block;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.45;
+    }
+  `;
+  document.head.append(style);
 }
 
 function paymentFingerprint() {
@@ -50,12 +84,6 @@ function paymentFingerprint() {
     .join('|')}`;
 }
 
-function removeVipPaymentDecorations() {
-  document.querySelectorAll('[data-vip-deposit-chip]').forEach((item) => item.remove());
-  document.querySelectorAll('[data-vip-deposit-helper]').forEach((item) => item.remove());
-  document.querySelector('[data-vip-deposit-summary]')?.remove();
-}
-
 function paymentPanel() {
   return [...document.querySelectorAll<HTMLElement>('.sale-financial-stack .panel')].find((panel) => {
     const heading = panel.querySelector<HTMLElement>('.panel-header h2, .panel-header h3, h2, h3');
@@ -63,16 +91,11 @@ function paymentPanel() {
   });
 }
 
-function statusChip(text: string) {
-  const chip = document.createElement('span');
-  chip.className = 'status-badge status-info';
-  chip.dataset.vipDepositChip = 'true';
-  chip.dataset.label = text;
-  const dot = document.createElement('span');
-  dot.className = 'status-dot';
-  dot.setAttribute('aria-hidden', 'true');
-  chip.append(dot, document.createTextNode(text));
-  return chip;
+function clearVipAttributes() {
+  document.querySelectorAll<HTMLElement>('.payment-card[data-vip-deposit-amount]').forEach((card) => {
+    delete card.dataset.vipDepositAmount;
+  });
+  paymentPanel()?.removeAttribute('data-vip-deposit-summary');
 }
 
 async function annotateVipPayments() {
@@ -88,7 +111,7 @@ async function annotateVipPayments() {
   try {
     const [sale, financials] = await Promise.all([getSale(saleId), getSaleFinancials(saleId)]);
     const depositAmount = sale.negotiatedMinimumDepositAmount;
-    removeVipPaymentDecorations();
+    clearVipAttributes();
     if (depositAmount == null || depositAmount <= 0) {
       lastVipFingerprint = paymentFingerprint();
       return;
@@ -112,33 +135,18 @@ async function annotateVipPayments() {
     }
 
     for (const card of document.querySelectorAll<HTMLElement>('.payment-card')) {
-      const codeElement = card.querySelector<HTMLElement>('.payment-card-head strong');
-      const code = codeElement?.textContent?.trim() ?? '';
+      const code = card.querySelector<HTMLElement>('.payment-card-head strong')?.textContent?.trim() ?? '';
       const contribution = contributions.get(code);
-      if (!codeElement || !contribution) continue;
-
-      const heading = codeElement.parentElement;
-      if (heading) heading.insertBefore(statusChip('Adelanto VIP'), codeElement.nextSibling);
-
-      const helper = document.createElement('small');
-      helper.dataset.vipDepositHelper = 'true';
-      helper.className = 'helper-text';
-      helper.textContent = `Aplicado al adelanto VIP: ${money(contribution)}.`;
-      const summary = card.querySelector('.payment-part-summary');
-      summary?.insertAdjacentElement('afterend', helper);
+      if (!contribution) continue;
+      card.dataset.vipDepositAmount = money(contribution);
     }
 
     const panel = paymentPanel();
     if (panel) {
-      const summary = document.createElement('div');
-      summary.dataset.vipDepositSummary = 'true';
-      summary.className = 'context-note';
-      summary.textContent =
+      panel.dataset.vipDepositSummary =
         remaining > 0
           ? `Adelanto VIP pendiente: ${money(remaining)} de ${money(depositAmount)}. Los pagos confirmados se aplican primero a este adelanto.`
           : `Adelanto VIP cubierto: ${money(depositAmount)}. Los pagos que lo completaron están identificados abajo.`;
-      const body = panel.querySelector<HTMLElement>('.panel-body') ?? panel;
-      body.prepend(summary);
     }
 
     lastVipFingerprint = paymentFingerprint();
@@ -184,7 +192,7 @@ function installPaymentRefresh(queryClient: QueryClient) {
 }
 
 function run() {
-  cleanSidebar();
+  installSafeVisualStyles();
   void annotateVipPayments();
 }
 
@@ -200,6 +208,7 @@ function schedule() {
 export function installProductionFinalPolish(queryClient: QueryClient) {
   if (document.documentElement.dataset.productionFinalPolish === 'true') return;
   document.documentElement.dataset.productionFinalPolish = 'true';
+  installSafeVisualStyles();
   installPaymentRefresh(queryClient);
   new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
   window.addEventListener('popstate', schedule);
