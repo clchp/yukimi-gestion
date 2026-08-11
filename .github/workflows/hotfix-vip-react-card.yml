@@ -1,0 +1,123 @@
+name: Hotfix VIP React card
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hotfix-vip-react-card.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Integrar condición VIP en React
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/pages/sale-detail-page.tsx')
+          text = path.read_text()
+
+          marker = """  const requestProductName = (itemId: string | null) =>
+    data.items.find((item) => item.id === itemId)?.productName ?? 'Venta completa (flujo anterior)';
+
+  return (
+"""
+          replacement = """  const requestProductName = (itemId: string | null) =>
+    data.items.find((item) => item.id === itemId)?.productName ?? 'Venta completa (flujo anterior)';
+  const vipDepositAmount = data.negotiatedMinimumDepositAmount ?? 0;
+  const vipTermsSnapshot = data.negotiatedTermsSnapshot as Record<string, unknown>;
+  const vipDepositDueAt =
+    typeof vipTermsSnapshot.depositDueAt === 'string' ? vipTermsSnapshot.depositDueAt : null;
+  const vipPaidAmount = Math.min(Math.max(data.paidTotal, 0), vipDepositAmount);
+  const vipPendingAmount = Math.max(vipDepositAmount - vipPaidAmount, 0);
+  const vipDepositOverdue =
+    vipPendingAmount > 0 &&
+    vipDepositDueAt != null &&
+    new Date(vipDepositDueAt).getTime() < Date.now();
+  const vipDepositStatus =
+    vipPendingAmount === 0
+      ? 'Cumplido'
+      : vipDepositOverdue
+        ? 'Vencido'
+        : vipPaidAmount > 0
+          ? 'Parcial'
+          : 'Pendiente';
+
+  return (
+"""
+          if marker not in text:
+              raise SystemExit('No se encontró el punto de cálculo VIP en sale-detail-page.tsx')
+          text = text.replace(marker, replacement, 1)
+
+          marker = """            {data.notes ? (
+              <p className=\"detail-note\">
+                <strong>Notas:</strong> {data.notes}
+              </p>
+            ) : null}
+"""
+          replacement = marker + """            {vipDepositAmount > 0 ? (
+              <div className=\"detail-note pending-vip-status\">
+                <div className=\"pending-vip-status-heading\">
+                  <strong>Condición VIP · Adelanto</strong>
+                  <span
+                    className={`status-badge ${
+                      vipDepositStatus === 'Cumplido'
+                        ? 'status-success'
+                        : vipDepositStatus === 'Vencido'
+                          ? 'status-danger'
+                          : 'status-warning'
+                    }`}
+                  >
+                    {vipDepositStatus}
+                  </span>
+                </div>
+                <div className=\"pending-vip-status-grid\">
+                  <div>
+                    <span>Requerido</span>
+                    <strong>{money(vipDepositAmount)}</strong>
+                  </div>
+                  <div>
+                    <span>Fecha límite</span>
+                    <strong>{vipDepositDueAt ? dateTime(vipDepositDueAt) : 'Sin fecha límite'}</strong>
+                  </div>
+                  <div>
+                    <span>Pagado</span>
+                    <strong>{money(vipPaidAmount)}</strong>
+                  </div>
+                  <div>
+                    <span>Falta</span>
+                    <strong>{money(vipPendingAmount)}</strong>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+"""
+          if marker not in text:
+              raise SystemExit('No se encontró el bloque de notas para insertar la condición VIP')
+          path.write_text(text.replace(marker, replacement, 1))
+          PY
+      - name: Formatear y validar frontend
+        run: |
+          npm ci
+          npx prettier --write apps/web/src/pages/sale-detail-page.tsx
+          npm run build:shared
+          npm run build -w @yukimi/web
+      - name: Eliminar workflow temporal y confirmar cambios
+        run: |
+          rm .github/workflows/hotfix-vip-react-card.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/pages/sale-detail-page.tsx .github/workflows/hotfix-vip-react-card.yml
+          git commit -m "fix: integrar estado parcial de adelanto VIP en React"
+          git push origin main
