@@ -703,11 +703,11 @@ function patchSaleRequests() {
 }
 
 function runPendingEnhancements() {
-  enhanceDashboard();
+  // El dashboard queda bajo control exclusivo de React.
   void enhanceProductAccumulated();
   enhanceInventoryHeaders();
   enhanceSaleWizard();
-  void enhanceSaleVipStatus();
+  // El estado VIP se representa desde el flujo seguro de pagos; evitar tarjetas DOM duplicadas.
   enhancePaymentFeedback();
   enhanceDeliveryCostHelp();
 }

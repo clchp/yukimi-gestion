@@ -1247,7 +1247,7 @@ function enhanceDraftNavigation() {
 }
 
 function runEnhancements() {
-  enhanceDashboard();
+  // El dashboard ya es React nativo; no modificar sus nodos por fuera de React.
   enhanceFinanceChart();
   enhanceReconciliation();
   enhanceProductExport();
