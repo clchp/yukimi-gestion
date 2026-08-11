@@ -3,7 +3,7 @@ services:
     name: yukimi-api
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build:shared && npm run build -w @yukimi/api
+    buildCommand: npm ci --include=dev && npm run build:shared && npm run build -w @yukimi/api
     startCommand: npm run start -w @yukimi/api
     healthCheckPath: /api/v1/health
     envVars:
