@@ -14,6 +14,15 @@ function money(value: number) {
   }).format(value);
 }
 
+function shortDate(value: string | null) {
+  if (!value) return 'Sin fecha límite';
+  return new Intl.DateTimeFormat('es-PE', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
 function currentSaleId() {
   return location.pathname.match(/^\/ventas\/([0-9a-f-]{36})$/i)?.[1] ?? null;
 }
@@ -54,17 +63,27 @@ function installSafeVisualStyles() {
       line-height: 1.4;
     }
 
-    .sale-financial-stack .panel[data-vip-deposit-summary] .panel-body::before {
-      content: attr(data-vip-deposit-summary);
+    .sale-detail-main > .panel[data-vip-condition-summary]::after {
+      content: attr(data-vip-condition-summary);
       display: block;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
+      margin-top: 14px;
+      border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
       border-radius: 12px;
-      padding: 10px 12px;
-      background: var(--surface-soft);
-      color: var(--muted);
+      padding: 12px 14px;
+      background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+      color: var(--text);
+      white-space: pre-line;
       font-size: 0.76rem;
-      line-height: 1.45;
+      font-weight: 600;
+      line-height: 1.65;
+    }
+
+    .sale-detail-main > .panel[data-vip-condition-status='Cumplido']::after {
+      border-color: color-mix(in srgb, #1f9d68 32%, var(--border));
+    }
+
+    .sale-detail-main > .panel[data-vip-condition-status='Vencido']::after {
+      border-color: color-mix(in srgb, #c43f4f 35%, var(--border));
     }
   `;
   document.head.append(style);
@@ -84,18 +103,19 @@ function paymentFingerprint() {
     .join('|')}`;
 }
 
-function paymentPanel() {
-  return [...document.querySelectorAll<HTMLElement>('.sale-financial-stack .panel')].find((panel) => {
-    const heading = panel.querySelector<HTMLElement>('.panel-header h2, .panel-header h3, h2, h3');
-    return heading?.textContent?.trim() === 'Pagos';
-  });
+function saleSummaryPanel() {
+  return [...document.querySelectorAll<HTMLElement>('.sale-detail-main > .panel')].find(
+    (panel) => panel.querySelector('h2')?.textContent?.trim() === 'Resumen de la venta',
+  );
 }
 
 function clearVipAttributes() {
   document.querySelectorAll<HTMLElement>('.payment-card[data-vip-deposit-amount]').forEach((card) => {
     delete card.dataset.vipDepositAmount;
   });
-  paymentPanel()?.removeAttribute('data-vip-deposit-summary');
+  const summary = saleSummaryPanel();
+  summary?.removeAttribute('data-vip-condition-summary');
+  summary?.removeAttribute('data-vip-condition-status');
 }
 
 async function annotateVipPayments() {
@@ -117,7 +137,21 @@ async function annotateVipPayments() {
       return;
     }
 
-    let remaining = depositAmount;
+    const snapshot = sale.negotiatedTermsSnapshot as Record<string, unknown>;
+    const dueAt = typeof snapshot.depositDueAt === 'string' ? snapshot.depositDueAt : null;
+    const paid = Math.min(Math.max(sale.paidTotal, 0), depositAmount);
+    const remaining = Math.max(depositAmount - paid, 0);
+    const overdue = remaining > 0 && dueAt != null && new Date(dueAt).getTime() < Date.now();
+    const status =
+      remaining === 0 ? 'Cumplido' : overdue ? 'Vencido' : paid > 0 ? 'Parcial' : 'Pendiente';
+
+    const summary = saleSummaryPanel();
+    if (summary) {
+      summary.dataset.vipConditionStatus = status;
+      summary.dataset.vipConditionSummary = `Condición VIP · Adelanto — ${status}\nRequerido: ${money(depositAmount)} · Fecha límite: ${shortDate(dueAt)} · Pagado: ${money(paid)} · Falta: ${money(remaining)}`;
+    }
+
+    let depositRemaining = depositAmount;
     const contributions = new Map<string, number>();
     const confirmed = [...financials.payments]
       .filter((payment) => payment.stateCode === 'CONFIRMED')
@@ -128,10 +162,10 @@ async function annotateVipPayments() {
       });
 
     for (const payment of confirmed) {
-      if (remaining <= 0) break;
-      const contribution = Math.min(remaining, payment.declaredAmount);
+      if (depositRemaining <= 0) break;
+      const contribution = Math.min(depositRemaining, payment.declaredAmount);
       if (contribution > 0) contributions.set(payment.code, contribution);
-      remaining = Math.max(0, remaining - contribution);
+      depositRemaining = Math.max(0, depositRemaining - contribution);
     }
 
     for (const card of document.querySelectorAll<HTMLElement>('.payment-card')) {
@@ -139,14 +173,6 @@ async function annotateVipPayments() {
       const contribution = contributions.get(code);
       if (!contribution) continue;
       card.dataset.vipDepositAmount = money(contribution);
-    }
-
-    const panel = paymentPanel();
-    if (panel) {
-      panel.dataset.vipDepositSummary =
-        remaining > 0
-          ? `Adelanto VIP pendiente: ${money(remaining)} de ${money(depositAmount)}. Los pagos confirmados se aplican primero a este adelanto.`
-          : `Adelanto VIP cubierto: ${money(depositAmount)}. Los pagos que lo completaron están identificados abajo.`;
     }
 
     lastVipFingerprint = paymentFingerprint();
