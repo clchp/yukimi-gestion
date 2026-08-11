@@ -322,7 +322,11 @@ export function DashboardPage() {
                 <i className="legend-dot primary-dot" /> Ventas
               </span>
               <span>
-                <i className="legend-dot neutral-dot" /> Cobros
+                <i
+                  className="legend-dot neutral-dot"
+                  style={{ backgroundColor: '#D0CBD1' }}
+                />{' '}
+                Cobros
               </span>
             </div>
           </div>
@@ -358,6 +362,7 @@ export function DashboardPage() {
                       aria-hidden="true"
                       style={{
                         height: `${Math.max(item.collectionsAmount > 0 ? 5 : 0, (item.collectionsAmount / maxWeekly) * 100)}%`,
+                        backgroundColor: '#D0CBD1',
                       }}
                     />
                   </button>
