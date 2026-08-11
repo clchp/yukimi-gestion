@@ -19,6 +19,7 @@ import { installImportSmartWorkflow } from './app/import-smart-workflow';
 import { installNotificationSettingsRuntime } from './app/notification-settings-runtime';
 import { installPendingWorkflowEnhancements } from './app/pending-workflow-enhancements';
 import { installPostMergeReviewFixes } from './app/post-merge-review-fixes';
+import { installProductionFinalPolish } from './app/production-final-polish';
 import { installRuntimeUxEnhancements } from './app/runtime-ux-enhancements';
 import { installSaleWizardSummaryEnhancement } from './app/sale-wizard-summary-enhancement';
 import { installSettingsPartnerNavFinalFix } from './app/settings-partner-nav-final-fix';
@@ -77,6 +78,7 @@ installPostMergeReviewFixes();
 installSettingsPartnerNavFinalFix();
 installFinanceReportsSmartCharts();
 installNotificationSettingsRuntime();
+installProductionFinalPolish(queryClient);
 
 const isLocalPushHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 if ('serviceWorker' in navigator && (import.meta.env.PROD || isLocalPushHost)) {
