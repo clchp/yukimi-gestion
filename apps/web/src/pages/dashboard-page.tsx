@@ -362,7 +362,7 @@ export function DashboardPage() {
                       aria-hidden="true"
                       style={{
                         height: `${Math.max(item.collectionsAmount > 0 ? 5 : 0, (item.collectionsAmount / maxWeekly) * 100)}%`,
-                        backgroundColor: '#D0CBD1',
+                        background: '#D0CBD1',
                       }}
                     />
                   </button>
