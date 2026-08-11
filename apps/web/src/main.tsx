@@ -6,7 +6,6 @@ import { installDeliveryCostLock } from './app/delivery-cost-lock';
 import { installDeliveryDetailCost } from './app/delivery-detail-cost';
 import { installDeliveryPartnerOptions } from './app/delivery-partner-options';
 import { installFinalPendingCorrections } from './app/final-pending-corrections';
-import { installFinanceReportsSmartCharts } from './app/finance-reports-smart-charts';
 import { installImportBoxActionClarity } from './app/import-box-action-clarity';
 import { installImportDniFinalAdjustments } from './app/import-dni-final-adjustments';
 import { installImportDniManagementRuntime } from './app/import-dni-management-runtime';
@@ -76,7 +75,6 @@ installDeliveryDetailCost();
 installDeliveryPartnerOptions();
 installPostMergeReviewFixes();
 installSettingsPartnerNavFinalFix();
-installFinanceReportsSmartCharts();
 installNotificationSettingsRuntime();
 installProductionFinalPolish(queryClient);
 
